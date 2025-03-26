@@ -139,32 +139,32 @@ const getConcerns = async (request, reply) => {
 const login = async (req, reply) => {
   const { mobile } = req.body;
 
-  // Simulating a database search for the user by mobile number
-  const user = await User.findOne({ where: { mobile } }); // Replace with actual DB query
+  
+  const user = await User.findOne({ where: { mobile } }); 
 
   if (!user) {
     return errorResponse('Invalid mobile number', reply, 'custom');
   }
 
-  // Fetch the wallet for the user
-  const wallet = await Wallet.findByUserId(user.id); // Use the user's id to fetch the wallet
+  
+  const wallet = await Wallet.findByUserId(user.id); 
 
-  // If wallet is not found, return an error
+  
   if (!wallet) {
     return errorResponse('Wallet not found', reply, 'custom');
   }
 
-  // Create a JWT token for the user
+  
   const token = req.server.jwt.sign({ mobile: user.mobile }, { expiresIn: '1d' });
 
-  // Send the token as an HTTP-only cookie and return success response with wallet data
+  
   return reply
     .setCookie('token', token, {
-      httpOnly: true, // The cookie is not accessible via JavaScript
-      secure: process.env.NODE_ENV === 'production', // Set this to true if you're in production (HTTPS)
-      maxAge: 24 * 60 * 60 * 1000, // Token expiration time (1 day)
+      httpOnly: true, 
+      secure: process.env.NODE_ENV === 'production', 
+      maxAge: 24 * 60 * 60 * 1000, 
     })
-    .send(successResponse({ token, user, wallet }, 'Login successful!', reply)); // Include the wallet in the response
+    .send(successResponse({ token, user, wallet }, 'Login successful!', reply)); 
 };
 
 

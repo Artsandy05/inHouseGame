@@ -1,0 +1,60 @@
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+
+# Dependency directories
+# ./games/node_modules
+# ./bulag-pipi-bingi/node_modules
+# pigeon-race/node_modules/
+# golden-goose/node_modules/
+**/node_modules/
+bower_components/
+vendor/
+.env
+
+# Build files
+dist/
+build/
+out/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
+*.db
+
+# Environment files
+server/.env
+server/.env.local
+server/.env.development
+server/.env.test
+server/.env.production
+
+# Temporary files
+*.tmp
+*.temp
+
+# Debug files
+*.debug
+*.pid
+
+# Coverage directories
+coverage/
+.nyc_output/
+
+# System files
+*.swp
+*~
+~$*

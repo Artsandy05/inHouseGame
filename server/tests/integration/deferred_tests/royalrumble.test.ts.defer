@@ -1,0 +1,303 @@
+import WebSocket from 'ws';
+import { ClientCommands, GameState, ModeratorCommands } from '../../../common/gameutils';
+import { SocketConnection, Server, PlayerTestState, arraysEqual, deepCompare, UUIDS, areArraysEqual } from './common';
+
+describe("RoyalRumbleTest", () => {
+  const TOTAL_PLAYERS = 12;
+  let port = 8005;
+  let server = new Server(port);
+  const modUUID = "701e5a69-f680-4423-b73b-ce2b35d74800";
+  let moderator = new SocketConnection(
+    `ws://localhost:${port}/websocket?uuid=${modUUID}`
+  );
+  let players = [];
+
+  beforeAll(async () => {
+    for (let i = 0; i < TOTAL_PLAYERS; i++) {
+      players.push(
+        new SocketConnection(
+          `ws://localhost:${port}/websocket?uuid=${UUIDS[i]}`
+        )
+      );
+    }
+    await server.beforeAll();
+  });
+
+  afterAll(async () => {
+    await server.afterAll();
+  });
+
+  beforeEach(async () => {
+    await server.beforeEach();
+  });
+
+  afterEach(async () => {
+    moderator.send(
+      JSON.stringify({
+        cmd: ModeratorCommands.ResetServer,
+      })
+    );
+    await moderator.afterEach();
+    players.forEach((p) => {
+      p.afterEach();
+    });
+  });
+
+  test("AllPlayersBet5Index0Wins", async () => {
+    const mod: WebSocket = await moderator.connect();
+    let matrix = [
+      { index: 0, amount: 5, odds: 10.8, balance: 149, prize: 54 },
+      { index: 1, amount: 5, odds: 10.8 },
+      { index: 2, amount: 5, odds: 10.8 },
+      { index: 3, amount: 5, odds: 10.8 },
+      { index: 4, amount: 5, odds: 10.8 },
+      { index: 5, amount: 5, odds: 10.8 },
+      { index: 6, amount: 5, odds: 10.8 },
+      { index: 7, amount: 5, odds: 10.8 },
+      { index: 8, amount: 5, odds: 10.8 },
+      { index: 9, amount: 5, odds: 10.8 },
+      { index: 10, amount: 5, odds: 10.8 },
+      { index: 11, amount: 5, odds: 10.8 },
+    ];
+
+    await testBet(moderator, players, matrix, 0, expect);
+  });
+
+  test("Test4PlayerBetIndex0Wins", async () => {
+    let matrix = [
+      { index: 0, amount: 5, odds: 1.8, balance: 104, prize: 9 },
+      { index: 0, amount: 10, odds: 1.8, balance: 108, prize: 18 },
+      { index: 0, amount: 20, odds: 1.8, balance: 116, prize: 36 },
+      { index: 0, amount: 5, odds: 1.8, balance: 104, prize: 9 },
+      { index: 4, amount: 5, odds: 14.4 },
+      { index: 5, amount: 5, odds: 14.4 },
+      { index: 6, amount: 5, odds: 14.4 },
+      { index: 7, amount: 5, odds: 14.4 },
+      { index: 8, amount: 5, odds: 14.4 },
+      { index: 9, amount: 5, odds: 14.4 },
+      { index: 10, amount: 5, odds: 14.4 },
+      { index: 11, amount: 5, odds: 14.4 },
+    ];
+
+    await testBet(moderator, players, matrix, 0, expect);
+  });
+
+  test("TestWinIndex2", async () => {
+    let matrix = [
+      { index: 0, amount: 5, odds: 17.1 },
+      { index: 1, amount: 5, odds: 3.42, balance: 112.1, prize: 17.1 },
+      { index: 1, amount: 20, odds: 3.42, balance: 148.4, prize: 68.4 },
+      { index: 2, amount: 5, odds: 5.7 },
+      { index: 2, amount: 10, odds: 5.7 },
+
+      { index: 3, amount: 5, odds: 17.1 },
+      { index: 4, amount: 5, odds: 17.1 },
+      { index: 5, amount: 5, odds: 17.1 },
+      { index: 6, amount: 5, odds: 17.1 },
+      { index: 7, amount: 5, odds: 17.1 },
+
+      { index: 8, amount: 5, odds: 3.42 },
+      { index: 8, amount: 20, odds: 3.42 },
+    ];
+
+    await testBet(moderator, players, matrix, 1, expect);
+  });
+});
+
+async function testBet(moderator, players, matrix, winnerIndex, expect) {
+  const mod: WebSocket = await moderator.connect();
+  let pSockets = await loadPlayers(players);
+  
+  await finishBetting(mod, pSockets, matrix);
+  await validateAllResults(mod, pSockets, matrix, winnerIndex);
+}
+
+async function receviedAllBets(socket, expectRes, betsCount) {
+  return new Promise<void>((resolve, reject) => {
+    socket.on('message', handle);
+
+    let count = 0;
+    function handle(data) {
+      let message = JSON.parse(data);
+      if (message.state === GameState.OpenBetting) {
+        count += 1;
+        
+        if (message.state === expectRes.state &&
+          areArraysEqual(message.odds, expectRes.odds)
+        ) {
+          socket.removeListener('message', handle);
+          setTimeout(() => {
+            resolve();
+          }, 10);
+        } else {
+          if (count > betsCount) {
+            reject(`Error: all bets are accounted, but no match found for odds`);
+          }
+        }
+      }
+    }
+  })
+}
+
+
+
+async function loadPlayers(players) {
+  let sockets = [];
+  for (let i = 0; i < players.length; i++) {
+    let p: WebSocket = await players[i].connect();
+    sockets.push(p);
+  }
+  return sockets;
+}
+
+async function finishBetting(mod, pSockets, matrix) {
+  await delay(10);
+  const odds = getOdds(matrix);
+  const rcvAllBets = receviedAllBets(
+    mod,
+    {
+      state: GameState.OpenBetting,
+      odds: odds,
+    },
+    odds.length
+  );
+
+  await setToOpenBettingState(mod);
+  await delay(10);
+  for (let i = 0; i < pSockets.length; i++) {
+    bet(pSockets[i], matrix[i].index, matrix[i].amount);
+  }
+  await rcvAllBets;
+  await delay(10);
+}
+
+async function validateAllResults(mod, pSockets, matrix, winnerIndex) {
+  let results = [];
+  matrix.forEach((m, i) => {
+    if (m.index === winnerIndex) {
+      let winner = validateResult(pSockets[i], {
+        state: "WinnerDeclared",
+        balance: parseFloat(m.balance),
+        winnerIndex: winnerIndex,
+        prize: parseFloat(m.prize),
+      });
+      results.push(winner);
+    } else {
+      const loser = validateResult(pSockets[i], {
+        state: "WinnerDeclared",
+        winnerIndex: winnerIndex,
+      });
+      results.push(loser);
+    }
+  });
+
+  await selectPlayerWinner(mod, winnerIndex);
+  for (let i = 0; i < pSockets.length; i++) {
+    await results[i];
+  }
+}
+
+async function delay(num) {
+  return new Promise<void>((resolve, reject) => {
+    setTimeout(() => {
+      resolve();
+    }, num);
+  });
+}
+
+function getOdds(matrix) {
+  const odds = Array.from({ length: 12 }, () => 0);
+
+  matrix.forEach((m) => {
+    odds[m.index] = m.odds;
+  });
+
+  return odds;
+}
+
+function bet(socket, index, amount) {
+  socket.send(
+    JSON.stringify({
+      cmd: ClientCommands.Bet,
+      bets: { index: index, amount: amount },
+    })
+  );
+}
+
+async function selectPlayerWinner(socket, index) {
+  return new Promise<void>((resolve, reject) => {
+    setTimeout(() => {
+      socket.send(
+        JSON.stringify({
+          cmd: GameState.WinnerDeclared,
+          index: index,
+        })
+      );
+      resolve();
+    }, 10);
+  });
+}
+
+async function validateResult(socket, expectRes) {
+  return new Promise<void>((resolve, reject) => {
+    socket.on("message", handle);
+
+    function handle(data) {
+      let message = JSON.parse(data);
+      const keys = Object.keys(expectRes);
+      keys.forEach((k) => {
+        expect(message[k]).toEqual(expectRes[k]);
+      });
+
+      resolve();
+    }
+  });
+}
+
+async function setToOpenBettingState(socket) {
+  socket.send(
+    JSON.stringify({
+      cmd: ModeratorCommands.Init,
+    })
+  );
+
+  return new Promise<void>((resolve, reject) => {
+    socket.on("message", handleMessage);
+
+    async function handleMessage(data: string) {
+      let message = JSON.parse(data);
+
+      // console.log(message)
+      
+      switch (message.state) {
+        case GameState.NotOnSchedule:
+          socket.send(JSON.stringify({
+            cmd: GameState.Standby,
+          }));
+          break;
+        case GameState.Standby:
+          socket.send(
+            JSON.stringify({
+              cmd: GameState.OpenBetting,
+            })
+          );
+          break;
+        case GameState.OpenBetting:
+          socket.removeListener("message", handleMessage);
+          // NOT PROVEN: When adding delay, the bets of ${playerName} (player) proceeds
+          // Removing this will result of not able to receive players' bets
+          setTimeout(() => {
+            resolve();
+          }, 10);
+
+          break;
+        default:
+        // console.log(`Default ${message.state}`);
+      }
+    }
+  });
+}
+
+// TODO: 100 Players
+
+// TODO: Database change

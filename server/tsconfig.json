@@ -1,0 +1,22 @@
+// @ts-ignore
+{
+  "name": "Zodiac Typescript to Javascript",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "tsc"
+  },
+  "compilerOptions": {
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "outDir": "./dist",
+    "esModuleInterop": true,
+    "target": "es6",
+    "module": "commonjs",
+    "types": ["node", "@types/babel__core", "jest", "puppeteer"],
+    "lib": ["ES6", "DOM"]
+  },
+  "include": ["**/*.ts"],
+  "devDependencies": {
+    "typescript": "^4.5.4"
+  }
+}

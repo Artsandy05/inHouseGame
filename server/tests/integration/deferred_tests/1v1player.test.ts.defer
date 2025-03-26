@@ -1,0 +1,778 @@
+import WebSocket from 'ws';
+import { ClientCommands, GameState, ModeratorCommands } from '../../../common/gameutils';
+import { SocketConnection, Server, PlayerTestState, arraysEqual, deepCompare, MODERATOR_UUID, UUIDS } from './common';
+
+describe('1v1PlayerTest', () => {
+  let port = 8004
+  let moderator = new SocketConnection(`ws://localhost:${port}/websocket?uuid=${MODERATOR_UUID}`);
+  let player1 = new SocketConnection(`ws://localhost:${port}/websocket?uuid=${UUIDS[0]}`);
+  let player2 = new SocketConnection(`ws://localhost:${port}/websocket?uuid=${UUIDS[1]}`);
+
+  let server = new Server(port);
+  
+  beforeAll(async () => {
+    await server.beforeAll();
+  });
+
+  afterAll(async () => {
+    await server.afterAll();
+    
+  });
+
+  beforeEach(async () => {
+    await server.beforeEach();
+  });
+
+  afterEach(async () => {
+    moderator.send(JSON.stringify({
+      cmd: ModeratorCommands.ResetServer,
+    }));
+    await moderator.afterEach();
+    await player1.afterEach();
+    await player2.afterEach();
+  });
+
+
+  test('2PlayersCorrectOddsBet5', (done) => {
+    moderator.reconnect(expect, done, setGameSetToOpenBetting);
+    player1.reconnect(expect, done, player1Bet);
+    player2.reconnect(expect, done, player2Bet);
+
+    let player1SuccessTest = false;
+
+    function setGameSetToOpenBetting(expect, done, socket) {
+      let serverCalls = 0;
+      socket.on('message', async (data: string) => {
+        let message = JSON.parse(data);
+        // console.log("serverCalls " + serverCalls);
+        switch (message.state) {
+          case GameState.NotOnSchedule:
+            socket.send(JSON.stringify({
+              cmd: GameState.Standby,
+            }));
+            break;
+          case GameState.Standby:
+            socket.send(JSON.stringify({
+              cmd: GameState.OpenBetting,
+            }));
+            break;
+          default: 
+          // console.log(`Default ${message.state}`);
+        }
+        serverCalls += 1;
+      });
+    }
+  
+    function player1Bet(expect, done, socket) {
+      setTimeout(() => {
+        player1.state = PlayerTestState.Betting;
+        // socket.send(JSON.stringify({cmd: "init"}));
+        player1.send(JSON.stringify({
+          cmd: ClientCommands.Bet,
+          bets: { index: 0, amount: 5.0, }
+        }));
+      }, 10);
+
+      let messages = [];
+      setTimeout(() => {
+        expect(messages).toContainEqual({
+          state: 'OpenBetting',
+          odds: [
+            1.8, 1.8, 0, 0, 0,
+              0,   0, 0, 0, 0,
+              0,   0
+          ],
+          balance: 95
+        });
+        player1SuccessTest = true;
+      }, 100);
+
+      socket.on('message', async (data: string) => {
+        let message = JSON.parse(data);
+        if (message.state === GameState.OpenBetting) {
+          // console.log(message);
+          messages.push(message);
+        }
+  
+      });
+    }
+
+    function player2Bet(expect, done, socket) {
+      setTimeout(() => {
+        player2.state = PlayerTestState.Betting;
+        // socket.send(JSON.stringify({cmd: "init"}));
+        player2.send(JSON.stringify({
+          cmd: ClientCommands.Bet,
+          bets: { index: 1, amount: 5.0, }
+        }));
+      }, 10);
+
+      let messages = [];
+      setTimeout(() => {
+        expect(messages).toContainEqual({
+          state: 'OpenBetting',
+          odds: [
+            1.8, 1.8, 0, 0, 0,
+              0,   0, 0, 0, 0,
+              0,   0
+          ],
+          balance: 95
+        });
+        expect(player1SuccessTest).toBe(true);
+        done();
+      }, 150);
+
+      socket.on('message', async (data: string) => {
+        let message = JSON.parse(data);
+        if (message.state === GameState.OpenBetting) {
+          // console.log(message);
+          messages.push(message);
+        }
+  
+      });
+    }
+  });
+
+  test('Player1WinsBet5', (done) => {
+    moderator.reconnect(expect, done, setGameSetToOpenBetting);
+    player1.reconnect(expect, done, player1Bet);
+    player2.reconnect(expect, done, player2Bet);
+
+    let player1AlreadyBet = false;
+    let player2AlreadyBet = false;
+    let player1Success = false;
+
+    function setGameSetToOpenBetting(expect, done, socket) {
+      socket.on('message', async (data: string) => {
+        let message = JSON.parse(data);
+
+        // console.log(message);
+
+        switch (message.state) {
+          case GameState.NotOnSchedule:
+            socket.send(JSON.stringify({
+              cmd: GameState.Standby,
+            }));
+            break;
+          case GameState.Standby:
+            socket.send(JSON.stringify({
+              cmd: GameState.OpenBetting,
+            }));
+            break;
+          case GameState.OpenBetting:
+            if (player1AlreadyBet && player2AlreadyBet) {
+              setTimeout(() => {
+                
+                socket.send(JSON.stringify({
+                  cmd: GameState.WinnerDeclared,
+                  index: 0,
+                }));
+                // console.log("GameState.WinnerDeclared")
+
+              }, 10);
+              
+            }
+            break;
+          default: 
+          // console.log(`Default ${message.state}`);
+        }
+      });
+    }
+  
+    function player1Bet(expect, done, socket) {
+      setTimeout(() => {
+        player1.state = PlayerTestState.Betting;
+        player1.send(JSON.stringify({
+          cmd: ClientCommands.Bet,
+          bets: { index: 0, amount: 5.0, }
+        }));
+        player1AlreadyBet = true;
+      }, 10);
+
+      let m = null;
+      setTimeout(() => {
+        expect(m).toEqual({ 
+          state: 'WinnerDeclared', 
+          balance: 104, 
+          winnerIndex: 0, 
+          prize: 9 
+        });
+        player1Success = true;
+      }, 100);
+
+      socket.on('message', async (data: string) => {
+        let message = JSON.parse(data);
+        if (message.state === GameState.WinnerDeclared) {
+          m = message;
+          // console.log(message);
+        }
+      });
+    }
+
+    function player2Bet(expect, done, socket) {
+      setTimeout(() => {
+        player2.state = PlayerTestState.Betting;
+        player2.send(JSON.stringify({
+          cmd: ClientCommands.Bet,
+          bets: { index: 1, amount: 5.0, }
+        }));
+        player2AlreadyBet = true;
+      }, 10);
+
+      let m = null;
+      setTimeout(() => {
+        expect(m).toEqual({ 
+          state: 'WinnerDeclared', 
+          winnerIndex: 0
+        });
+        expect(player1Success).toBe(true);
+        done();
+      }, 150);
+
+      socket.on('message', async (data: string) => {
+        let message = JSON.parse(data);
+        if (message.state === GameState.WinnerDeclared) {
+          // console.log(message);
+          m = message;
+        }
+      });
+    }
+  });
+
+  test('Player2WinsBet5', (done) => {
+    moderator.reconnect(expect, done, setGameSetToOpenBetting);
+    player1.reconnect(expect, done, player1Bet);
+    player2.reconnect(expect, done, player2Bet);
+
+    let player1AlreadyBet = false;
+    let player2AlreadyBet = false;
+    let player1Success = false;
+
+    function setGameSetToOpenBetting(expect, done, socket) {
+      socket.on('message', async (data: string) => {
+        let message = JSON.parse(data);
+
+        // console.log(message);
+
+        switch (message.state) {
+          case GameState.NotOnSchedule:
+            socket.send(JSON.stringify({
+              cmd: GameState.Standby,
+            }));
+            break;
+          case GameState.Standby:
+            socket.send(JSON.stringify({
+              cmd: GameState.OpenBetting,
+            }));
+            break;
+          case GameState.OpenBetting:
+            if (player1AlreadyBet && player2AlreadyBet) {
+              setTimeout(() => {
+                
+                socket.send(JSON.stringify({
+                  cmd: GameState.WinnerDeclared,
+                  index: 1,
+                }));
+                // console.log("GameState.WinnerDeclared")
+
+              }, 10);
+              
+            }
+            break;
+          default: 
+          // console.log(`Default ${message.state}`);
+        }
+      });
+    }
+  
+    function player1Bet(expect, done, socket) {
+      setTimeout(() => {
+        player1.state = PlayerTestState.Betting;
+        player1.send(JSON.stringify({
+          cmd: ClientCommands.Bet,
+          bets: { index: 0, amount: 5.0, }
+        }));
+        player1AlreadyBet = true;
+      }, 10);
+
+      let m = null;
+      setTimeout(() => {
+        expect(m).toEqual({ 
+          state: 'WinnerDeclared', 
+          winnerIndex: 1 
+        });
+        player1Success = true;
+      }, 100);
+      
+      socket.on('message', async (data: string) => {
+        let message = JSON.parse(data);
+        if (message.state === GameState.WinnerDeclared) {
+          m = message;
+          // console.log(message);
+        }
+      });
+    }
+
+    function player2Bet(expect, done, socket) {
+      setTimeout(() => {
+        player2.state = PlayerTestState.Betting;
+        player2.send(JSON.stringify({
+          cmd: ClientCommands.Bet,
+          bets: { index: 1, amount: 5.0, }
+        }));
+        player2AlreadyBet = true;
+      }, 10);
+
+      let m = null;
+      setTimeout(() => {
+        expect(m).toEqual({ 
+          state: 'WinnerDeclared', 
+          balance: 104, 
+          winnerIndex: 1, 
+          prize: 9 
+        });
+        expect(player1Success).toBe(true);
+        done();
+      }, 150);
+
+
+      socket.on('message', async (data: string) => {
+        let message = JSON.parse(data);
+        if (message.state === GameState.WinnerDeclared) {
+          // console.log(message);
+          m = message;
+        }
+      });
+    }
+  });
+
+  test('Player1WinsBet10', async () => {
+    const mod: WebSocket = await moderator.connect();
+    const p1: WebSocket = await player1.connect();
+    const p2: WebSocket = await player2.connect();
+
+    const receivedBothBets = serverReceivedBothBets(mod);
+    mod.send(JSON.stringify({
+      cmd: GameState.Standby,
+    }));
+
+    await setToOpenBettingState(mod);
+    
+    p1.send(JSON.stringify({
+      cmd: ClientCommands.Bet,
+      bets: { index: 0, amount: 10.0, }
+    }));
+
+    
+    p2.send(JSON.stringify({
+      cmd: ClientCommands.Bet,
+      bets: { index: 1, amount: 10.0, }
+    }));
+
+    await receivedBothBets;
+    const resultP1 = validatePlayer1Result(p1);
+    const resultP2 = validatePlayer2Result(p2);
+    await selectPlayer1AsWinner(mod);
+    await resultP1;
+    await resultP2;
+    
+    // How to know if both bets are already processed on the server?
+    // There should be already setup listener before setting up bets
+
+    const expectRes = { 
+      state: 'WinnerDeclared', 
+      balance: 108, 
+      winnerIndex: 0, 
+      prize: 18 
+    }
+
+    async function setToOpenBettingState(socket) {
+      return new Promise<void>((resolve, reject) => {
+        socket.on('message', handleMessage);
+
+        function handleMessage(data: string) {
+          let message = JSON.parse(data);
+          switch (message.state) {
+            case GameState.NotOnSchedule:
+              socket.send(JSON.stringify({
+                cmd: GameState.Standby,
+              }));
+              break;
+            case GameState.Standby:
+              socket.send(JSON.stringify({
+                cmd: GameState.OpenBetting,
+              }));
+              break;
+            case GameState.OpenBetting:
+              socket.removeListener('message', handleMessage);
+              // NOT PROVEN: When adding delay, the bets of ${playerName} (player) proceeds
+              // Removing this will result of not able to receive players' bets
+              setTimeout(() => {  
+                resolve();
+              }, 10);
+              
+              break;
+            default: 
+            // console.log(`Default ${message.state}`);
+          }
+        }
+      });
+    }
+
+    async function serverReceivedBothBets(socket) {
+      let expected = {
+        state: 'OpenBetting',
+        odds: [
+          1.8, 1.8, 0, 0, 0,
+            0,   0, 0, 0, 0,
+            0,   0
+        ]
+      };
+
+      return new Promise<void>((resolve, reject) => {
+        socket.on('message', handle);
+
+        function handle(data) {
+          let message = JSON.parse(data);
+          if (message.state === GameState.OpenBetting) {
+            if (deepCompare(expected, message)) {
+              socket.removeListener('message', handle);
+              setTimeout(() => {
+                resolve();
+              }, 10);
+            }
+          }
+        }
+      })
+    }
+    
+    async function selectPlayer1AsWinner(mod) {
+      return new Promise<void>((resolve, reject) => {
+        setTimeout(() => {
+          mod.send(JSON.stringify({
+            cmd: GameState.WinnerDeclared,
+            index: 0,
+          }));
+          resolve();
+        }, 10);
+      })
+    }
+
+    async function validatePlayer1Result(socket) {
+      const expectRes = { 
+        state: 'WinnerDeclared', 
+        balance: 108, 
+        winnerIndex: 0, 
+        prize: 18 
+      };
+
+      return new Promise<void>((resolve, reject) => {
+        socket.on('message', handle);
+
+        function handle(data) {
+          let message = JSON.parse(data);
+          expect(message).toEqual(expectRes);
+          resolve();
+        }
+      });
+    }
+
+    async function validatePlayer2Result(socket) {
+      const expectRes = { 
+        state: 'WinnerDeclared',
+        winnerIndex: 0,
+      };
+
+      return new Promise<void>((resolve, reject) => {
+        socket.on('message', handle);
+
+        function handle(data) {
+          let message = JSON.parse(data);
+          expect(message).toEqual(expectRes);
+          resolve();
+        }
+      });
+    }
+
+  });
+
+  test('Player2WinsBet10', async () => {
+    const mod: WebSocket = await moderator.connect();
+    const p1: WebSocket = await player1.connect();
+    const p2: WebSocket = await player2.connect();
+
+    const receivedBothBets = serverReceivedBothBets(mod);
+    mod.send(JSON.stringify({
+      cmd: GameState.Standby,
+    }));
+
+    await setToOpenBettingState(mod);
+    
+    p1.send(JSON.stringify({
+      cmd: ClientCommands.Bet,
+      bets: { index: 0, amount: 10.0, }
+    }));
+
+    
+    p2.send(JSON.stringify({
+      cmd: ClientCommands.Bet,
+      bets: { index: 1, amount: 10.0, }
+    }));
+
+    await receivedBothBets;
+    const resultP1 = validateResult(p1, { 
+      state: 'WinnerDeclared',
+      winnerIndex: 1,
+    });
+    const resultP2 = validateResult(p2, { 
+      state: 'WinnerDeclared', 
+      balance: 108, 
+      winnerIndex: 1, 
+      prize: 18 
+    });
+      
+    await selectPlayerWinner(mod, 1);
+    await resultP1;
+    await resultP2;
+  });
+
+  test('Player1WinsBet20', async () => {
+    const mod: WebSocket = await moderator.connect();
+    const p1: WebSocket = await player1.connect();
+    const p2: WebSocket = await player2.connect();
+
+    const receivedBothBets = serverReceivedBothBets(mod);
+    mod.send(JSON.stringify({
+      cmd: GameState.Standby,
+    }));
+
+    await setToOpenBettingState(mod);
+
+    bet(p1, 0, 20.0);
+    bet(p2, 1, 20.0);
+
+    await receivedBothBets;
+    const resultP1 = validateResult(p1, { 
+      state: 'WinnerDeclared',
+      balance: 116, 
+      winnerIndex: 0,
+      prize: 36
+    });
+    const resultP2 = validateResult(p2, { 
+      state: 'WinnerDeclared', 
+      winnerIndex: 0, 
+    });
+      
+    await selectPlayerWinner(mod, 0);
+    await resultP1;
+    await resultP2;
+  });
+
+  test('Player2WinsBet20', async () => {
+    const mod: WebSocket = await moderator.connect();
+    const p1: WebSocket = await player1.connect();
+    const p2: WebSocket = await player2.connect();
+
+    const receivedBothBets = serverReceivedBothBets(mod);
+    mod.send(JSON.stringify({
+      cmd: GameState.Standby,
+    }));
+
+    await setToOpenBettingState(mod);
+
+    bet(p1, 0, 20.0);
+    bet(p2, 1, 20.0);
+
+    await receivedBothBets;
+    const resultP1 = validateResult(p1, { 
+      state: 'WinnerDeclared',
+      winnerIndex: 1,
+    });
+    const resultP2 = validateResult(p2, { 
+      state: 'WinnerDeclared',
+      balance: 116, 
+      winnerIndex: 1,
+      prize: 36
+    });
+      
+    await selectPlayerWinner(mod, 1);
+    await resultP1;
+    await resultP2;
+  });
+
+  test('Player1WinsBet100', async () => {
+    let winner = 0;
+
+    const mod: WebSocket = await moderator.connect();
+    const p1: WebSocket = await player1.connect();
+    const p2: WebSocket = await player2.connect();
+
+    const receivedBothBets = serverReceivedBothBets(mod);
+    mod.send(JSON.stringify({
+      cmd: GameState.Standby,
+    }));
+
+    await setToOpenBettingState(mod);
+
+    bet(p1, 0, 100.0);
+    bet(p2, 1, 100.0);
+
+    await receivedBothBets;
+    const resultP1 = validateResult(p1, { 
+      state: 'WinnerDeclared',
+      balance: 180, 
+      winnerIndex: winner,
+      prize: 180
+    });
+    const resultP2 = validateResult(p2, { 
+      state: 'WinnerDeclared',
+      winnerIndex: winner,
+    });
+      
+    await selectPlayerWinner(mod, winner);
+    await resultP1;
+    await resultP2;
+  });
+
+  test('Player2WinsBet100', async () => {
+    let winner = 1;
+
+    const mod: WebSocket = await moderator.connect();
+    const p1: WebSocket = await player1.connect();
+    const p2: WebSocket = await player2.connect();
+
+    const receivedBothBets = serverReceivedBothBets(mod);
+    mod.send(JSON.stringify({
+      cmd: GameState.Standby,
+    }));
+
+    await setToOpenBettingState(mod);
+
+    bet(p1, 0, 100.0);
+    bet(p2, 1, 100.0);
+
+    await receivedBothBets;
+    const resultP1 = validateResult(p1, { 
+      state: 'WinnerDeclared',
+      winnerIndex: winner,
+    });
+    const resultP2 = validateResult(p2, { 
+      state: 'WinnerDeclared',
+      balance: 180, 
+      winnerIndex: winner,
+      prize: 180
+    });
+      
+    await selectPlayerWinner(mod, winner);
+    await resultP1;
+    await resultP2;
+  });
+
+});
+
+function bet(socket, index, amount) {
+  socket.send(JSON.stringify({
+    cmd: ClientCommands.Bet,
+    bets: { index: index, amount: amount, }
+  }));
+}
+
+async function selectPlayerWinner(socket, index) {
+  return new Promise<void>((resolve, reject) => {
+    setTimeout(() => {
+      socket.send(JSON.stringify({
+        cmd: GameState.WinnerDeclared,
+        index: index,
+      }));
+      resolve();
+    }, 10);
+  })
+}
+
+
+async function validateResult(socket, expectRes) {
+  return new Promise<void>((resolve, reject) => {
+    socket.on('message', handle);
+
+    function handle(data) {
+      let message = JSON.parse(data);
+      expect(message).toEqual(expectRes);
+      resolve();
+    }
+  });
+}
+
+async function setToOpenBettingState(socket) {
+  return new Promise<void>((resolve, reject) => {
+    socket.on('message', handleMessage);
+
+    function handleMessage(data: string) {
+      let message = JSON.parse(data);
+      switch (message.state) {
+        case GameState.NotOnSchedule:
+          socket.send(JSON.stringify({
+            cmd: GameState.Standby,
+          }));
+          break;
+        case GameState.Standby:
+          socket.send(JSON.stringify({
+            cmd: GameState.OpenBetting,
+          }));
+          break;
+        case GameState.OpenBetting:
+          socket.removeListener('message', handleMessage);
+          // NOT PROVEN: When adding delay, the bets of ${playerName} (player) proceeds
+          // Removing this will result of not able to receive players' bets
+          setTimeout(() => {  
+            resolve();
+          }, 10);
+          
+          break;
+        default: 
+        // console.log(`Default ${message.state}`);
+      }
+    }
+  });
+}
+
+async function serverReceivedBothBets(socket) {
+  let expected = {
+    state: 'OpenBetting',
+    odds: [
+      1.8, 1.8, 0, 0, 0,
+        0,   0, 0, 0, 0,
+        0,   0
+    ]
+  };
+
+  return new Promise<void>((resolve, reject) => {
+    socket.on('message', handle);
+
+    function handle(data) {
+      let message = JSON.parse(data);
+      if (message.state === GameState.OpenBetting) {
+        if (deepCompare(expected, message)) {
+          socket.removeListener('message', handle);
+          setTimeout(() => {
+            resolve();
+          }, 10);
+        }
+      }
+    }
+  })
+}
+
+// TODO: Two players
+
+// TODO: 5 Players
+
+// TODO: 100 Players
+
+// TODO: Database change
+
+
+
+
+
+
+  

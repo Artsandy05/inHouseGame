@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "types": ["babel__generator"],
+    "typeRoots": ["node_modules/@types"]
+    //Other options
+  }
+  //Other configurations...
+}

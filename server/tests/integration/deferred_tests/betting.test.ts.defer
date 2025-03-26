@@ -1,0 +1,176 @@
+import { ClientCommands, GameState, ModeratorCommands, hasValue } from "../../../common/gameutils";
+import { TestUtils, getTestData } from "../../utils/tests/TestUtils";
+import { Server, SocketConnection, UUIDS, createUsers, delay, loadPlayers, receviedAllBets, sameValueRoundedArray, setToOpenBettingState } from "./common";
+import ExcelJS from 'exceljs';
+
+
+describe('SideBetTests', () => {
+  const TOTAL_PLAYERS = 12;
+  let port = 8001;
+  let server = new Server(port);
+  const modUUID = "701e5a69-f680-4423-b73b-ce2b35d74800";
+  let moderator = new SocketConnection(`ws://localhost:${port}/websocket?uuid=${modUUID}`);
+  let players = []
+
+  beforeAll(async () => {
+    await server.beforeAll();
+  });
+
+  afterAll(async () => {
+    await server.afterAll();
+  });
+
+  beforeEach(async () => {
+    await server.beforeEach();
+  });
+
+  afterEach(async () => {
+    moderator.send(JSON.stringify({
+      cmd: ModeratorCommands.Restart,
+    }));
+    await moderator.afterEach();
+    players.forEach((p) => {
+      p.afterEach();
+    })
+  });
+
+  test('TestBettingOdds', async () => {
+    const rootFolder = process.cwd();
+    let worksheet = await TestUtils.getWorksheet(
+      `${rootFolder}/tests/integration/files/SidebetTest1.xlsx`,
+      2
+    );
+    const data = getTestData(worksheet);
+    let players = [];
+    
+
+    const users = await createUsers(server.connection, data.input);
+    for (let i = 0; i < TOTAL_PLAYERS; i++) {
+      const uuid = users[i].uuid;
+      players.push(new SocketConnection(`ws://localhost:${port}/websocket?uuid=${uuid}`));
+    }
+
+    const modSocket = await moderator.connect();
+    let pSockets = await loadPlayers(players);
+
+    await setToOpenBettingState(modSocket, data.input.fee);
+    // console.log("1");
+    const allBetsDone = allBetsDoneListener(modSocket, data.input.bets.size);
+    await delay(100);
+    placeBets(pSockets, data.input_array);
+
+    const res = await allBetsDone;
+    // validateOdds(res, expect); // FIXME: Enable later
+    await delay(100);
+
+    // FIXME: Sometimes, the rest of the players are not receiving updates
+    const playersWaiting = waitToValidateGameResults(pSockets, data.output);
+    await delay(100);
+    setGameResult(modSocket);
+    await playersWaiting;
+  });
+
+});
+
+async function allBetsDoneListener(modSocket, totalBetsCount) {
+  let results = [];
+  return new Promise<any[]>((resolve, reject) => {
+    modSocket.on('message', handle);
+
+    function handle(data) {
+      let msg = JSON.parse(data);
+
+      let d = {
+        odds: new Map<string, []>(msg.odds)
+      }
+
+      results.push(d);
+      if (results.length === totalBetsCount) {
+        resolve(results)
+      }
+    }
+  })
+}
+
+function placeBets(pSockets, input) {
+  pSockets.forEach((s, idx) => {
+    const bet = input.bets[idx];
+
+    s.send(JSON.stringify({
+      orders: bet.orders,
+      amounts: bet.amounts
+    }));
+  });
+}
+
+function validateOdds(res, expect) {
+  const keyValuePairs: [string, number][] = [
+    ['0', 10.2],
+    ['1', 10.2],
+    ['11', 5.1],
+    ['3', 10.2],
+    ['4', 10.2],
+    ['5', 10.2],
+    ['6', 10.2],
+    ['7', 10.2],
+    ['8', 10.2],
+    ['9', 10.2],
+    ['10', 10.2],
+    ['1,2', 7.083333333333333],
+    ['9,8', 5.3125],
+    ['7,5', 10.625],
+    ['5,7', 5.3125],
+    ['2,3', 21.25],
+    ['3,4', 5.3125],
+    ['4,5', 10.625],
+    ['5,6', 21.25],
+    ['6,7', 10.625],
+    ['7,8', 21.25],
+    ['8,9', 21.25],
+    ['1,2,3', 6.233333333333333],
+    ['5,3,2', 2.6714285714285713],
+    ['2,3,4', 18.7],
+    ['3,4,5', 18.7],
+    ['4,5,6', 4.675],
+    ['5,6,7', 9.35],
+    ['6,7,8', 9.35],
+    ['7,8,9', 9.35],
+    ['1,2,3,4', 7.225],
+    ['7,8,9,1', 14.45],
+    ['5,4,3,2', 14.45],
+    ['1,3,4,5', 3.6125],
+    ['2,3,4,5', 14.45],
+    ['3,4,5,6', 14.45],
+    ['4,5,6,7', 3.6125],
+    ['6,7,8,9', 14.45],
+    ['7,8,9,10', 7.225]
+  ];
+  const map = new Map<string, number>(keyValuePairs);
+  expect(map).toEqual(res[res.length - 1].odds)
+}
+
+
+async function waitToValidateGameResults(sockets, output) {
+  for (let i = 0; i < sockets.length; i++) {
+    await validateResult(sockets[i], output[i]);
+  }
+}
+
+function setGameResult(modSocket) {
+  modSocket.send(JSON.stringify({
+    winners: [1, 2, 3, 4]
+  }));
+}
+
+async function validateResult(socket, expectedResult) {
+  return new Promise<void>((resolve, reject) => {
+    socket.on('message', handle);
+
+    function handle(data) {
+      let msg = JSON.parse(data);
+      // console.log(`ex: ${expectedResult.prizes}: res: ${msg.prizes}`);
+      sameValueRoundedArray(expectedResult.prizes, msg.prizes, expect, 5);
+      resolve();
+    }
+  });
+}

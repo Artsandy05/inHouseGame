@@ -1,0 +1,760 @@
+const { v4: uuidv4 } = require('uuid');
+import { setup, teardown } from 'jest-dev-server';
+import WebSocket from 'ws';
+import { GameState, MOBILE_NUMBERS, MODERATOR_MOBILE, ModeratorCommands } from '../../../common/gameutils';
+const mysql = require('mysql2/promise');
+
+
+export async function clearTables(connection) {
+  // await connection.query(`DROP TABLE IF EXISTS notifications`); // FIXME: Clashing with integration tests
+  // await connection.query(`DROP TABLE IF EXISTS sessions`);
+/*   await connection.query(`DROP TABLE IF EXISTS users`);
+  await connection.query(`DROP TABLE IF EXISTS transactions`);
+  await connection.query(`DROP TABLE IF EXISTS wallets`);
+  
+  const createUsers = `
+    CREATE TABLE users (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      uuid CHAR(36) NOT NULL,
+      accountId CHAR(36) NOT NULL,
+      mobile VARCHAR(255),
+      otp VARCHAR(255),
+      firstName VARCHAR(255),
+      lastName VARCHAR(255),
+      nickName VARCHAR(255),
+      role ENUM('superadmin','admin','supervisor','verifier','masteragent','agent','operator','moderator','accounting','player'),
+      referralCodeForMA VARCHAR(255),
+      referralLinkForMA VARCHAR(255),
+      referralCodeForAgent VARCHAR(255),
+      referralLinkForAgent VARCHAR(255),
+      username VARCHAR(255),
+      email VARCHAR(255),
+      birthdate DATETIME,
+
+      placeOfBirth VARCHAR(255),
+      nationalities VARCHAR(255),
+      natureOfWork VARCHAR(255),
+      sourceOfIncome VARCHAR(255),
+
+      gender INT DEFAULT 0,
+      address VARCHAR(255),
+
+      usePresentAddress VARCHAR(255),
+      currentAddressId VARCHAR(255),
+      permanentAddressId VARCHAR(255),
+
+      profilePicture VARCHAR(255),
+      govtType VARCHAR(255) NOT NULL,
+      govtId VARCHAR(255) NOT NULL,
+      govtPicture VARCHAR(255),
+      govtIdPicture VARCHAR(255),
+      password VARCHAR(255),
+      otpExpiration DATETIME,
+      otpMaxEntries INT DEFAULT 20,
+      otpMaxEntriesExpiration DATETIME,
+      isMobileVerified TINYINT(1) DEFAULT 0,
+      isEmailVerified TINYINT(1) DEFAULT 0,
+      actionStatus ENUM('new', 'forapproval', 'fordeactive', 'deactivated'),
+      isSupervisorApproved TINYINT(1) DEFAULT 0,
+      isVerifierApproved TINYINT(1) DEFAULT 0,
+      isDenied TINYINT(1) DEFAULT 0,
+      isDeactivated TINYINT(1) DEFAULT 0,
+      supervisorWhoApprove CHAR(36),
+      verifierWhoApprove CHAR(36),
+      personWhoDeactivated CHAR(36),
+      personWhoDenied CHAR(36),
+      supervisorApprovedAt DATETIME,
+      verifierApprovedAt DATETIME,
+      deniedReason TEXT,
+      deactivatedReason TEXT,
+      deniedAt DATETIME,
+      deactivatedAt DATETIME,
+      updatedAt DATETIME,
+      deletedAt DATETIME,
+      commission DECIMAL(5, 2),
+      createdAt DATETIME NOT NULL,
+      createdBy INT DEFAULT 20
+  );`;
+  const createWallets = `
+    CREATE TABLE wallets (
+      id INT NOT NULL AUTO_INCREMENT,
+      user_id INT NOT NULL,
+      balance DECIMAL(10, 6) NOT NULL DEFAULT 0.00,
+      createdAt DATETIME NOT NULL,
+      updatedAt DATETIME NOT NULL,
+      PRIMARY KEY (id),
+      INDEX user_id_index (user_id)
+  );`
+  const createTransactions = `
+    CREATE TABLE transactions (
+      id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      wallet_id INT NOT NULL,
+      amount DECIMAL(10, 6) NOT NULL,
+      type ENUM("bet", "wonprize", "deposit", "load", "withdrawal") NOT NULL,
+      createdAt DATETIME NOT NULL,
+      updatedAt DATETIME NOT NULL,
+      user_id INT,
+      INDEX wallet_id_index (wallet_id),
+      INDEX user_id_index (user_id)
+  );
+  `
+  await connection.query(createUsers);
+  await connection.query(createWallets);
+  await connection.query(createTransactions); */
+}
+
+export async function createUsers(connection, input) {
+  await clearTables(connection);
+
+  const users = [];
+  const arrayFromMap = Array.from(input.bets.entries());
+
+  const generateUUID = (index) => {
+    return arrayFromMap[index][0];
+  };
+
+  const generateBirthdate = () => {
+    const start = new Date(1960, 0, 1); // Set a reasonable start date for birthdates
+    const end = new Date(2005, 11, 31); // Set a reasonable end date for birthdates
+    const birthdate = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+    return birthdate.toISOString().split('T')[0]; // Return in YYYY-MM-DD format
+  };
+
+  const generateMobile = (index) => {
+    // const prefix = '+639'; // Assuming mobile numbers start with '09'
+    // const randomNumber = Math.floor(Math.random() * 1000000000).toString().padStart(8, '0');
+    // return prefix + randomNumber;
+    return MOBILE_NUMBERS[index]
+  };
+
+  const generatePassword = () => {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const passwordLength = 8; // Set the length of the password
+    let password = '';
+    for (let i = 0; i < passwordLength; i++) {
+        password += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    return password;
+  };
+
+  const moderator = {
+    uuid: "701e5a69-f680-4423-b73b-ce2b35d74800",
+    mobile: MODERATOR_MOBILE,
+    accountId: "701e5a69-f680-4423-b73b-ce2b35d74800", // FIXME: Create function based from UUID
+    otp: null,
+    firstName: `Moderator`,
+    lastName: "Mod",
+    nickName: "701e5a69-f680-4423-b73b-ce2b35d74800",
+    role: 'moderator',
+    referralCodeForMA: '',
+    referralLinkForMA: '',
+    referralCodeForAgent: '',
+    referralLinkForAgent: '',
+    username: `moderator`,
+    email: `moderator@mail.com`,
+    birthdate: generateBirthdate(),
+    placeOfBirth: '',
+
+    nationalities: '',
+    natureOfWork: '',
+    sourceOfIncome: '',
+
+    gender: 0,
+    address: `Player Address Mod`,
+
+    usePresentAddress: 1,
+    currentAddressId: 1,
+    permanentAddressId: 1,
+
+    profilePicture: null,
+    govtType: generatePassword(),
+    govtId: generatePassword(),
+    govtPicture: null,
+    govtIdPicture: null,
+    password: generatePassword(),
+    otpExpiration: null,
+    otpMaxEntries: 20,
+    otpMaxEntriesExpiration: null,
+    isMobileVerified: true,
+    isEmailVerified: false,
+    
+    actionStatus: 'new',
+    isSupervisorApproved: true,
+    isVerifierApproved: true,
+    isDenied: false,
+    isDeactivated: false,
+    supervisorWhoApprove: null,
+    verifierWhoApprove: null,
+    personWhoDeactivated: null,
+    personWhoDenied: null,
+    supervisorApprovedAt: null,
+    verifierApprovedAt: null,
+    deniedReason: null,
+    deactivatedReason: null,
+    deniedAt: null,
+    deactivatedAt: null,
+	  deletedAt: null,
+    commission: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    createdBy: null,
+  }
+  await connection.query('INSERT INTO users SET ?', moderator);
+
+  for (let i = 0; i < 12; i++) {
+    users.push({
+      uuid: generateUUID(i),
+      accountId: generateUUID(i), // FIXME: Create function based from UUID
+      mobile: generateMobile(i),
+      otp: null,
+      firstName: `Player${i}`,
+      lastName: "User",
+      nickName: generateUUID(i),
+      role: 'player',
+      username: `playeruser${i}`,
+      email: `player${i}@mail.com`,
+      birthdate: generateBirthdate(),
+      
+      placeOfBirth: '',
+      nationalities: '',
+      natureOfWork: '',
+      sourceOfIncome: '',
+
+      gender: 0,
+      address: `Player Address ${i}`,
+      usePresentAddress: 1,
+      currentAddressId: 1,
+      permanentAddressId: 1,
+      profilePicture: null,
+      govtType: generatePassword(),
+      govtId: generatePassword(),
+      govtPicture: null,
+      govtIdPicture: null,
+      password: generatePassword(),
+      otpExpiration: null,
+      otpMaxEntries: 20,
+      otpMaxEntriesExpiration: null,
+      isMobileVerified: true,
+      isEmailVerified: false,
+      actionStatus: 'new',
+      isSupervisorApproved: true,
+      isVerifierApproved: true,
+      isDenied: false,
+      isDeactivated: false,
+      supervisorWhoApprove: null,
+      verifierWhoApprove: null,
+      personWhoDeactivated: null,
+      personWhoDenied: null,
+      supervisorApprovedAt: null,
+      verifierApprovedAt: null,
+      deniedReason: null,
+      deactivatedReason: null,
+      deniedAt: null,
+      deactivatedAt: null,
+      deletedAt: null,
+      commission: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      createdBy: null,
+    });
+  }
+  // console.log(users);
+
+  for (const user of users) {
+    await connection.query('INSERT INTO users SET ?', user);
+  }
+  return users;
+}
+
+export default async function initDatabase(connection) {
+  const createUsers = `
+    CREATE TABLE users (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      uuid CHAR(36) NOT NULL,
+      accountId CHAR(36) NOT NULL,
+      mobile VARCHAR(255),
+      otp VARCHAR(255),
+      firstName VARCHAR(255),
+      lastName VARCHAR(255),
+      nickName VARCHAR(255),
+      role ENUM('superadmin','admin','supervisor','verifier','masteragent','agent','operator','moderator','accounting','player'),
+      referralCodeForMA VARCHAR(255),
+      referralLinkForMA VARCHAR(255),
+      referralCodeForAgent VARCHAR(255),
+      referralLinkForAgent VARCHAR(255),
+      username VARCHAR(255),
+      email VARCHAR(255),
+      birthdate DATETIME,
+
+      placeOfBirth VARCHAR(255),
+      nationalities VARCHAR(255),
+      natureOfWork VARCHAR(255),
+      sourceOfIncome VARCHAR(255),
+
+      gender INT DEFAULT 0,
+      address VARCHAR(255),
+
+      usePresentAddress VARCHAR(255),
+      currentAddressId VARCHAR(255),
+      permanentAddressId VARCHAR(255),
+
+      profilePicture VARCHAR(255),
+      govtType VARCHAR(255) NOT NULL,
+      govtId VARCHAR(255) NOT NULL,
+      govtPicture VARCHAR(255),
+      govtIdPicture VARCHAR(255),
+      password VARCHAR(255),
+      otpExpiration DATETIME,
+      otpMaxEntries INT DEFAULT 20,
+      otpMaxEntriesExpiration DATETIME,
+      isMobileVerified TINYINT(1) DEFAULT 0,
+      isEmailVerified TINYINT(1) DEFAULT 0,
+      actionStatus ENUM('new', 'forapproval', 'fordeactive', 'deactivated'),
+      isSupervisorApproved TINYINT(1) DEFAULT 0,
+      isVerifierApproved TINYINT(1) DEFAULT 0,
+      isDenied TINYINT(1) DEFAULT 0,
+      isDeactivated TINYINT(1) DEFAULT 0,
+      supervisorWhoApprove CHAR(36),
+      verifierWhoApprove CHAR(36),
+      personWhoDeactivated CHAR(36),
+      personWhoDenied CHAR(36),
+      supervisorApprovedAt DATETIME,
+      verifierApprovedAt DATETIME,
+      deniedReason TEXT,
+      deactivatedReason TEXT,
+      deniedAt DATETIME,
+      deactivatedAt DATETIME,
+      commission DECIMAL(5, 2),
+      updatedAt DATETIME,
+      deletedAt DATETIME,
+      createdAt DATETIME NOT NULL
+  );`;
+  const createWallets = `
+    CREATE TABLE wallets (
+      id INT NOT NULL AUTO_INCREMENT,
+      user_id INT NOT NULL,
+      balance DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+      createdAt DATETIME NOT NULL,
+      updatedAt DATETIME NOT NULL,
+      PRIMARY KEY (id),
+      INDEX user_id_index (user_id)
+  );`
+  const createTransactions = `
+    CREATE TABLE transactions (
+      id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      wallet_id INT NOT NULL,
+      amount DECIMAL(10, 2) NOT NULL,
+      type ENUM('deposit', 'load', 'withdrawal') NOT NULL,
+      createdAt DATETIME NOT NULL,
+      updatedAt DATETIME NOT NULL,
+      user_id INT,
+      INDEX wallet_id_index (wallet_id),
+      INDEX user_id_index (user_id)
+  );
+  `
+  await connection.query(createUsers);
+  await connection.query(createWallets);
+  await connection.query(createTransactions);
+}
+
+export class SocketConnection {
+  url = null;
+  socket = null;
+  state = null;
+
+  constructor(url) {
+    // console.log(url)
+    this.url = url;
+    this.state = PlayerTestState.None;
+  }
+  async connect() {
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 10;
+
+    const connectWebSocket = async () => {
+      return new Promise((resolve, reject) => {
+        const socket = this.createSocket();
+        socket.onopen = () => {
+          resolve(socket);
+        }
+
+        socket.onerror = (error) => {
+          if (reconnectAttempts < maxReconnectAttempts) {
+            reconnectAttempts++;
+            setTimeout(() => {
+              resolve(connectWebSocket());
+            }, 300);
+          } else {
+            reject(new Error(`WebSocket connection failed after ${maxReconnectAttempts}`));
+          }
+        };
+      })
+    }
+    const socket = await connectWebSocket();
+    this.socket = socket;
+    return socket;
+  }
+
+  tryUntilConnected(openFn) {
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5; // Maximum number of reconnect attempts
+  
+    const connectWebSocket = () => {
+      this.socket = this.createSocket();
+      this.socket.onopen = () => {
+        openFn();
+      };
+      
+      this.socket.onerror = (error) => {
+        // console.error('WebSocket error:', error);
+  
+        if (reconnectAttempts < maxReconnectAttempts) {
+          reconnectAttempts++;
+          // console.log(`Reconnecting attempt ${reconnectAttempts}...`);
+          setTimeout(connectWebSocket, 300); // Reconnect after 1 second
+        } else {
+          console.log("Failed to connect");
+          // done.fail('WebSocket connection failed.'); // Fail the test if max attempts reached
+        }
+      };
+    };
+  
+    connectWebSocket(); // Start initial connection attempt
+  }
+
+  reconnect(expect, done, fnTest = (a, b, c) => {}) {
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5; // Maximum number of reconnect attempts
+  
+    const connectWebSocket = () => {
+      this.socket = this.createSocket();
+      this.socket.onopen = () => {
+        // console.log('WebSocket connection opened.');
+        // done(); // Signal test completion if connection is successful
+
+        fnTest(expect, done, this.socket);
+      };
+      
+      
+  
+      this.socket.onerror = (error) => {
+        // console.error('WebSocket error:', error);
+  
+        if (reconnectAttempts < maxReconnectAttempts) {
+          reconnectAttempts++;
+          // console.log(`Reconnecting attempt ${reconnectAttempts}...`);
+          setTimeout(connectWebSocket, 300); // Reconnect after 1 second
+        } else {
+          done.fail('WebSocket connection failed.'); // Fail the test if max attempts reached
+        }
+      };
+    };
+  
+    connectWebSocket(); // Start initial connection attempt
+  }
+  createSocket() {
+    return new WebSocket(this.url);
+  }
+  
+  async afterEach() {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      this.socket.close();
+    }
+  }
+  isConnected() {
+    return (this.socket && this.socket.readyState === WebSocket.OPEN);
+  }
+
+  send(data) {
+    if (this.isConnected()) {
+      this.socket.send(data);
+    } else {
+      // console.log(`socket is not connected ${this.url}`);
+    }
+  }
+
+
+}
+
+export class Server {
+  server = null;
+  port = null;
+  connection = null;
+
+  constructor(port = 8001) {
+    this.port = port;
+  }
+
+  async beforeAll() {
+    this.connection = await mysql.createConnection({
+      host: 'localhost',
+      user: 'root',
+      password: 'testing',
+      database: `zodiac${this.port}`,
+    });
+
+
+    this.server = await setup({
+      command: `
+      lsof -i :${this.port}
+      kill $(lsof -t -i:${this.port}) 
+      PORT=${this.port} DB_NAME=zodiac${this.port} npm run dev
+      `,
+      debug: true,
+      // launchTimeout: 30000,
+    });
+    
+  }
+  async afterAll() {
+    await this.connection.end();
+    await teardown(this.server);
+  }
+
+  async beforeEach() {
+    // await initDatabase(this.connection);
+    await clearTables(this.connection);
+    // await createUsers(this.connection);
+  }
+  async afterEach() {
+    
+  }
+}
+
+export enum PlayerTestState {
+  None = "None",
+  Initialization = "Initialization",
+  Betting = "Betting",
+  BettingDone = "BettingDone",
+  ReceiveUpdateFromOtherPlayers = "ReceiveUpdateFromOtherPlayers",
+}
+
+
+export function arraysEqual(arr1, arr2) {
+  // Check if arrays have the same length
+  if (arr1.length !== arr2.length) {
+    return false;
+  }
+
+  // Check if every element in arr1 is equal to the corresponding element in arr2
+  return arr1.every((value, index) => value === arr2[index]);
+}
+
+export function deepCompare(obj1, obj2) {
+  // Check if both arguments are objects
+  if (typeof obj1 !== 'object' || typeof obj2 !== 'object') {
+    return obj1 === obj2; // If not objects, compare directly
+  }
+
+  // Get the keys of both objects
+  const keys1 = Object.keys(obj1);
+  const keys2 = Object.keys(obj2);
+
+  // Check if the number of keys is the same
+  if (keys1.length !== keys2.length) {
+    return false;
+  }
+
+  // Check if all keys in obj1 are present in obj2 and have the same values
+  for (let key of keys1) {
+    // Check if the second object has the same key
+    if (!obj2.hasOwnProperty(key)) {
+      return false; // If the key doesn't exist in obj2, return false
+    }
+
+    // Recursively compare values if both are objects, or directly if not
+    if (!deepCompare(obj1[key], obj2[key])) {
+      return false; // If the values are not equal, return false
+    }
+  }
+
+  // All keys in obj1 are present in obj2 with the same values
+  return true;
+}
+
+
+export function areArraysEqual(arr1, arr2) {
+  if (arr1.length !== arr2.length) {
+    return false;
+  }
+
+  for (let i = 0; i < arr1.length; i++) {
+    if (arr1[i] !== arr2[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+
+export const MODERATOR_UUID = "701e5a69-f680-4423-b73b-ce2b35d74800";
+
+export const UUIDS = [
+  "6fee21de-7a5f-47c1-867a-903c6a77e7c4",
+  "1b9dd9da-61b4-4a94-b2d0-be22cccf2b7a",
+  "ca7e0afc-15c4-44a4-81a6-a146edc39b2c",
+  "faf0eb74-1bff-4e63-b711-407c00c77bed",
+  "a948d383-5549-46b8-877d-0ee7802b7eb7",
+  "468a242c-73a2-44b6-a5b9-4fd7f90d890a",
+  "3a8fc5f2-fccd-4685-8d93-4eccd7171bf6",
+  "465e1667-3bac-41d4-a05a-7b0f6ad63d6d",
+  "7285c182-7283-43e8-992d-f86a797ffe72",
+  "dd47f40d-34f2-4ceb-936b-5c06cad509fa",
+  "dd47f40d-34f2-4ceb-936b-5c06cad00000",
+  "dd47f40d-34f2-4ceb-936b-5c06cad00012"
+];
+
+
+
+
+
+export async function notOnScheduleListener(socket) {
+  return new Promise((resolve, reject) => {
+    socket.on('message', async (data: string) => {
+      let message = JSON.parse(data);
+      if (message.state === GameState.Idle) {
+        resolve(message);
+      }
+    });
+  });
+}
+
+export async function standbyListener(socket) {
+  return new Promise((resolve, reject) => {
+    socket.on('message', async (data: string) => {
+      let message = JSON.parse(data);
+      if (message.state === GameState.Idle) {
+        resolve(message);
+      }
+    });
+  });
+}
+
+export async function openBettingListener(socket) {
+  return new Promise((resolve, reject) => {
+    socket.on('message', async (data: string) => {
+      let message = JSON.parse(data);
+      if (message.state === GameState.Open) {
+        resolve(message);
+      }
+    });
+  });
+}
+
+export async function winnerDeclaredListener(socket) {
+  return new Promise((resolve, reject) => {
+    socket.on('message', async (data: string) => {
+      let message = JSON.parse(data);
+      if (message.state === GameState.WinnerDeclared) {
+        resolve(message);
+      }
+    });
+  });
+}
+
+export async function delay(num) {
+  return new Promise<void>((resolve, reject) => {
+    setTimeout(() => {
+      resolve();
+    }, num);
+  });
+}
+
+
+
+
+export async function loadPlayers(players) {
+  let sockets: Array<WebSocket> = [];
+  for (let i = 0; i < players.length; i++) {
+    let p: WebSocket = await players[i].connect();
+    sockets.push(p);
+  }
+  return sockets;
+}
+
+
+export async function receviedAllBets(socket, expectRes, betsCount) {
+  return new Promise<void>((resolve, reject) => {
+    socket.on('message', handle);
+
+    let count = 0;
+    function handle(data) {
+      let message = JSON.parse(data);
+
+      if (message.state === GameState.Open) {
+        count += 1;
+        
+        if (message.state === expectRes.state &&
+          areArraysEqual(message.odds, expectRes.odds)
+        ) {
+          socket.removeListener('message', handle);
+          setTimeout(() => {
+            resolve();
+          }, 10);
+        } else {
+          if (count > betsCount) {
+            reject(`Error: all bets are accounted, but no match found for odds`);
+          }
+        }
+      }
+    }
+  })
+}
+
+export async function setToOpenBettingState(socket, fee) {
+  socket.send(JSON.stringify({
+    cmd: ModeratorCommands.Init,
+    fee: fee
+  }));
+
+  return new Promise<void>((resolve, reject) => {
+    socket.on('message', handleMessage);
+
+    async function handleMessage(data: string) {
+      let message = JSON.parse(data);
+
+      // console.log(message)
+      switch (message.state) {
+        case GameState.Idle:
+          await delay(10);
+          socket.send(JSON.stringify({
+            cmd: GameState.Open,
+          }));
+
+          
+          break;
+        case GameState.NewGame:
+          socket.send(JSON.stringify({
+            cmd: GameState.Open,
+          }));
+          break;
+        case GameState.Open:
+          socket.removeListener('message', handleMessage);
+          // NOT PROVEN: When adding delay, the bets of the player proceeds
+          // Removing this will result of not able to receive players' bets
+          setTimeout(() => {  
+            resolve();
+          }, 10);
+          
+          break;
+        default: 
+        // console.log(`Default ${message.state}`);
+      }
+    }
+  });
+}
+
+
+
+
+
+
+export function sameValueRoundedArray(a, b, expect, places) {
+  let arrA = [];
+  let arrB = [];
+  for (let i = 0; i < a.length; i++) {
+    arrA.push(a[i].toFixed(places));
+    arrB.push(b[i].toFixed(places));
+  }
+  expect(arrA).toEqual(arrB);
+}

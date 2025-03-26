@@ -1,0 +1,10 @@
+node_modules
+.env
+package-lock.json
+tsconfig.tsbuildinfo
+.vercel
+.~lock*
+public/uploads/images/profile-pictures/**
+public/uploads/images/govt-pictures/**
+merchant_private_key.pem
+zoloz_public_key.pem

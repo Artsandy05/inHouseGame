@@ -1,0 +1,129 @@
+import puppeteer, { Page, Browser, ElementHandle } from 'puppeteer';
+
+// Declare variables for page and browser objects
+let page: Page;
+let browser: Browser;
+
+beforeAll(async () => {
+  // Launch a new browser instance and create a new page
+  // browser = await puppeteer.launch();
+  const browser = await puppeteer.launch({headless: false});
+  page = await browser.newPage();
+});
+
+afterAll(async () => {
+  // Close the browser instance after all tests have finished
+  await browser.close();
+});
+
+describe('User 1 Tests', () => {
+  test('Test 2', async () => {
+    const res = await page.goto('http://localhost:3001');
+
+    await sleep(99999999)
+  });
+
+  test('Test 1', async () => {
+    const res = await page.goto('http://localhost:3001');
+
+    await sleep(99999999)
+
+    await page.waitForSelector('#mobile');
+    // const phoneNumInput = await page.$('#mobile');
+
+    await page.type('#mobile', '9568351534');
+
+    // console.log("done mobile");
+
+    const checkboxElement: ElementHandle | null = await page.waitForSelector('.PrivateSwitchBase-input');
+
+    if (checkboxElement) {
+      await checkboxElement.click();
+    } else {
+      throw new Error('Checkbox element not found');
+    }
+
+    // console.log("done check");
+    const login: ElementHandle | null = await page.waitForSelector('#login');
+    login.click();
+
+    // console.log("done login");
+
+    const otpInput: ElementHandle | null = await page.waitForSelector('.MuiTextField-root');
+
+    // console.log("done otp1");
+    if (otpInput) {
+      await otpInput.click();
+
+      // Paste the OTP value into the input field
+      // await page.keyboard.type('111111'); // Replace '123456' with the actual OTP value
+    } else {
+      throw new Error('OTP input field not found');
+    }
+
+    console.log("done otp2");
+
+
+    const verify: ElementHandle | null = await page.waitForSelector('#button-verify');
+    verify.click();
+    // await page.waitForTimeout(1000); 
+
+
+    // Usage
+    // try {
+    //   const verifyButton = await waitForClickableSelector('#verifyButton');
+    //   await verifyButton.click();
+    // } catch (error) {
+    //   console.error(error);
+    // }
+    // console.log("done")
+
+
+
+    // async function waitForClickableSelector(page: puppeteer.Page, selector: string, timeout: number = 5000): Promise<puppeteer.ElementHandle<Element>> {
+    //   const startTime = Date.now();
+    //   let element: puppeteer.ElementHandle<Element> | null = null;
+    
+    //   while (!element && Date.now() - startTime < timeout) {
+    //     await new Promise(resolve => setTimeout(resolve, 100)); // Polling interval, adjust as needed
+    //     element = await page.$(selector);
+    //   }
+    
+    //   if (!element) {
+    //     throw new Error(`Element ${selector} not found within ${timeout}ms`);
+    //   }
+    
+    //   return element;
+    // }
+    
+
+
+    // console.log("before verify");
+    // const verify: ElementHandle | null = await page.waitForSelector('#button-verify');
+    // if (verify) {
+    //   console.log("Verify button found");
+    
+    //   // Click on the Verify button
+    //   await verify.click();
+    
+    //   console.log("Verify button clicked");
+    // } else {
+    //   throw new Error('Verify button not found');
+    // }
+    // console.log("done verify");
+
+    // otp
+
+    // console.log(phoneNumInput)
+
+    // await page.type('#username', 'user1');
+    // await page.type('#password', 'password');
+    // await page.click('#login-button');
+  });
+});
+
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+

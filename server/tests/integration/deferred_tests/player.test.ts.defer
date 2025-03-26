@@ -1,0 +1,702 @@
+import WebSocket from 'ws';
+import { ClientCommands, GameState, ModeratorCommands } from '../../../common/gameutils';
+import { SocketConnection, Server, MODERATOR_UUID, UUIDS, notOnScheduleListener, standbyListener, openBettingListener, winnerDeclaredListener } from './common';
+
+describe('playerConnect', () => {
+  let port = 8003;
+  let server = new Server(port);
+  let moderator = new SocketConnection(`ws://localhost:${port}/websocket?uuid=${MODERATOR_UUID}`);
+  let player = new SocketConnection(`ws://localhost:${port}/websocket?uuid=${UUIDS[0]}`);
+  
+  beforeAll(async () => {
+    await server.beforeAll();
+  });
+
+  afterAll(async () => {
+    await server.afterAll();
+    
+  });
+
+  beforeEach(async () => {
+    await server.beforeEach();
+  });
+
+  afterEach(async () => {
+    moderator.send(JSON.stringify({
+      cmd: ModeratorCommands.ResetServer,
+    }));
+    await moderator.afterEach();
+    await player.afterEach();
+  });
+
+  test('playerBasicFlow', async () => {
+    const mod: WebSocket = await moderator.connect();
+    const p1: WebSocket = await moderator.connect();
+
+    const onNotOnSchedule = notOnScheduleListener(mod);
+    moderator.send(JSON.stringify({
+      cmd: ModeratorCommands.Init
+    }));
+    await onNotOnSchedule;
+    
+    const onStandby = standbyListener(mod);
+    moderator.send(JSON.stringify({
+      cmd: GameState.Standby,
+    }));
+    await onStandby;
+
+    const onOpenBetting = openBettingListener(mod);
+    moderator.send(JSON.stringify({
+      cmd: GameState.OpenBetting,
+    }));
+    await onOpenBetting;
+
+    const onWinnerDeclared = winnerDeclaredListener(mod);
+    moderator.send(JSON.stringify({
+      cmd: GameState.WinnerDeclared,
+    }));
+    await onWinnerDeclared;
+
+    const onNotOnSchedule2 = notOnScheduleListener(mod);
+    moderator.send(JSON.stringify({
+      cmd: GameState.NotOnSchedule,
+    }));
+    await onNotOnSchedule2;
+
+  });
+
+
+/* 
+  function cycleTest(expect, done, socket) {
+    let cycleCount = 0;
+    let flow = [];
+    socket.on('message', async (data: string) => {
+      let message = JSON.parse(data);
+
+      if (message.state === GameState.NotOnSchedule) {
+        expect(message).toStrictEqual({
+          state: GameState.NotOnSchedule
+        });
+
+        if (cycleCount === 0) {
+          moderator.send(JSON.stringify({
+            cmd: GameState.Standby,
+          }));
+          cycleCount += 1;
+          flow.push(0);
+        } else {
+          expect(flow).toEqual([0, 1, 2, 3]);
+          console.log("playerBasicFlow");
+          done();
+        }
+      }
+
+      if (message.state === GameState.Standby) {
+        expect(message).toStrictEqual({
+          state: GameState.Standby
+        });
+        moderator.send(JSON.stringify({
+          cmd: GameState.OpenBetting,
+        }));
+        flow.push(1);
+      }
+
+      if (message.state === GameState.OpenBetting) {
+        expect(message).toStrictEqual({
+          state: GameState.OpenBetting,
+          odds: Array.from({ length: 12 }, () => 0.0),
+        });
+        moderator.send(JSON.stringify({
+          cmd: GameState.WinnerDeclared,
+          winnerIndex: 0,
+        }));
+        flow.push(2);
+      }
+
+      if (message.state === GameState.WinnerDeclared) {
+        expect(message).toStrictEqual({
+          state: GameState.WinnerDeclared,
+          winnerIndex: 0,
+        });
+        moderator.send(JSON.stringify({
+          cmd: GameState.NotOnSchedule,
+        }));
+        flow.push(3);
+      }
+
+    });
+  }
+ */
+
+/*   
+  test('playerBet5', (done) => {
+    player.reconnect(expect, done, betTest5);
+    moderator.reconnect(expect, done);
+  });
+
+  function betTest5(expect, done, socket) {
+    let betSteps = 0;
+    socket.on('message', async (data: string) => {
+      let message = JSON.parse(data);
+
+      if (message.state === GameState.NotOnSchedule) {
+        expect(message).toStrictEqual({
+          state: GameState.NotOnSchedule
+        });
+
+        moderator.send(JSON.stringify({
+          cmd: GameState.Standby,
+        }));
+      }
+
+      if (message.state === GameState.Standby) {
+        expect(message).toStrictEqual({
+          state: GameState.Standby
+        });
+        moderator.send(JSON.stringify({
+          cmd: GameState.OpenBetting,
+        }));
+      }
+
+      if (message.state === GameState.OpenBetting) {
+        // console.log("betSteps: " + betSteps);
+        // console.log(message);
+
+        if (betSteps === 0) {
+          
+          expect(message).toStrictEqual({
+            state: GameState.OpenBetting,
+            odds: Array.from({ length: 12 }, () => 0.0),
+          });
+
+          player.send(JSON.stringify({
+            cmd: ClientCommands.Bet,
+            bets: {index: 0, amount: 5.0 },
+          }));
+          
+        }
+
+        if (betSteps === 1) {
+          expect(message).toEqual({
+            state: GameState.OpenBetting,
+            odds: [
+              0.9, 0, 0, 0,
+              0, 0, 0, 0,
+              0, 0, 0, 0,
+            ],
+            balance: 95,
+          });
+          console.log("playerBet5");
+          done();
+        }
+
+        betSteps += 1;
+      }
+
+    });
+  }
+
+  test('playerBet10', (done) => {
+    player.reconnect(expect, done, betTest10);
+    moderator.reconnect(expect, done);
+  });
+
+  function betTest10(expect, done, socket) {
+    let betSteps = 0;
+    socket.on('message', async (data: string) => {
+      let message = JSON.parse(data);
+
+      if (message.state === GameState.NotOnSchedule) {
+        expect(message).toStrictEqual({
+          state: GameState.NotOnSchedule
+        });
+
+        moderator.send(JSON.stringify({
+          cmd: GameState.Standby,
+        }));
+      }
+
+      if (message.state === GameState.Standby) {
+        expect(message).toStrictEqual({
+          state: GameState.Standby
+        });
+        moderator.send(JSON.stringify({
+          cmd: GameState.OpenBetting,
+        }));
+      }
+
+      if (message.state === GameState.OpenBetting) {
+        // console.log("betSteps: " + betSteps);
+        // console.log(message);
+
+        if (betSteps === 0) {
+          
+          expect(message).toStrictEqual({
+            state: GameState.OpenBetting,
+            odds: Array.from({ length: 12 }, () => 0.0),
+          });
+
+          player.send(JSON.stringify({
+            cmd: ClientCommands.Bet,
+            bets: {index: 0, amount: 10.0 },
+          }));
+          
+        }
+
+        if (betSteps === 1) {
+          expect(message).toEqual({
+            state: GameState.OpenBetting,
+            odds: [
+              0.9, 0, 0, 0,
+              0, 0, 0, 0,
+              0, 0, 0, 0,
+            ],
+            balance: 90,
+          });
+          console.log("playerBet10");
+          done();
+        }
+
+        betSteps += 1;
+      }
+
+    });
+  }
+
+  test('playerBet20', (done) => {
+    player.reconnect(expect, done, betTest20);
+    moderator.reconnect(expect, done);
+  });
+
+  function betTest20(expect, done, socket) {
+    let betSteps = 0;
+    socket.on('message', async (data: string) => {
+      let message = JSON.parse(data);
+
+      if (message.state === GameState.NotOnSchedule) {
+        expect(message).toStrictEqual({
+          state: GameState.NotOnSchedule
+        });
+
+        moderator.send(JSON.stringify({
+          cmd: GameState.Standby,
+        }));
+      }
+
+      if (message.state === GameState.Standby) {
+        expect(message).toStrictEqual({
+          state: GameState.Standby
+        });
+        moderator.send(JSON.stringify({
+          cmd: GameState.OpenBetting,
+        }));
+      }
+
+      if (message.state === GameState.OpenBetting) {
+        if (betSteps === 0) {
+          expect(message).toStrictEqual({
+            state: GameState.OpenBetting,
+            odds: Array.from({ length: 12 }, () => 0.0),
+          });
+
+          player.send(JSON.stringify({
+            cmd: ClientCommands.Bet,
+            bets: {index: 0, amount: 20.0 },
+          }));
+          
+        }
+
+        if (betSteps === 1) {
+          expect(message).toEqual({
+            state: GameState.OpenBetting,
+            odds: [
+              0.9, 0, 0, 0,
+              0, 0, 0, 0,
+              0, 0, 0, 0,
+            ],
+            balance: 80,
+          });
+          console.log("playerBet20");
+          done();
+        }
+
+        betSteps += 1;
+      }
+
+    });
+  }
+
+  test('playerBet100', (done) => {
+    player.reconnect(expect, done, betTest100);
+    moderator.reconnect(expect, done);
+  });
+
+  function betTest100(expect, done, socket) {
+    let betSteps = 0;
+    socket.on('message', async (data: string) => {
+      let message = JSON.parse(data);
+
+      if (message.state === GameState.NotOnSchedule) {
+        expect(message).toStrictEqual({
+          state: GameState.NotOnSchedule
+        });
+
+        moderator.send(JSON.stringify({
+          cmd: GameState.Standby,
+        }));
+      }
+
+      if (message.state === GameState.Standby) {
+        expect(message).toStrictEqual({
+          state: GameState.Standby
+        });
+        moderator.send(JSON.stringify({
+          cmd: GameState.OpenBetting,
+        }));
+      }
+
+      if (message.state === GameState.OpenBetting) {
+        if (betSteps === 0) {
+          expect(message).toStrictEqual({
+            state: GameState.OpenBetting,
+            odds: Array.from({ length: 12 }, () => 0.0),
+          });
+
+          player.send(JSON.stringify({
+            cmd: ClientCommands.Bet,
+            bets: {index: 0, amount: 20.0 },
+          }));
+          
+        }
+
+        if (betSteps === 1) {
+          expect(message).toEqual({
+            state: GameState.OpenBetting,
+            odds: [
+              0.9, 0, 0, 0,
+              0, 0, 0, 0,
+              0, 0, 0, 0,
+            ],
+            balance: 80,
+          });
+          console.log("playerBet100");
+          done();
+        }
+
+        betSteps += 1;
+      }
+
+    });
+  }
+
+
+  test('playerWin5', (done) => {
+    player.reconnect(expect, done, playerWin5);
+    moderator.reconnect(expect, done);
+  });
+
+  function playerWin5(expect, done, socket) {
+    let betSteps = 0;
+    socket.on('message', async (data: string) => {
+      let message = JSON.parse(data);
+      // console.log(message);
+
+      if (message.state === GameState.NotOnSchedule) {
+        expect(message).toStrictEqual({
+          state: GameState.NotOnSchedule
+        });
+
+        moderator.send(JSON.stringify({
+          cmd: GameState.Standby,
+        }));
+      }
+
+      if (message.state === GameState.Standby) {
+        expect(message).toStrictEqual({
+          state: GameState.Standby
+        });
+        moderator.send(JSON.stringify({
+          cmd: GameState.OpenBetting,
+        }));
+      }
+
+      if (message.state === GameState.OpenBetting) {
+        if (betSteps === 0) {
+          expect(message).toStrictEqual({
+            state: GameState.OpenBetting,
+            odds: Array.from({ length: 12 }, () => 0.0),
+          });
+
+          player.send(JSON.stringify({
+            cmd: ClientCommands.Bet,
+            bets: {index: 0, amount: 5.0 },
+          }));
+        }
+
+        if (betSteps === 1) {
+          expect(message).toEqual({
+            state: GameState.OpenBetting,
+            odds: [
+              0.9, 0, 0, 0,
+              0, 0, 0, 0,
+              0, 0, 0, 0,
+            ],
+            balance: 95,
+          });
+          
+          // done();
+          moderator.send(JSON.stringify({
+            cmd: GameState.WinnerDeclared,
+            winnerIndex: 0,
+          }));
+        }
+
+        betSteps += 1;
+      }
+
+      if (message.state === GameState.WinnerDeclared) {
+        expect(message).toEqual({
+          state: GameState.WinnerDeclared,
+          balance: 99.5,
+          prize: 4.5,
+          winnerIndex: 0,
+        });
+        console.log("GameState.WinnerDeclared");
+        done();
+      }
+
+    });
+  }
+
+  test('playerWin10', (done) => {
+    player.reconnect(expect, done, playerWin10);
+    moderator.reconnect(expect, done);
+  });
+
+  function playerWin10(expect, done, socket) {
+    let betSteps = 0;
+    socket.on('message', async (data: string) => {
+      let message = JSON.parse(data);
+
+      if (message.state === GameState.NotOnSchedule) {
+        expect(message).toStrictEqual({
+          state: GameState.NotOnSchedule
+        });
+
+        moderator.send(JSON.stringify({
+          cmd: GameState.Standby,
+        }));
+      }
+
+      if (message.state === GameState.Standby) {
+        expect(message).toStrictEqual({
+          state: GameState.Standby
+        });
+        moderator.send(JSON.stringify({
+          cmd: GameState.OpenBetting,
+        }));
+      }
+
+      if (message.state === GameState.OpenBetting) {
+        if (betSteps === 0) {
+          expect(message).toStrictEqual({
+            state: GameState.OpenBetting,
+            odds: Array.from({ length: 12 }, () => 0.0),
+          });
+
+          player.send(JSON.stringify({
+            cmd: ClientCommands.Bet,
+            bets: {index: 0, amount: 10.0 },
+          }));
+        }
+
+        if (betSteps === 1) {
+          expect(message).toEqual({
+            state: GameState.OpenBetting,
+            odds: [
+              0.9, 0, 0, 0,
+              0, 0, 0, 0,
+              0, 0, 0, 0,
+            ],
+            balance: 90,
+          });
+          
+          // done();
+          moderator.send(JSON.stringify({
+            cmd: GameState.WinnerDeclared,
+            winnerIndex: 0,
+          }));
+        }
+
+        betSteps += 1;
+      }
+
+      if (message.state === GameState.WinnerDeclared) {
+        expect(message).toEqual({
+          state: GameState.WinnerDeclared,
+          balance: 99,
+          prize: 9,
+          winnerIndex: 0,
+        });
+        console.log("GameState.WinnerDeclared");
+        done();
+      }
+
+    });
+  }
+
+  test('playerWin20', (done) => {
+    player.reconnect(expect, done, playerWin20);
+    moderator.reconnect(expect, done);
+  });
+
+  function playerWin20(expect, done, socket) {
+    let betSteps = 0;
+    socket.on('message', async (data: string) => {
+      let message = JSON.parse(data);
+
+      if (message.state === GameState.NotOnSchedule) {
+        expect(message).toStrictEqual({
+          state: GameState.NotOnSchedule
+        });
+
+        moderator.send(JSON.stringify({
+          cmd: GameState.Standby,
+        }));
+      }
+
+      if (message.state === GameState.Standby) {
+        expect(message).toStrictEqual({
+          state: GameState.Standby
+        });
+        moderator.send(JSON.stringify({
+          cmd: GameState.OpenBetting,
+        }));
+      }
+
+      if (message.state === GameState.OpenBetting) {
+        if (betSteps === 0) {
+          expect(message).toStrictEqual({
+            state: GameState.OpenBetting,
+            odds: Array.from({ length: 12 }, () => 0.0),
+          });
+
+          player.send(JSON.stringify({
+            cmd: ClientCommands.Bet,
+            bets: {index: 0, amount: 20.0 },
+          }));
+        }
+
+        if (betSteps === 1) {
+          expect(message).toEqual({
+            state: GameState.OpenBetting,
+            odds: [
+              0.9, 0, 0, 0,
+              0, 0, 0, 0,
+              0, 0, 0, 0,
+            ],
+            balance: 80,
+          });
+          
+          // done();
+          moderator.send(JSON.stringify({
+            cmd: GameState.WinnerDeclared,
+            winnerIndex: 0,
+          }));
+        }
+
+        betSteps += 1;
+      }
+
+      if (message.state === GameState.WinnerDeclared) {
+        expect(message).toEqual({
+          state: GameState.WinnerDeclared,
+          balance: 98,
+          prize: 18,
+          winnerIndex: 0,
+        });
+        console.log("GameState.WinnerDeclared");
+        done();
+      }
+
+    });
+  }
+
+  test('playerWin100', (done) => {
+    player.reconnect(expect, done, playerWin100);
+    moderator.reconnect(expect, done);
+  });
+
+  function playerWin100(expect, done, socket) {
+    let betSteps = 0;
+    socket.on('message', async (data: string) => {
+      let message = JSON.parse(data);
+
+      if (message.state === GameState.NotOnSchedule) {
+        expect(message).toStrictEqual({
+          state: GameState.NotOnSchedule
+        });
+
+        moderator.send(JSON.stringify({
+          cmd: GameState.Standby,
+        }));
+      }
+
+      if (message.state === GameState.Standby) {
+        expect(message).toStrictEqual({
+          state: GameState.Standby
+        });
+        moderator.send(JSON.stringify({
+          cmd: GameState.OpenBetting,
+        }));
+      }
+
+      if (message.state === GameState.OpenBetting) {
+        if (betSteps === 0) {
+          expect(message).toStrictEqual({
+            state: GameState.OpenBetting,
+            odds: Array.from({ length: 12 }, () => 0.0),
+          });
+
+          player.send(JSON.stringify({
+            cmd: ClientCommands.Bet,
+            bets: {index: 0, amount: 100.0 },
+          }));
+        }
+
+        if (betSteps === 1) {
+          expect(message).toEqual({
+            state: GameState.OpenBetting,
+            odds: [
+              0.9, 0, 0, 0,
+              0, 0, 0, 0,
+              0, 0, 0, 0,
+            ],
+            balance: 0,
+          });
+          
+          // done();
+          moderator.send(JSON.stringify({
+            cmd: GameState.WinnerDeclared,
+            winnerIndex: 0,
+          }));
+        }
+
+        betSteps += 1;
+      }
+
+      if (message.state === GameState.WinnerDeclared) {
+        expect(message).toEqual({
+          state: GameState.WinnerDeclared,
+          balance: 90,
+          prize: 90,
+          winnerIndex: 0,
+        });
+        console.log("GameState.WinnerDeclared");
+        done();
+      }
+
+    });
+  }
+ */
+});

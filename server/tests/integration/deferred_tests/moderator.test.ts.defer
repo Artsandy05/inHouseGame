@@ -1,0 +1,98 @@
+import WebSocket from 'ws';
+import { GameState, ModeratorCommands } from '../../../common/gameutils';
+import { SocketConnection, Server, MODERATOR_UUID, notOnScheduleListener, standbyListener, openBettingListener, winnerDeclaredListener, delay } from './common';
+
+describe('WebSocket reconnection tests', () => {
+  let port = 8002
+  let moderator = new SocketConnection(`ws://localhost:${port}/websocket?uuid=${MODERATOR_UUID}`);
+  let server = new Server(port)
+
+  beforeAll(async () => {
+    await server.beforeAll();
+  });
+
+  afterAll(async () => {
+    await server.afterAll();
+    
+  });
+
+  beforeEach(async () => {
+    await server.beforeEach();
+  });
+
+  afterEach(async () => {
+    moderator.send(JSON.stringify({
+      cmd: "reset",
+    }));
+    await moderator.afterEach();
+  });
+
+
+  test('TestBasicGameCycle', async () => {
+    const mod: WebSocket = await moderator.connect();
+    const onNotOnScheduleInit = notOnScheduleListener(mod);
+    await delay(10);  // Gives time for the Promise to initialize first
+    moderator.send(JSON.stringify({
+      cmd: ModeratorCommands.Init
+    }));
+    const msg: any = await onNotOnScheduleInit;
+    expect(msg.init).toBe(true);
+    expect(msg.state).toBe(GameState.NotOnSchedule);
+    expect(msg.odds).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    
+    const onStandby = standbyListener(mod);
+    await delay(10);
+    moderator.send(JSON.stringify({
+      cmd: GameState.Standby,
+    }));
+    const msg1 = await onStandby;
+    expect(msg1).toEqual({
+      state: GameState.Standby,
+    });
+
+    const onOpenBetting = openBettingListener(mod);
+    await delay(10);
+    moderator.send(JSON.stringify({
+      cmd: GameState.OpenBetting,
+    }));
+    const msg2: any = await onOpenBetting;
+    expect(msg2.state).toBe(GameState.OpenBetting);
+    expect(msg2.odds).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+
+    const onWinnerDeclared = winnerDeclaredListener(mod);
+    await delay(10);
+    moderator.send(JSON.stringify({
+      cmd: GameState.WinnerDeclared,
+      index: 0,
+    }));
+    const msgWinner: any = await onWinnerDeclared;
+    expect(msgWinner.state).toBe(GameState.WinnerDeclared);
+    expect(msgWinner.winnerIndex).toBe(0);
+
+
+    const onNotOnSchedule2 = notOnScheduleListener(mod);
+    moderator.send(JSON.stringify({
+      cmd: GameState.NotOnSchedule,
+    }));
+    const msgNotOnSched2 =  await onNotOnSchedule2;
+    expect(msgNotOnSched2).toEqual({
+      state: GameState.NotOnSchedule,
+    });
+  });
+
+  // TODO: Add GameState.WinnerDeclare cmd.index null, undefined, lower than 0 and greater than 11 tests
+});
+
+// TODO: Add restrictions where it won't flow other then specified in TestBasicGameCycle
+
+// TODO: Audit money where it is going for each player transaction
+
+/*
+  Update tests to use async await for readability
+*/
+
+
+
+
+
+

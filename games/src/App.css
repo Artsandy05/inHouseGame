@@ -1,0 +1,39 @@
+.App {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  flex-direction: column;
+  background-color: #f0f0f0;
+}
+
+img {
+  transition: transform 0.3s ease;
+}
+
+button {
+  margin-top: 20px;
+}
+
+/* Make sure the layout adapts on smaller screens */
+@media (max-width: 600px) {
+  .App {
+    padding: 20px;
+  }
+
+  img {
+    width: 60px; /* Scale down images for mobile */
+  }
+
+  .vs {
+    width: 80px; /* Scale down the vs image */
+  }
+
+  .MuiTypography-h3 {
+    font-size: 1.5rem; /* Adjust font size */
+  }
+
+  .MuiTypography-h5 {
+    font-size: 1.2rem; /* Adjust font size */
+  }
+}

@@ -7,6 +7,25 @@ import { getRequiredUrl } from '../services/common';
 import WebSocketManager from '../utils/WebSocketManager';
 import { formatMoney } from '../utils/gameutils';
 
+const useBackgroundAudio = (audioSrc) => {
+  useEffect(() => {
+    const audio = new Audio(audioSrc);
+    audio.loop = true;
+    
+    const unlockAudio = () => {
+      audio.play().catch(e => console.log("Audio play error:", e));
+      document.removeEventListener('click', unlockAudio);
+    };
+
+    document.addEventListener('click', unlockAudio);
+    
+    return () => {
+      document.removeEventListener('click', unlockAudio);
+      audio.pause();
+    };
+  }, [audioSrc]);
+};
+
 const GoldenGoose = () => {
   const [eggs, setEggs] = useState([]);
   const [gameOver, setGameOver] = useState(true);
@@ -18,6 +37,7 @@ const GoldenGoose = () => {
   const [jackpotType, setJackpotType] = useState('');
   const [scratchCount, setScratchCount] = useState(0);
   const [clickedEgg, setClickedEgg] = useState(false);
+  const [userInteracted, setUserInteracted] = useState(false);
   const [currentPrizePool, setCurrentPrizePool] = useState(5);
   const userInfo = JSON.parse(localStorage.getItem('user') || 'null');
   const url = getRequiredUrl(true);
@@ -30,9 +50,35 @@ const GoldenGoose = () => {
     height: window.innerHeight,
   });
 
+  const audioRef = useRef(null);
+
   const goldEgg = '/assets/goldEgg.png';
+  const startGameSound = '/assets/sounds/8-bit-achievement-epic-stock-media-1-00-00.mp3';
+  const crackEggSound = '/assets/sounds/crackingEgg.mp3';
+  const winSound = '/assets/sounds/you-win-sequence-3-183950.mp3';
+  const loseSound = '/assets/sounds/no-luck-too-bad-disappointing-sound-effect-112943.mp3';
+  const bgSound = '/assets/sounds/cottagecore-17463.mp3';
   const gameTitle = '/assets/gameTitle.png';
   const crackedEgg = '/assets/crackedGoldEgg.png';
+
+  const playStartGameSound = () => {
+    const audio = new Audio(startGameSound);
+    audio.play();
+  };
+  const playcrackEggSound = () => {
+    const audio = new Audio(crackEggSound);
+    audio.play();
+  };
+  const playWinningAnnouncementSound = () => {
+    const audio = new Audio(winSound);
+    audio.play();
+  };
+  const playLoseAnnouncementSound = () => {
+    const audio = new Audio(loseSound);
+    audio.play();
+  };
+
+  
 
   const generateUniqueRandomItems = (currentPrizePool) => {
     const uniqueValues = new Set();
@@ -56,9 +102,8 @@ const GoldenGoose = () => {
     
     return modifiedItems;
   };
+ 
   
-  
-
 
   useEffect(() => {
     if(items[0] === '/assets/500.png') {
@@ -191,6 +236,7 @@ const GoldenGoose = () => {
   };
   
   const startNewGame = async () => {
+    playStartGameSound();
     // Create a working copy of items that may be modified
     let workingItems = [...items];
     // Check if jackpotPrize is not 0 and modify the items array
@@ -223,7 +269,8 @@ const GoldenGoose = () => {
     
     // Set makeWinner to true if hasJackpotPrize, otherwise random 30% chance
     const makeWinner = hasJackpotPrize || Math.random() < 0.3;
-  
+    console.log(workingItems)
+    console.log(makeWinner)
     if (makeWinner) {
         // Use jackpotPrize as winning item if available, otherwise random item
         const winningItem = hasJackpotPrize ? jackpotPrize : workingItems[Math.floor(Math.random() * workingItems.length)];
@@ -301,6 +348,7 @@ const GoldenGoose = () => {
     setScratchCount(scratchedEggsCount);
 
     if (hasWinningCombo) {
+      playWinningAnnouncementSound();
       updatePlayerIsWinner(true);
       updatePlayerGameOver(true);
       generateRandomPrize(Number(currentPrizePool));
@@ -309,6 +357,7 @@ const GoldenGoose = () => {
         setOpenDialog(true);
       }, 500);
     } else if (scratchedEggsCount >= 12) {
+      playLoseAnnouncementSound();
       updatePlayerIsWinner(false);
       updatePlayerGameOver(true);
       generateRandomPrize(Number(currentPrizePool));
@@ -318,9 +367,12 @@ const GoldenGoose = () => {
       }, 500);
     }
   }, [eggs]);
+
+  
   
   const scratchEgg = async (id) => {
     if (gameOver) return;
+    playcrackEggSound();
     
     updatePlayerClickedEgg(id);
     
@@ -472,9 +524,12 @@ const GoldenGoose = () => {
 
   const winningItem = Object.entries(itemOccurrences).find(([item, count]) => count >= 3);
 
+  useBackgroundAudio(bgSound);
+
   return (
     <Container maxWidth="sm" style={{ padding: '20px', textAlign: 'center', background:'rgba(69, 32, 37, 1)', height:'100vh', position: 'relative' }}>
       {/* Bet Display Box - Top Left */}
+      
       <Box 
         sx={{ 
           position: 'absolute', 

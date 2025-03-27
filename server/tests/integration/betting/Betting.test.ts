@@ -277,7 +277,6 @@ function setupGame(): Game {
   // Set up the `calculateAllBets` structure with the correct conditions for each game.
   gameData.calculateAllBets = {
     bbp: true,  // Assuming you're setting this to true for zodiac
-    dos: false,    // Assuming false for dos, adjust according to your requirements
   };
   gameData.commission.bbp = 0.1;
 

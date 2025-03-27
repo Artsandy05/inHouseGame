@@ -65,6 +65,11 @@ fastify.register(authRoutes, {
   prefix: `${process.env.PREFIX}/auth`, 
 });
 
+fastify.post('/test-token', async (req, reply) => {
+  const token = fastify.jwt.sign({ client: 'kingfisher' });
+  return { token };
+});
+
 fastify.register(publicRoutes, {
   prefix: `${process.env.PREFIX}/`,
 });

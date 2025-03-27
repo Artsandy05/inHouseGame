@@ -131,7 +131,7 @@ async function hold(runner) {
 
 function createData(game: Game) {
 	let gameData = new GameData();
-	gameData.commission.zodiac = 0.1;
+	gameData.commission.bbp = 0.1;
 
 	game
 		.create(

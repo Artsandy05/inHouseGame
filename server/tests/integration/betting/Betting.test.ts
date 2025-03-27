@@ -43,7 +43,7 @@ describe('BettingTests', () => {
     let modSocket = new Socket(modOutput);
     let playerSocket = new Socket(playerOutput);
     let gameData = new GameData();
-    gameData.commission.zodiac = 0.1;
+    gameData.commission.bbp = 0.1;
 
     let game = new Game();
 		game
@@ -276,10 +276,10 @@ function setupGame(): Game {
   let gameData = new GameData();
   // Set up the `calculateAllBets` structure with the correct conditions for each game.
   gameData.calculateAllBets = {
-    zodiac: true,  // Assuming you're setting this to true for zodiac
+    bbp: true,  // Assuming you're setting this to true for zodiac
     dos: false,    // Assuming false for dos, adjust according to your requirements
   };
-  gameData.commission.zodiac = 0.1;
+  gameData.commission.bbp = 0.1;
 
   let odds = new Odds();
   game.create(gameData, odds);

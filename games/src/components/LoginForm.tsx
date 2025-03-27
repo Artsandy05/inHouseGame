@@ -52,8 +52,10 @@ const LoginForm = () => {
     setError('');
 
     try {
+      console.log(process.env.LOCAL_BASE_URL, "@@@@@@@@@@")
       const response = await api.post('/auth/login', { mobile });
       const { token, user } = response.data.data;
+      console.log(response.data)
       api.defaults.headers['Authorization'] = `Bearer ${token}`;
       setCookie('token', token, 1); // Set token in cookies
       const expirationTime = new Date().getTime() + 24 * 60 * 60 * 1000; 

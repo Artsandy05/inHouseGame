@@ -18,7 +18,8 @@
     "strictNullChecks": false
   },
   "include": [
-    "src"
+    "src",
+    "react-app-env.d.ts"
   ],
   "exclude": [
     "node_modules"

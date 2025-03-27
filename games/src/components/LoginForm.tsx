@@ -52,7 +52,6 @@ const LoginForm = () => {
     setError('');
 
     try {
-      console.log(process.env.LOCAL_BASE_URL, "@@@@@@@@@@")
       const response = await api.post('/auth/login', { mobile });
       const { token, user } = response.data.data;
       console.log(response.data)

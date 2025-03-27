@@ -2,6 +2,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import axios from 'axios';
 import GameList from '../models/GameList';
+import { mockKingfisherAPI } from '../utils/tests/mockings';
 
 // Kingfisher API configuration
 const KINGFISHER_API = {
@@ -100,26 +101,37 @@ export default async function (fastify: FastifyInstance) {
         });
       }
 
-      // Get user details from Kingfisher
-      const userDetails = await callKingfisherAPI(
-        KINGFISHER_API.endpoints.userDetails,
-        { user_token }
-      );
+      const useMock = process.env.NODE_ENV === 'local';
+      const userDetails = useMock
+      ? await mockKingfisherAPI('/get-user-details', { user_token })
+      : await callKingfisherAPI(KINGFISHER_API.endpoints.userDetails, { user_token });
 
-      // Get wallet balance from Kingfisher
-      const walletBalance = await callKingfisherAPI(
-        KINGFISHER_API.endpoints.walletBalance,
-        { user_token }
-      );
+      // Get wallet balance (mock or real)
+      const walletBalance = useMock
+      ? await mockKingfisherAPI('/get-wallet-balance', { user_token })
+      : await callKingfisherAPI(KINGFISHER_API.endpoints.walletBalance, { user_token });
+      // Get user details from Kingfisher
+      // const userDetails = await callKingfisherAPI(
+      //   KINGFISHER_API.endpoints.userDetails,
+      //   { user_token }
+      // );
+
+      // // Get wallet balance from Kingfisher
+      // const walletBalance = await callKingfisherAPI(
+      //   KINGFISHER_API.endpoints.walletBalance,
+      //   { user_token }
+      // );
 
       // Redirect to the appropriate game page with necessary data
-      const redirectUrl = `${process.env.PROD_FRONTEND_URL}${game.gameRoute}?` + 
+      const redirectUrl = `${process.env.LOCAL_FRONTEND_URL}${game.gameRoute}?` + 
         `user_token=${encodeURIComponent(user_token)}&` +
         `user_id=${encodeURIComponent(userDetails.user_id)}&` +
         `balance=${encodeURIComponent(walletBalance.balance)}&` +
         `game_id=${encodeURIComponent(game_id)}`;
 
-      return reply.redirect(302, redirectUrl);
+        console.log(redirectUrl)
+
+      return reply.redirect(redirectUrl, 302);  // New signature: (url, statusCode)
       
     } catch (error: any) {
       reply.code(500).send({ 

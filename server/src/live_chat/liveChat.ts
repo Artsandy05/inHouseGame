@@ -35,7 +35,7 @@ type ResponseData = {
 
 const wss = new WebSocket.Server({ noServer: true });
 const clients: Set<WebSocket> = new Set();
-const activePlayer: Set<WebSocket> = new Set<UserInfo>();
+// const activePlayer: Set<WebSocket> = new Set<UserInfo>();
 const allPlayerData = [];
 
 const PING_INTERVAL = 10000;
@@ -381,9 +381,6 @@ function liveChat(fastify) {
                             client.send(immediateResponse);
                         }
                     });
-                    
-                        
-                    
                     
                     console.log('GoldenGooseRound record created successfully');
                 } catch (error) {
@@ -762,12 +759,12 @@ function liveChat(fastify) {
 
   startPingInterval();
 
-  function sanitizeFileName(fileName) {
-      return fileName
-          .replace(/[<>:"/\\|?*]/g, '_')   // Replace unsafe characters with underscores
-          .replace(/\s+/g, '_')            // Replace spaces with underscores
-          .toLowerCase();                  // Optionally convert to lowercase
-  }
+  // function sanitizeFileName(fileName) {
+  //     return fileName
+  //         .replace(/[<>:"/\\|?*]/g, '_')   // Replace unsafe characters with underscores
+  //         .replace(/\s+/g, '_')            // Replace spaces with underscores
+  //         .toLowerCase();                  // Optionally convert to lowercase
+  // }
 
   function extractTokenFromURL(url) {
     const urlParts = url.split('?');
@@ -778,57 +775,57 @@ function liveChat(fastify) {
     return null;
   }
 
-  async function updateConnectedClientsCount(){
-    const uniqueActivePlayers = new Set<UserInfo>();
-    const activePlayerArray = Array.from(activePlayer);
+  // async function updateConnectedClientsCount(){
+  //   const uniqueActivePlayers = new Set<UserInfo>();
+  //   const activePlayerArray = Array.from(activePlayer);
 
-    // Iterate over the array and add unique users to the Set based on the `uuid`
-    activePlayerArray.forEach(user => {
-        if (![...uniqueActivePlayers].some(existingUser => existingUser.uuid === user.uuid)) {
-            uniqueActivePlayers.add(user);
-        }
-    });
-    let connectedClients = {zodiac:0, dos: 0, tres: 0};
+  //   // Iterate over the array and add unique users to the Set based on the `uuid`
+  //   activePlayerArray.forEach(user => {
+  //       if (![...uniqueActivePlayers].some(existingUser => existingUser.uuid === user.uuid)) {
+  //           uniqueActivePlayers.add(user);
+  //       }
+  //   });
+  //   let connectedClients = {zodiac:0, dos: 0, tres: 0};
     
-    uniqueActivePlayers.forEach(player => {
+  //   uniqueActivePlayers.forEach(player => {
 
-      if (player.game === 'zodiac') {
-        connectedClients.zodiac += 1;
-      } else if (player.game === 'dos') {
-        connectedClients.dos += 1;
-      } else if (player.game === 'tres') {
-        connectedClients.tres += 1;
-      }
-    });
+  //     if (player.game === 'zodiac') {
+  //       connectedClients.zodiac += 1;
+  //     } else if (player.game === 'dos') {
+  //       connectedClients.dos += 1;
+  //     } else if (player.game === 'tres') {
+  //       connectedClients.tres += 1;
+  //     }
+  //   });
 
-    const response = JSON.stringify({
-        event: 'receiveClientsCount',
-        data: {
-            connectedClients: connectedClients,  // Send updated list of connected clients
-        },
-    });
+  //   const response = JSON.stringify({
+  //       event: 'receiveClientsCount',
+  //       data: {
+  //           connectedClients: connectedClients,  // Send updated list of connected clients
+  //       },
+  //   });
 
-    // Send the response to all connected clients
-    clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
-            client.send(response);
-        }
-    });
-  }
+  //   // Send the response to all connected clients
+  //   clients.forEach(client => {
+  //       if (client.readyState === WebSocket.OPEN) {
+  //           client.send(response);
+  //       }
+  //   });
+  // }
 
-  const getSenderInfo = async (id) => {
-      const user = await User.findByPk(id);
-      return { role: user.role, nickName: user.nickName };
-  };
+  // const getSenderInfo = async (id) => {
+  //     const user = await User.findByPk(id);
+  //     return { role: user.role, nickName: user.nickName };
+  // };
 
-  const verifyToken = async (request, reply) => {
-    try {
-      await request.jwtVerify();
-    } catch (err) {
-      console.error('Token verification failed:', err.message);
-      reply.code(401).send({ error: 'Token is invalid' });
-    }
-  };
+  // const verifyToken = async (request, reply) => {
+  //   try {
+  //     await request.jwtVerify();
+  //   } catch (err) {
+  //     console.error('Token verification failed:', err.message);
+  //     reply.code(401).send({ error: 'Token is invalid' });
+  //   }
+  // };
 
 
   

@@ -21,6 +21,18 @@ module.exports = {
           createdAt: new Date(),
           updatedAt: new Date(),
         },
+        {
+          fee: 0.10,
+          companyFee: 0.08,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          fee: 0.10,
+          companyFee: 0.08,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       ];
   
       await queryInterface.bulkInsert("configs", configData, {});

@@ -6,6 +6,20 @@ import { Main } from "./src/main";
 import auditRoutes from "./routes/auditRoutes";
 import publicRoutes from "./routes/public";
 import { startCronJob } from './utils/cronjobs'; // Import the cron job logic
+import inHouseGames from "./routes/inHouseGames";
+import { JWT } from "@fastify/jwt";
+
+declare module "fastify" {
+  interface FastifyInstance {
+    authenticate: any;
+  }
+  interface FastifyRequest {
+    jwt: JWT;
+    authenticate: any;
+  }
+}
+
+
 
 const fastifySession = require("@fastify/session");
 const fastifyCookie = require("@fastify/cookie");
@@ -65,6 +79,10 @@ fastify.get(`${process.env.PREFIX}/test`, (req, res) => {
 
 fastify.register(auditRoutes, {
   prefix: `${process.env.PREFIX}/audit`, 
+});
+
+fastify.register(inHouseGames, {
+  prefix: `${process.env.PREFIX}/in-house-games` 
 });
 
 // FIXME: Have a way to disable when it is in production mode

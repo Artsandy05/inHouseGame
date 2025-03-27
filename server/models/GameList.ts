@@ -10,6 +10,9 @@ class GameList extends Model {
   public isActive!: boolean;
   public isStreaming!: boolean;
   public banner!: string;
+  public gameRoute!: string;
+  public name!: string;
+  public moderatorRoute!: string;
   public jackpot_level!: string;
   public createdAt!: Date;
   public updatedAt!: Date;

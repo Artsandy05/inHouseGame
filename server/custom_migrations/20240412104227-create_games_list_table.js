@@ -44,6 +44,11 @@ module.exports = {
         allowNull: false,
         defaultValue: ""
       },
+      jackpot_level: {
+        type: Sequelize.STRING,
+        allowNull: true,
+        defaultValue: ""
+      },
       createdAt: {
         type: Sequelize.DATE,
         allowNull: false,

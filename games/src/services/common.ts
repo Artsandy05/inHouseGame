@@ -27,9 +27,11 @@ function getWsUrl(liveChatUrl = false) {
     return null;
   }
 
-  let url = liveChatUrl
-    ? `ws://localhost:8001/api/livechat?token=${authToken}&userInfo=${encodeURIComponent(JSON.stringify(userInfo))}`
-    : `ws://localhost:8001/api/websocket?token=${authToken}&userInfo=${encodeURIComponent(JSON.stringify(userInfo))}`;
+  const wsBaseUrl = process.env.REACT_APP_WS_BASE_URL || 'ws://localhost:8001/api';
+
+let url = liveChatUrl
+  ? `${wsBaseUrl}/livechat?token=${authToken}&userInfo=${encodeURIComponent(JSON.stringify(userInfo))}`
+  : `${wsBaseUrl}/websocket?token=${authToken}&userInfo=${encodeURIComponent(JSON.stringify(userInfo))}`;
 
   // Determine the game based on the pathname
   let game = null;

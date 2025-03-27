@@ -3,7 +3,7 @@ import axios from 'axios';
 import { getCookie } from '../utils/cookie'; // Function to get cookie
 
 const api = axios.create({
-  baseURL: process.env.LOCAL_BASE_URL || 'http://localhost:8001/api/v1', // Replace with your backend API URL
+  baseURL: process.env.LOCAL_BASE_URL, // Replace with your backend API URL
 });
 
 api.interceptors.request.use(

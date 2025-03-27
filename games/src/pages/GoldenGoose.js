@@ -307,20 +307,29 @@ const GoldenGoose = () => {
     }
   };
   
-  const scratchEgg = (id) => {
+  const scratchEgg = async (id) => {
     if (gameOver) return;
 
+    // First update the clicked egg
     updatePlayerClickedEgg(id);
     
+    // Update the eggs array
     const updatedEggs = eggs.map(egg => 
       egg.id === id ? { ...egg, scratched: true, cracked: true, showCracked: true} : egg
     );
     
+    // Send egg updates
     updatePlayerEggs(updatedEggs);
     
+    await new Promise(resolve => setTimeout(resolve, 50));
+    
+    // Update scratch count
     const newScratchCount = scratchCount + 1;
     updatePlayerScratchCount(newScratchCount);
     
+    await new Promise(resolve => setTimeout(resolve, 50));
+    
+    // Check for winning combinations
     const itemCount = {};
     updatedEggs.forEach(egg => {
       if (egg.scratched) {
@@ -330,6 +339,7 @@ const GoldenGoose = () => {
     
     const hasWinningCombo = Object.values(itemCount).some(count => count >= 3);
     
+    // Process game outcome
     if (hasWinningCombo) {
       updatePlayerIsWinner(true);
       updatePlayerGameOver(true);
@@ -339,7 +349,7 @@ const GoldenGoose = () => {
         setOpenDialog(true);
       }, 500);
     } else if (newScratchCount >= 12) {
-      // Explicitly set isWinner to false for losing scenario
+      // For losing scenario
       updatePlayerIsWinner(false);
       updatePlayerGameOver(true);
       generateRandomPrize(Number(currentPrizePool));

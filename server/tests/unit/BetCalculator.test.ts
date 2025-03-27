@@ -47,13 +47,13 @@ describe('BetCalculator', () => {
     });
 
     setTimeout(() => {
-      gameData.calculateAllBets['zodiac'] = true;
+      gameData.calculateAllBets['bbp'] = true;
     }, 50)
 
     setTimeout(() => {
-      expect(gameData.slotBets.zodiac.get(getStringKey([0]))).toBe(20);
-      expect(gameData.slotBets.zodiac.get(getStringKey([1]))).toBe(40);
-      expect(gameData.slotBets.zodiac.get(getStringKey([2]))).toBe(50);
+      expect(gameData.slotBets.bbp.get(getStringKey([0]))).toBe(20);
+      expect(gameData.slotBets.bbp.get(getStringKey([1]))).toBe(40);
+      expect(gameData.slotBets.bbp.get(getStringKey([2]))).toBe(50);
       
       game.stop();
     }, 100);
@@ -77,7 +77,7 @@ describe('BetCalculator', () => {
 		let game = new Game();
 
     let gameData = new GameData();
-    gameData.commission.zodiac = testData.commission;
+    gameData.commission.bbp = testData.commission;
 		game
       .create(
         gameData
@@ -95,12 +95,12 @@ describe('BetCalculator', () => {
     });
 
     setTimeout(() => {
-      gameData.calculateAllBets['zodiac'] = true;
+      gameData.calculateAllBets['bbp'] = true;
     }, 50)
 
     setTimeout(() => {
       testData.gross.forEach((val, idx) => {
-        expect(gameData.slotBets['zodiac'].get(getStringKey([idx]))).toBe(val);
+        expect(gameData.slotBets['bbp'].get(getStringKey([idx]))).toBe(val);
       });
       game.stop();
     }, 100);
@@ -121,7 +121,7 @@ describe('BetCalculator', () => {
     const testData = getTestData1(worksheet);
 		let game = new Game();
     let gameData = new GameData();
-    gameData.commission.zodiac = testData.commission;
+    gameData.commission.bbp = testData.commission;
 
     let odds = new Odds();
 		game
@@ -142,7 +142,7 @@ describe('BetCalculator', () => {
     });
 
     setTimeout(() => {
-      gameData.calculateAllBets['zodiac'] = true;
+      gameData.calculateAllBets['bbp'] = true;
     }, 50)
 
     setTimeout(() => {
@@ -169,7 +169,7 @@ describe('BetCalculator', () => {
     const testData = getTestData1(worksheet);
 		let game = new Game();
     let gameData = new GameData();
-    gameData.commission.zodiac = testData.commission;
+    gameData.commission.bbp = testData.commission;
 
     let odds = new Odds();
 		game
@@ -192,7 +192,7 @@ describe('BetCalculator', () => {
     });
 
     setTimeout(() => {
-      gameData.calculateAllBets['zodiac'] = true;
+      gameData.calculateAllBets['bbp'] = true;
     }, 50)
 
     setTimeout(() => {

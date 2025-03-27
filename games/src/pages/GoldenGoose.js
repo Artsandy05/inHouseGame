@@ -339,6 +339,8 @@ const GoldenGoose = () => {
         setOpenDialog(true);
       }, 500);
     } else if (newScratchCount >= 12) {
+      // Explicitly set isWinner to false for losing scenario
+      updatePlayerIsWinner(false);
       updatePlayerGameOver(true);
       generateRandomPrize(Number(currentPrizePool));
       updatePlayerGameStarted(false);

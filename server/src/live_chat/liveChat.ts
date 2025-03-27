@@ -325,7 +325,7 @@ function liveChat(fastify) {
                                         winningItem && 
                                         parseFloat(winningItem[0]) === allPlayerData[playerIndex].jackpotPrize;
                     
-                    if (winningItem) {
+                      if (winningItem) {
                         if (isJackpotWin) {
                             // For jackpot win, use the jackpot prize directly without deducting from instant prize
                             winningAmount = allPlayerData[playerIndex].jackpotPrize;
@@ -354,7 +354,7 @@ function liveChat(fastify) {
                                 console.log(`Updated instant_prize to ${newPrizeAmount}`);
                             }
                         }
-                    }
+                      }
                     
                     // Create the round record
                     await GoldenGooseRound.create({
@@ -366,27 +366,35 @@ function liveChat(fastify) {
                         crack_count: allPlayerData[playerIndex].scratchCount,
                         eggs: allPlayerData[playerIndex].eggs
                     });
+
+                    allPlayerData.splice(playerIndex, 1);
+
+                    // Send immediate update with gameOver status
+                    const immediateResponse = JSON.stringify({
+                        event: 'receiveAllPlayerData',
+                        data: allPlayerData,
+                        id: userId
+                    });
+                    
+                    clients.forEach(client => {
+                        if (client.readyState === WebSocket.OPEN) {
+                            client.send(immediateResponse);
+                        }
+                    });
+                    
+                        
+                    
                     
                     console.log('GoldenGooseRound record created successfully');
                 } catch (error) {
-                    console.error('Error processing prize or creating GoldenGooseRound record:', error);
+                  console.error('Error in gameOver processing:', error);
+                  // Ensure player is removed even if there's an error
+                  if (playerIndex !== -1) {
+                      allPlayerData.splice(playerIndex, 1);
+                  }
+                  console.error('Error processing prize or creating GoldenGooseRound record:', error);
                 }
-                
-                // Send immediate update with gameOver status
-                const immediateResponse = JSON.stringify({
-                    event: 'receiveAllPlayerData',
-                    data: allPlayerData,
-                    id: userId
-                });
-                
-                clients.forEach(client => {
-                    if (client.readyState === WebSocket.OPEN) {
-                        client.send(immediateResponse);
-                    }
-                });
-                
-                allPlayerData.splice(playerIndex, 1); // Remove the player
-                    
+
                 const delayedResponse = JSON.stringify({
                     event: 'receiveAllPlayerData',
                     data: allPlayerData

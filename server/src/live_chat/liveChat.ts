@@ -331,8 +331,8 @@ function liveChat(fastify) {
                       }
                     
                     // Create the round record
-                    const scratchedEggsCount = allPlayerData[playerIndex].filter(egg => egg.scratched === true).length;
-                    
+                    const scratchedEggsCount = eggs.filter(egg => egg.scratched === true).length;
+
                     await GoldenGooseRound.create({
                         user_id: allPlayerData[playerIndex].userId,
                         result: !winningItem ? 'Lose' : 'Win',

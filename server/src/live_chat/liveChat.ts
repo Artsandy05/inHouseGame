@@ -263,32 +263,6 @@ function liveChat(fastify) {
         }
       }
 
-      if (data.event === 'updatePlayerScratchCount') {
-        const playerData = data.data;
-        const userId = playerData.userId ? playerData.userId : false;
-        
-        if (userId) {
-          const playerIndex = allPlayerData.findIndex(player => player.userId === userId);
-          
-          if (playerIndex !== -1) {
-              allPlayerData[playerIndex].scratchCount = playerData.scratchCount;
-              const response = JSON.stringify({
-                event: 'receiveAllPlayerData',
-                data: allPlayerData,
-                id: userId
-              });
-            
-              clients.forEach(client => {
-                if (client.readyState === WebSocket.OPEN) {
-                  client.send(response);
-                }
-              });
-          } else {
-              console.log(`Player with userId ${userId} not found`);
-          }
-        }
-      }
-
       if (data.event === 'updatePlayerGameOver') {
         const playerData = data.data;
         const userId = playerData.userId ? playerData.userId : false;

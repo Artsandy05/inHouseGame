@@ -109,7 +109,6 @@ const GoldenGoose = () => {
           setIsWinner(allPlayerData.isWinner);
           setEggs(allPlayerData.eggs);
           setClickedEgg(allPlayerData.clickedEgg);
-          setScratchCount(allPlayerData.scratchCount);
         }
       }
     };
@@ -144,15 +143,6 @@ const GoldenGoose = () => {
     const updatedPlayerData = {
       event: "updatePlayerGameOver",
       data: {userId: userInfo.userData.data.user.id, gameOver},
-    };
-
-    await wss.send(JSON.stringify(updatedPlayerData));
-  };
-
-  const updatePlayerScratchCount = async (scratchCount) => {
-    const updatedPlayerData = {
-      event: "updatePlayerScratchCount",
-      data: {userId: userInfo.userData.data.user.id, scratchCount},
     };
 
     await wss.send(JSON.stringify(updatedPlayerData));
@@ -197,15 +187,6 @@ const GoldenGoose = () => {
       color += channel;
     }
   
-    return color;
-  };
-
-  const getRandomColorLight = () => {
-    const letters = '0123456789ABCDEF';
-    let color = '#';
-    for (let i = 0; i < 6; i++) {
-      color += letters[Math.floor(Math.random() * 16)];
-    }
     return color;
   };
   
@@ -306,40 +287,20 @@ const GoldenGoose = () => {
       setJackpotType('')
     }
   };
-  
-  const scratchEgg = async (id) => {
-    if (gameOver) return;
 
-    // First update the clicked egg
-    updatePlayerClickedEgg(id);
-    
-    // Update the eggs array
-    const updatedEggs = eggs.map(egg => 
-      egg.id === id ? { ...egg, scratched: true, cracked: true, showCracked: true} : egg
-    );
-    
-    // Send egg updates
-    updatePlayerEggs(updatedEggs);
-    
-    await new Promise(resolve => setTimeout(resolve, 50));
-    
-    // Update scratch count
-    const newScratchCount = scratchCount + 1;
-    updatePlayerScratchCount(newScratchCount);
-    
-    await new Promise(resolve => setTimeout(resolve, 50));
-    
-    // Check for winning combinations
+  useEffect(() => {
     const itemCount = {};
-    updatedEggs.forEach(egg => {
+    eggs.forEach(egg => {
       if (egg.scratched) {
         itemCount[egg.item] = (itemCount[egg.item] || 0) + 1;
       }
     });
     
     const hasWinningCombo = Object.values(itemCount).some(count => count >= 3);
-    
-    // Process game outcome
+
+    const scratchedEggsCount = eggs.filter(egg => egg.scratched === true).length;
+    setScratchCount(scratchedEggsCount);
+
     if (hasWinningCombo) {
       updatePlayerIsWinner(true);
       updatePlayerGameOver(true);
@@ -348,8 +309,7 @@ const GoldenGoose = () => {
       setTimeout(() => {
         setOpenDialog(true);
       }, 500);
-    } else if (newScratchCount >= 12) {
-      // For losing scenario
+    } else if (scratchedEggsCount >= 12) {
       updatePlayerIsWinner(false);
       updatePlayerGameOver(true);
       generateRandomPrize(Number(currentPrizePool));
@@ -358,6 +318,19 @@ const GoldenGoose = () => {
         setOpenDialog(true);
       }, 500);
     }
+  }, [eggs]);
+  
+  const scratchEgg = async (id) => {
+    if (gameOver) return;
+    
+    updatePlayerClickedEgg(id);
+    
+    const updatedEggs = eggs.map(egg => 
+      egg.id === id ? { ...egg, scratched: true, cracked: true, showCracked: true} : egg
+    );
+    
+    updatePlayerEggs(updatedEggs);
+    
   };
 
   const EggItem = ({ egg }) => {
@@ -367,7 +340,7 @@ const GoldenGoose = () => {
       if (egg.showCracked) {
         const timer = setTimeout(() => {
           setShowItem(true);
-        }, 500); // 0.5 seconds delay
+        }, 500); 
 
         return () => clearTimeout(timer);
       }
@@ -395,12 +368,11 @@ const GoldenGoose = () => {
 
     const scaleAndRotate = useSpring({
       to: async (next) => {
-        // Step 1: Scale up and rotate 360 degrees
+        
         await next({
           transform: isEggAnimated ? 'scale(1) rotate(360deg)' : 'scale(1) rotate(0deg)',
         });
     
-        // Step 2: Fast cartoon-like bounce effect
         if (isEggAnimated) {
           await next({ transform: 'scale(1.2) rotate(360deg)' }); // Scale up quickly
           await next({ transform: 'scale(0.9) rotate(360deg)' }); // Scale down quickly
@@ -412,11 +384,11 @@ const GoldenGoose = () => {
         transform: isEggAnimated ? 'scale(0.1) rotate(0deg)' : 'scale(1) rotate(0deg)',
       },
       config: {
-        tension: 300, // Higher tension for faster animation
-        friction: 10, // Lower friction for snappier movement
-        duration: 300, // Shorter duration for faster steps
+        tension: 300, 
+        friction: 10, 
+        duration: 300, 
       },
-      delay: 500, // Delay before the animation starts
+      delay: 500, 
     });
 
     return (

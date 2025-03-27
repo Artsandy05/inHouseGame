@@ -271,7 +271,6 @@ const GoldenGoose = () => {
             bet: 10, 
             gameStarted: true, 
             gameOver: false, 
-            scratchCount: 0, 
             clickedEgg, 
             isWinner: false, 
             eggs: newEggs,

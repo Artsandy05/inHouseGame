@@ -331,13 +331,15 @@ function liveChat(fastify) {
                       }
                     
                     // Create the round record
+                    const scratchedEggsCount = allPlayerData[playerIndex].filter(egg => egg.scratched === true).length;
+                    
                     await GoldenGooseRound.create({
                         user_id: allPlayerData[playerIndex].userId,
                         result: !winningItem ? 'Lose' : 'Win',
                         winning_amount: winningAmount.toFixed(2),
                         jackpot_amount: jackpotAmount.toFixed(2),
                         jackpot_type: jackpotType,
-                        crack_count: allPlayerData[playerIndex].scratchCount,
+                        crack_count: scratchedEggsCount,
                         eggs: allPlayerData[playerIndex].eggs
                     });
 

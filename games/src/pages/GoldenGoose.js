@@ -1,16 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button, Typography, Box, Container, Dialog, DialogTitle, DialogContent, DialogActions, Grid, IconButton } from '@mui/material';
 import { useSpring, animated } from '@react-spring/web';
-import CloseIcon from '@mui/icons-material/Close';
 import ReactConfetti from 'react-confetti';
 import { getRequiredUrl } from '../services/common';
 import WebSocketManager from '../utils/WebSocketManager';
 import { formatMoney } from '../utils/gameutils';
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
-import EggIcon from '@mui/icons-material/Egg';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import PaidIcon from '@mui/icons-material/Paid';
-import { CurrencyBitcoin, CurrencyExchangeOutlined, CurrencyExchangeSharp, CurrencyExchangeTwoTone, MoneyOffCsredOutlined, MoneySharp } from '@mui/icons-material';
 
 const useBackgroundAudio = (audioSrc) => {
   useEffect(() => {
@@ -556,7 +551,6 @@ const GoldenGoose = () => {
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
-            <MoneySharp sx={{ fontSize: '18px', color: 'black' }} />
             <Typography 
               variant="body1" 
               sx={{ 

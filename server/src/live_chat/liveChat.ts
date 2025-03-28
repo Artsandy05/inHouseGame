@@ -57,7 +57,7 @@ function liveChat(fastify) {
       
       try {
         const queryParams = url.searchParams;
-        const userData = JSON.parse(queryParams.get('userInfo'))
+        const userData: UserInfo = JSON.parse(queryParams.get('userInfo'))
         const uuid = userData?.uuid;
         if (hasValue(token)) {
           await fastify.jwt.verify(token);
@@ -76,7 +76,7 @@ function liveChat(fastify) {
     }
   });
   
-  wss.on('connection', async (socket: WebSocket, userData) => {
+  wss.on('connection', async (socket: WebSocket, userData: UserInfo ) => {
     console.log(`User connected: ${JSON.stringify(userData.nickName)}`);
     
     clients.add(socket);

@@ -18,6 +18,10 @@ import { Prize } from './game/Bet/Prize';
 import { Restart, RestartPlugin } from './game/plugins/RestartPlugin';
 import { GameDbPlugin } from './game/plugins/GameDbPlugin';
 import { TransactionDb, TransactionDbPlugin } from './game/plugins/TransactionDbPlugin';
+interface CustomWebSocket extends WebSocket {
+  uuid: string;
+  // Add any other custom properties you need
+}
 
 export class Main {
   private static instance: Main = null;
@@ -30,7 +34,7 @@ export class Main {
 
       Main.instance.game = new Game();
 
-      SocketManager.setClassType(WebSocket);
+      SocketManager.setClassType(WebSocket as { new(): CustomWebSocket });
       Main.instance.game.create(
         new GameData,
         new Odds,
@@ -62,7 +66,7 @@ export class Main {
     socket.uuid = data.uuid;
     
     let create = true;
-    Main.instance.game.view(WebSocket).each((entity, existingSocket) => {
+    Main.instance.game.view(WebSocket).each((entity, existingSocket: CustomWebSocket) => {
       if (existingSocket.uuid === socket.uuid) {
         Main.instance.game.emplace(entity, socket);
         create = false;

@@ -1,4 +1,4 @@
-import { WebSocket as WS } from 'ws';
+import WebSocket from 'ws';
 import { Game, GameData, Input, Output } from './game/Code';
 import { ModeratorManager } from './game/ModeratorManager';
 import { DatabaseManager } from './game/DatabaseManager';
@@ -20,12 +20,6 @@ import { GameDbPlugin } from './game/plugins/GameDbPlugin';
 import { TransactionDb, TransactionDbPlugin } from './game/plugins/TransactionDbPlugin';
 interface CustomWebSocket extends WebSocket {
   uuid: string;
-}
-
-declare global {
-  interface WebSocket {
-    uuid: string;
-  }
 }
 
 export class Main {
@@ -71,7 +65,7 @@ export class Main {
     socket.uuid = data.uuid;
     
     let create = true;
-    Main.instance.game.view(WebSocket).each((entity, existingSocket) => {
+    Main.instance.game.view(WebSocket).each((entity, existingSocket: CustomWebSocket) => {
       if (existingSocket.uuid === socket.uuid) {
         Main.instance.game.emplace(entity, socket);
         create = false;

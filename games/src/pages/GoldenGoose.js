@@ -6,6 +6,11 @@ import ReactConfetti from 'react-confetti';
 import { getRequiredUrl } from '../services/common';
 import WebSocketManager from '../utils/WebSocketManager';
 import { formatMoney } from '../utils/gameutils';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import EggIcon from '@mui/icons-material/Egg';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import PaidIcon from '@mui/icons-material/Paid';
+import { CurrencyBitcoin, CurrencyExchangeOutlined, CurrencyExchangeSharp, CurrencyExchangeTwoTone, MoneyOffCsredOutlined, MoneySharp } from '@mui/icons-material';
 
 const useBackgroundAudio = (audioSrc) => {
   useEffect(() => {
@@ -26,6 +31,24 @@ const useBackgroundAudio = (audioSrc) => {
   }, [audioSrc]);
 };
 
+function usePreventZoom() {
+  useEffect(() => {
+    const preventZoom = (e) => {
+      if (e.touches.length > 1) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener('touchstart', preventZoom, { passive: false });
+    document.addEventListener('gesturestart', preventZoom, { passive: false });
+
+    return () => {
+      document.removeEventListener('touchstart', preventZoom);
+      document.removeEventListener('gesturestart', preventZoom);
+    };
+  }, []);
+}
+
 const GoldenGoose = () => {
   const [eggs, setEggs] = useState([]);
   const [gameOver, setGameOver] = useState(true);
@@ -33,14 +56,13 @@ const GoldenGoose = () => {
   const [items, setItems] = useState(['/assets/500.png', 1, 1, 1, 1, 1]);
   const [isWinner, setIsWinner] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
-  const [jackpotPrize, setJackpotPrize] = useState(0);
-  const [jackpotType, setJackpotType] = useState('');
   const [scratchCount, setScratchCount] = useState(0);
   const [clickedEgg, setClickedEgg] = useState(false);
   const [userInteracted, setUserInteracted] = useState(false);
   const [currentPrizePool, setCurrentPrizePool] = useState(5);
   const userInfo = JSON.parse(localStorage.getItem('user') || 'null');
   const url = getRequiredUrl(true);
+  usePreventZoom();
   if (!url) {
     throw new Error(`No valid url: ${url}`);
   }
@@ -89,7 +111,7 @@ const GoldenGoose = () => {
       // Calculate maximum possible percentage that won't make prize pool negative
       const maxSafePercentage = ((currentPrizePool ?? 5) / playerBet) * 100;
       
-      const maxPercentage = Math.min(200, maxSafePercentage);
+      const maxPercentage = Math.min(1000, maxSafePercentage);
       const percentage = 1 + Math.random() * (maxPercentage - 1); 
       
       const value = (playerBet * (percentage / 100)).toFixed(2);
@@ -128,13 +150,10 @@ const GoldenGoose = () => {
   useEffect(() => {
     
     const handleMessage = async (event) => {
-      const { event: eventType, data, id, jackpotPrize, jackpotType, luckyPlayer } = JSON.parse(event.data);
+      const { event: eventType, data, id, currentPrizePool } = JSON.parse(event.data);
 
-      if(luckyPlayer && jackpotPrize && jackpotType){
-        if(luckyPlayer === userInfo.userData.data.user.id){
-          setJackpotPrize(jackpotPrize);
-          setJackpotType(jackpotType);
-        }
+      if(currentPrizePool){
+        setCurrentPrizePool(currentPrizePool);
       }
 
       if (eventType === "websocketPinging") {
@@ -234,16 +253,13 @@ const GoldenGoose = () => {
   
     return color;
   };
+
+  console.log(openDialog, gameOver, gameStarted)
   
   const startNewGame = async () => {
     playStartGameSound();
     // Create a working copy of items that may be modified
     let workingItems = [...items];
-    // Check if jackpotPrize is not 0 and modify the items array
-    if (jackpotPrize !== 0) {
-        // Replace the last element with jackpotPrize
-        workingItems = [...items.slice(0, -1), jackpotPrize];
-    }
     
     // Ensure we have unique items in the working set
     if (new Set(workingItems).size !== workingItems.length) {
@@ -264,16 +280,11 @@ const GoldenGoose = () => {
         };
     });
 
-    // Check if workingItems includes jackpotPrize (when jackpotPrize is not 0)
-    const hasJackpotPrize = jackpotPrize !== 0 && workingItems.includes(jackpotPrize);
+    const makeWinner = Math.random() < 0.3;
     
-    // Set makeWinner to true if hasJackpotPrize, otherwise random 30% chance
-    const makeWinner = hasJackpotPrize || Math.random() < 0.3;
-    console.log(workingItems)
-    console.log(makeWinner)
     if (makeWinner) {
-        // Use jackpotPrize as winning item if available, otherwise random item
-        const winningItem = hasJackpotPrize ? jackpotPrize : workingItems[Math.floor(Math.random() * workingItems.length)];
+      
+        const winningItem = workingItems[Math.floor(Math.random() * workingItems.length)];
 
         itemDistribution = Array(3).fill(winningItem);
         
@@ -321,17 +332,11 @@ const GoldenGoose = () => {
             clickedEgg, 
             isWinner: false, 
             eggs: newEggs,
-            jackpotPrize: jackpotPrize !== 0 ? jackpotPrize : 0,
-            jackpotType: jackpotType !== '' ? jackpotType : ''
         },
     };
   
     await wss.send(JSON.stringify(messageData));
 
-    if(jackpotPrize !== 0 && jackpotType !== ''){
-      setJackpotPrize(0);
-      setJackpotType('')
-    }
   };
 
   useEffect(() => {
@@ -527,132 +532,198 @@ const GoldenGoose = () => {
   useBackgroundAudio(bgSound);
 
   return (
-    <Container maxWidth="sm" style={{ padding: '20px', textAlign: 'center', background:'rgba(69, 32, 37, 1)', height:'100vh', position: 'relative' }}>
-      {/* Bet Display Box - Top Left */}
-      
+    <Container maxWidth="sm" style={{ padding: '20px', textAlign: 'center', background:'rgba(69, 32, 37, 1)', height:'100vh', position: 'relative',touchAction:'manipulation' }}>
+      {/* Left Column - Bet Info and Balance (Original Design) */}
       <Box 
         sx={{ 
           position: 'absolute', 
           top: 20, 
           left: 20, 
           textAlign: 'left',
-          zIndex: 10
+          zIndex: 10,
         }}
       >
+        {/* Bet Info Box */}
         <Box 
           sx={{ 
             background: 'rgba(247, 188, 0, 1)', 
             padding: '8px 16px', 
             borderRadius: '8px',
             display: 'inline-block',
-            marginBottom: '8px'
+            marginBottom: '8px',
+            width: 150,
+            zIndex:1
           }}
         >
-          <Typography 
-            variant="body1" 
-            sx={{ 
-              fontWeight: 'bold', 
-              color: 'black',
-              fontSize: '16px',
-              fontFamily: "'Poppins', sans-serif",
-              textAlign: 'center', // Para centered yung text
-              lineHeight: '1', // Para adjust yung line height
-            }}
-          >
-            BET ₱ 10.00
-          </Typography>
-          <Typography 
-            variant="body2" 
-            sx={{ 
-              color: 'black',
-              fontSize: '12px', // Smaller font size
-              fontFamily: "'Arial', sans-serif",
-              textAlign: 'center', // Para centered yung text
-              marginTop: '4px', // Spacing between the two texts
-            }}
-          >
-            For 12 Golden Eggs
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+            <MoneySharp sx={{ fontSize: '18px', color: 'black' }} />
+            <Typography 
+              variant="body1" 
+              sx={{ 
+                fontWeight: 'bold', 
+                color: 'black',
+                fontSize: '17px',
+                fontFamily: "'Paytone One', sans-serif",
+                textAlign: 'center',
+                lineHeight: '1',
+              }}
+            >
+              BET ₱ 10.00
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mt: '4px' }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: 'black',
+                fontSize: '12px',
+                fontWeight:550,
+                fontFamily: "'Montserrat', sans-serif",
+                textAlign: 'center',
+              }}
+            >
+              For 12 Golden Eggs
+            </Typography>
+          </Box>
         </Box>
         
-        <Box sx={{ display: 'block', background:'rgba(9, 10, 14, 0.25)', marginTop:-2, borderBottomLeftRadius: 10, borderBottomRightRadius: 10 }}>
-          <Typography 
-            variant="body2" 
-            sx={{ 
-              color: 'white',
-              fontSize: '14px',
-              position:'relative',
-              top:6,
-              marginTop:0.7,
-              marginBottom: '2px',
-              fontFamily: "'Quicksand', sans-serif",
-              textAlign:'center'
-            }}
-          >
-            My Balance
-          </Typography>
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              color: 'white',
-              fontWeight: 'bold',
-              fontFamily: "'Quicksand', cursive",
-              textAlign:'center',
-            }}
-          >
-            {`${formatMoney(parseFloat(userInfo.userData.data.wallet.balance).toFixed(2))}`}
-          </Typography>
+        {/* Balance Box with Linear Gradient */}
+        <Box sx={{ 
+          display: 'block', 
+          background: 'linear-gradient(to bottom, rgba(9, 10, 14, 0.45), rgba(9, 10, 14, 0.25))', 
+          marginTop: -2, 
+          borderBottomLeftRadius: 10, 
+          borderBottomRightRadius: 10, 
+          width: '100%',
+          padding: '8px 0',
+          zIndex:0
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, position:'relative', top:5 }}>
+            <AccountBalanceWalletIcon sx={{ fontSize: '16px', color: 'white' }} />
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: 'white',
+                fontSize: '14px',
+                fontFamily: "'Quicksand', sans-serif",
+              }}
+            >
+              My Balance
+            </Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                color: 'gold',
+                fontWeight: 505,
+                fontFamily: "'Poppins', cursive",
+              }}
+            >
+              {`${formatMoney(parseFloat(userInfo.userData.data.wallet.balance).toFixed(2))}`}
+            </Typography>
+          </Box>
         </Box>
       </Box>
 
-      {/* Jackpot Prize Banner */}
-      <Box 
-        sx={{ 
+      {/* Right Column - Jackpot and Prize Pool */}
+      <Box
+        sx={{
           position: 'absolute',
           top: 20,
           right: 20,
-          background: 'linear-gradient(to right, #FFD700, #FFA500)',
-          padding: '6px 12px',  // Reduced padding
-          borderRadius: '8px',  // Smaller border radius
-          boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
           zIndex: 10,
-          animation: 'pulse 2s infinite',
-          '@keyframes pulse': {
-            '0%': { transform: 'scale(1)' },
-            '50%': { transform: 'scale(1.05)' },
-            '100%': { transform: 'scale(1)' },
-          }
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+          gap: '8px'
         }}
       >
-        <Typography 
-          variant="body1"
+        {/* Jackpot Banner */}
+        <Box 
           sx={{ 
-            color: '#8B0000',
-            fontFamily: "'Bangers', cursive",
-            textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
-            fontSize: '20px'
+            background: 'linear-gradient(to right, #FFD700, #FFA500)',
+            padding: '6px 12px',
+            borderRadius: '8px',
+            boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+            animation: 'pulse 2s infinite',
+            '@keyframes pulse': {
+              '0%': { transform: 'scale(1)' },
+              '50%': { transform: 'scale(1.05)' },
+              '100%': { transform: 'scale(1)' },
+            }
           }}
         >
-          PLAY & WIN
-        </Typography>
-        <Typography 
-          variant="body1"  // Changed from h5 to body1
-          sx={{ 
-            color: '#8B0000',
-            textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
-            fontFamily: "'Bangers', cursive",
-            fontSize: '20px'  // Reduced font size
+          <Typography 
+            variant="body1"
+            sx={{ 
+              color: '#8B0000',
+              fontFamily: "'Bangers', cursive",
+              textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
+              fontSize: '18px',
+              lineHeight: '1.1'
+            }}
+          >
+            PLAY & WIN
+          </Typography>
+          <Typography 
+            variant="body1"
+            sx={{ 
+              color: '#8B0000',
+              textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
+              fontFamily: "'Bangers', cursive",
+              fontSize: '18px',
+              lineHeight: '1.1'
+            }}
+          >
+            ₱25000 JACKPOT!
+          </Typography>
+        </Box>
+
+        {/* Prize Pool Display */}
+        {currentPrizePool >= 10 && <Box
+          sx={{
+            background: 'rgba(0, 0, 0, 0.7)',
+            border: '2px solid gold',
+            borderRadius: '8px',
+            padding: '6px 12px',
+            textAlign: 'center',
+            width: '80%'
           }}
         >
-          ₱25000 JACKPOT!
-        </Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              color: 'gold',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              fontFamily: "'Poppins', sans-serif",
+              textTransform: 'uppercase'
+            }}
+          >
+            Max Prize
+          </Typography>
+          <Typography
+            variant="h6"
+            sx={{
+              color: 'white',
+              fontWeight: 'bold',
+              fontFamily: "'Bangers', cursive",
+              fontSize: '20px',
+              lineHeight: '1',
+              textShadow: '0 0 5px gold'
+            }}
+          >
+            ₱{Math.min(100, Number(currentPrizePool)).toLocaleString()}
+          </Typography>
+        </Box>}
       </Box>
 
       <Box textAlign={'center'} sx={{ marginTop: '90px' }}>
-        <img src={gameTitle} style={{ width: '65%', position:'relative', top:38, zIndex:1 }} />
+        <img src={gameTitle} style={{ width: '65%', position:'relative', top:60, zIndex:1 }} />
       </Box>
       
-      <Box sx={{ mb: 4, mt: 2 }}>
+      <Box sx={{ mb: 4, mt:5 }}>
         <Grid container spacing={2}>
           {eggs.map((egg) => (
             <Grid item xs={4} key={egg.id} sx={{ height: '70px', }}>
@@ -730,6 +801,7 @@ const GoldenGoose = () => {
           sx: {
             borderRadius: '16px', // Border radius for the dialog
             overflow: 'hidden', // Ensure the border radius is applied correctly
+            touchAction: 'manipulation',
           }
         }}
       >
@@ -749,18 +821,7 @@ const GoldenGoose = () => {
           }}
         >
           {isWinner ? '🎉 Congratulations! 🎉' : '😞 Better Luck Next Time 😞'}
-          {/* <IconButton
-            aria-label="close"
-            onClick={handleCloseDialog}
-            sx={{
-              position: 'absolute',
-              right: 0,
-              top: -8,
-              color: 'white',
-            }}
-          >
-            <CloseIcon />
-          </IconButton> */}
+          
         </DialogTitle>
         <DialogContent 
           dividers 

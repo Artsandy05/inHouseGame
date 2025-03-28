@@ -7,6 +7,8 @@ import GoldenGooseJackpotLog from '../../models/GoldenGooseJackpotLog';
 import { JACKPOT_CONFIG } from '../../config/goldenGoose/jackpot_config';
 import sequelize from "../../config/database";
 import GameList from '../../models/GameList';
+const { Mutex } = require('async-mutex');
+const mutex = new Mutex();
 
 const fs = require('fs');
 const path = require('path');
@@ -31,12 +33,24 @@ type ResponseData = {
   luckyPlayer?: string;  // Optional property
   jackpotPrize?: number; // Optional property
   jackpotType?: string;  // Optional property
+  currentPrizePool: any;
 };
 
 const wss = new WebSocket.Server({ noServer: true });
 const clients: Set<WebSocket> = new Set();
-// const activePlayer: Set<WebSocket> = new Set<UserInfo>();
-const allPlayerData = [];
+type PlayerData = {
+  userId: string; // Assuming userId is a string, adjust if needed
+  bet: number;
+  gameStarted: boolean;
+  gameOver: boolean;
+  clickedEgg: any; // Replace 'any' with the actual type of clickedEgg
+  isWinner: boolean;
+  eggs: any[]; // Replace 'any' with the actual type of your eggs array
+  jackpotPrize: number;
+  jackpotType: string;
+};
+
+const allPlayerData: Map<string, PlayerData> = new Map();
 
 const PING_INTERVAL = 10000;
 let pingIntervalId: NodeJS.Timeout | null = null;
@@ -77,7 +91,7 @@ function liveChat(fastify) {
   });
   
   wss.on('connection', async (socket: WebSocket, userData: UserInfo ) => {
-    console.log(`User connected: ${JSON.stringify(userData.nickName)}`);
+    console.log(`User connected: ${JSON.stringify(userData.nickName)} with ID ${JSON.stringify(userData.id)}`);
     
     clients.add(socket);
 
@@ -88,94 +102,122 @@ function liveChat(fastify) {
       if (data.event === 'startGame') {
         const playerData = data.data;
         const userId = playerData.userId;
-
-        if(userId){
-          if(playerData.jackpotPrize && playerData.jackpotPrize && playerData.jackpotPrize !== 0 && playerData.jackpotType !== ''){ 
-            await awardJackpot(userId, playerData.jackpotPrize);
-          }
-          const existingPlayerIndex = allPlayerData.findIndex(player => player.userId === userId);
-          
-          if (existingPlayerIndex !== -1) {
-            allPlayerData[existingPlayerIndex] = playerData;
-          } else {
-            allPlayerData.push(playerData);
-          }
-          
-          // Update or create the three prize records
-          try {
-            // Convert bet to number to ensure proper math operations
-            const betAmount = Number(playerData.bet);
-            
-            // Find existing records
-            const [instantPrize, jackpotPrize, appProfit] = await Promise.all([
-              GoldenGoosePrize.findOne({ where: { type: 'instant_prize' } }),
-              GoldenGoosePrize.findOne({ where: { type: 'jackpot_prize' } }),
-              GoldenGoosePrize.findOne({ where: { type: 'app_profit' } })
-            ]);
-      
-            // Update or create records with proper numeric operations
-            await Promise.all([
-              instantPrize 
-                ? instantPrize.update({ 
-                    amount: Number(instantPrize.amount) + (betAmount * 0.5),
-                  })
-                : GoldenGoosePrize.create({
-                    type: 'instant_prize',
-                    amount: betAmount * 0.5,
-                  }),
-              
-              jackpotPrize
-                ? jackpotPrize.update({ 
-                    amount: Number(jackpotPrize.amount) + (betAmount * 0.1),
-                  }) 
-                : GoldenGoosePrize.create({
-                    type: 'jackpot_prize',
-                    amount: betAmount * 0.1,
-                    count:0
-                  }),
-              
-              appProfit
-                ? appProfit.update({ 
-                    amount: Number(appProfit.amount) + (betAmount * 0.4),
-                  })
-                : GoldenGoosePrize.create({
-                    type: 'app_profit',
-                    amount: betAmount * 0.4,
-                  })
-            ]);
-      
-            console.log('Successfully updated prize records');
-          } catch (error) {
-            console.error('Error updating prize records:', error);
-          }
-
-          let luckyPlayer: string | null = null;
+    
+        if (userId) {
           let jackpotPrize = { amount: null as number | null, type: null as string | null };
-
-          if (allPlayerData.length > 0) {
-              const randomIndex = Math.floor(Math.random() * allPlayerData.length);
-              luckyPlayer = allPlayerData[randomIndex].userId;
-              jackpotPrize = await checkJackpot(parseInt(luckyPlayer));
+          jackpotPrize = await checkJackpot();
+          if (jackpotPrize && jackpotPrize.amount) {
+            await awardJackpot(userId, jackpotPrize.amount);
+            const jackpotAmountStr = jackpotPrize.amount.toString();
+            const eggs = playerData.eggs;
+            playerData.jackpotPrize = jackpotPrize.amount;
+            playerData.jackpotType = jackpotPrize.type;
+        
+            // Case 1: May existing na 3+ matching scratched eggs -> palitan ang value
+            const itemCounts: Record<string, number> = {};
+            eggs.forEach(egg => {
+                if (egg.scratched) itemCounts[egg.item] = (itemCounts[egg.item] || 0) + 1;
+            });
+            const winningItem = Object.entries(itemCounts).find(([_, count]) => count >= 3)?.[0];
+        
+            if (winningItem) {
+                // Palitan lahat ng winningItem eggs ng jackpot value
+                eggs.forEach(egg => {
+                    if (egg.item === winningItem) egg.item = jackpotAmountStr;
+                });
+            } 
+            // Case 2: Walang 3 matches -> magdagdag ng 3 bagong eggs na may jackpot value
+            else {
+                // Alisin ang 3 random eggs (kung may enough eggs)
+                for (let i = 0; i < 3 && eggs.length > 0; i++) {
+                    const randomIndex = Math.floor(Math.random() * eggs.length);
+                    eggs.splice(randomIndex, 1); // Remove 1 egg at random position
+                }
+        
+                const jackpotColor = getRandomColor();  // Metallic gold color
+                // Dagdagan ng 3 bagong eggs na may jackpot value (random positions)
+                for (let i = 0; i < 3; i++) {
+                    const newEgg = {
+                        id: eggs.length > 0 ? Math.max(...eggs.map(e => e.id)) + 1 : i,
+                        item: jackpotAmountStr,
+                        scratched: false,
+                        cracked: false,
+                        showCracked: false,
+                        color: jackpotColor, 
+                        textShadow: '0 0 3.5px white, 0 0 3.5px white'
+                    };
+                    const randomPos = Math.floor(Math.random() * (eggs.length + 1));
+                    eggs.splice(randomPos, 0, newEgg); // Insert at random position
+                }
+            }
           }
-
+        
+          allPlayerData.set(userId, playerData);
+  
+          try {
+              // Convert bet to number to ensure proper math operations
+              const betAmount = Number(playerData.bet);
+              
+              // Find existing records
+              const [instantPrize, jackpotPrize, appProfit] = await Promise.all([
+                  GoldenGoosePrize.findOne({ where: { type: 'instant_prize' } }),
+                  GoldenGoosePrize.findOne({ where: { type: 'jackpot_prize' } }),
+                  GoldenGoosePrize.findOne({ where: { type: 'app_profit' } })
+              ]);
+        
+              // Update or create records with proper numeric operations
+              await Promise.all([
+                  instantPrize 
+                      ? instantPrize.update({ 
+                          amount: Number(instantPrize.amount) + (betAmount * 0.5),
+                      })
+                      : GoldenGoosePrize.create({
+                          type: 'instant_prize',
+                          amount: betAmount * 0.5,
+                      }),
+                  
+                  jackpotPrize
+                      ? jackpotPrize.update({ 
+                          amount: Number(jackpotPrize.amount) + (betAmount * 0.1),
+                      }) 
+                      : GoldenGoosePrize.create({
+                          type: 'jackpot_prize',
+                          amount: betAmount * 0.1,
+                          count: 0
+                      }),
+                  
+                  appProfit
+                      ? appProfit.update({ 
+                          amount: Number(appProfit.amount) + (betAmount * 0.4),
+                      })
+                      : GoldenGoosePrize.create({
+                          type: 'app_profit',
+                          amount: betAmount * 0.4,
+                      })
+              ]);
+        
+              console.log('Successfully updated prize records');
+          } catch (error) {
+              console.error('Error updating prize records:', error);
+          }
+  
+          const instantPrizePool = await GoldenGoosePrize.findOne({
+              where: { type: 'instant_prize' },
+          });
+  
+          // Convert Map values to array for response
+          const playersArray = Array.from(allPlayerData.values());
+          
           // Initialize the response object
           const responseData: ResponseData = {
               event: 'receiveAllPlayerData',
-              data: allPlayerData,
-              id: userId
+              data: playersArray,
+              id: userId,
+              currentPrizePool: instantPrizePool?.amount || 0
           };
-
-          // Conditionally add the properties
-          if(jackpotPrize){
-            if (jackpotPrize.amount !== null && luckyPlayer !== null) {
-              responseData.luckyPlayer = luckyPlayer;
-              responseData.jackpotPrize = jackpotPrize.amount;
-              responseData.jackpotType = jackpotPrize.type;
-            }
-          }
-
+  
           const response = JSON.stringify(responseData);
-
+  
           clients.forEach(client => {
               if (client.readyState === WebSocket.OPEN) {
                   client.send(response);
@@ -189,22 +231,37 @@ function liveChat(fastify) {
         const userId = playerData.userId ? playerData.userId : false;
         
         if (userId) {
-          const playerIndex = allPlayerData.findIndex(player => player.userId === userId);
-          
-          if (playerIndex !== -1) {
-            allPlayerData[playerIndex].eggs = playerData.eggs;
+          // Check if player exists in the Map
+          if (allPlayerData.has(userId)) {
+              // Get the existing player data
+              const existingPlayer = allPlayerData.get(userId);
+              
+              // Update only the eggs property
+              allPlayerData.set(userId, {
+                  ...existingPlayer,
+                  eggs: playerData.eggs
+              });
+  
+              const instantPrizePool = await GoldenGoosePrize.findOne({
+                  where: { type: 'instant_prize' },
+              });
+  
+              // Convert Map values to array for response
+              const playersArray = Array.from(allPlayerData.values());
+              
+              const response = JSON.stringify({
+                  event: 'receiveAllPlayerData',
+                  data: playersArray,
+                  id: userId,
+                  currentPrizePool: instantPrizePool?.amount || 0
+              });
             
-            const response = JSON.stringify({
-              event: 'receiveAllPlayerData',
-              data: allPlayerData,
-              id: userId
-            });
-          
-            clients.forEach(client => {
-              if (client.readyState === WebSocket.OPEN) {
-                client.send(response);
-              }
-            });
+              // Send to all connected clients
+              clients.forEach(client => {
+                  if (client.readyState === WebSocket.OPEN) {
+                      client.send(response);
+                  }
+              });
           } else {
               console.log(`Player with userId ${userId} not found`);
           }
@@ -213,23 +270,38 @@ function liveChat(fastify) {
 
       if (data.event === 'updatePlayerIsWinner') {
         const playerData = data.data;
-        const userId = playerData.userId ? playerData.userId : false; 
+        const userId = playerData.userId ?? false;  // Using nullish coalescing for cleaner code
         
         if (userId) {
-          const playerIndex = allPlayerData.findIndex(player => player.userId === userId);
-          
-          if (playerIndex !== -1) {
-              allPlayerData[playerIndex].isWinner = playerData.isWinner;
+          // Check if player exists in the Map
+          if (allPlayerData.has(userId)) {
+              // Get the existing player data and update isWinner status
+              const existingPlayer = allPlayerData.get(userId);
+              
+              allPlayerData.set(userId, {
+                  ...existingPlayer,
+                  isWinner: playerData.isWinner
+              });
+  
+              const instantPrizePool = await GoldenGoosePrize.findOne({
+                  where: { type: 'instant_prize' },
+              });
+  
+              // Convert Map values to array for response
+              const playersArray = Array.from(allPlayerData.values());
+              
               const response = JSON.stringify({
-                event: 'receiveAllPlayerData',
-                data: allPlayerData,
-                id: userId
+                  event: 'receiveAllPlayerData',
+                  data: playersArray,
+                  id: userId,
+                  currentPrizePool: instantPrizePool?.amount || 0  // Safe navigation
               });
             
+              // Broadcast to all connected clients
               clients.forEach(client => {
-                if (client.readyState === WebSocket.OPEN) {
-                  client.send(response);
-                }
+                  if (client.readyState === WebSocket.OPEN) {
+                      client.send(response);
+                  }
               });
           } else {
               console.log(`Player with userId ${userId} not found`);
@@ -239,23 +311,38 @@ function liveChat(fastify) {
 
       if (data.event === 'updatePlayerClickedEgg') {
         const playerData = data.data;
-        const userId = playerData.userId ? playerData.userId : false;
+        const userId = playerData.userId ?? false; // Using nullish coalescing operator
         
         if (userId) {
-          const playerIndex = allPlayerData.findIndex(player => player.userId === userId);
-          
-          if (playerIndex !== -1) {
-              allPlayerData[playerIndex].clickedEgg = playerData.clickedEgg;
-              const response = JSON.stringify({
-                event: 'receiveAllPlayerData',
-                data: allPlayerData,
-                id: userId
+          // Check if player exists in the Map
+          if (allPlayerData.has(userId)) {
+              // Get existing player data and update clickedEgg
+              const existingPlayer = allPlayerData.get(userId)!; // Non-null assertion as we checked has()
+              
+              // Update player data immutably
+              allPlayerData.set(userId, {
+                  ...existingPlayer,
+                  clickedEgg: playerData.clickedEgg
               });
-            
+  
+              // Get current prize pool
+              const instantPrizePool = await GoldenGoosePrize.findOne({
+                  where: { type: 'instant_prize' },
+              });
+  
+              // Prepare response with all player data
+              const response = JSON.stringify({
+                  event: 'receiveAllPlayerData',
+                  data: Array.from(allPlayerData.values()), // Convert Map values to array
+                  id: userId,
+                  currentPrizePool: instantPrizePool?.amount || 0 // Safe access with fallback
+              });
+              
+              // Broadcast update to all connected clients
               clients.forEach(client => {
-                if (client.readyState === WebSocket.OPEN) {
-                  client.send(response);
-                }
+                  if (client.readyState === WebSocket.OPEN) {
+                      client.send(response);
+                  }
               });
           } else {
               console.log(`Player with userId ${userId} not found`);
@@ -268,13 +355,16 @@ function liveChat(fastify) {
         const userId = playerData.userId ? playerData.userId : false;
         
         if (userId) {
-            const playerIndex = allPlayerData.findIndex(player => player.userId === userId);
-            
-            if (playerIndex !== -1) {
+            if (allPlayerData.has(userId)) {
                 // Update the gameOver status first
-                allPlayerData[playerIndex].gameOver = playerData.gameOver;
+                const player = allPlayerData.get(userId)!;
+                const updatedPlayer = {
+                    ...player,
+                    gameOver: playerData.gameOver
+                };
+                allPlayerData.set(userId, updatedPlayer);
     
-                const eggs = allPlayerData[playerIndex].eggs;
+                const eggs = updatedPlayer.eggs;
     
                 const itemOccurrences = eggs.reduce((acc: Record<string, number>, egg) => {
                     if (egg.scratched) {
@@ -295,16 +385,16 @@ function liveChat(fastify) {
                     let jackpotType = 'none';
                     
                     // Check if this is a jackpot win
-                    const isJackpotWin = allPlayerData[playerIndex].jackpotPrize !== 0 && 
+                    const isJackpotWin = updatedPlayer.jackpotPrize !== 0 && 
                                         winningItem && 
-                                        parseFloat(winningItem[0]) === allPlayerData[playerIndex].jackpotPrize;
+                                        parseFloat(winningItem[0]) === updatedPlayer.jackpotPrize;
                     
                       if (winningItem) {
                         if (isJackpotWin) {
                             // For jackpot win, use the jackpot prize directly without deducting from instant prize
-                            winningAmount = allPlayerData[playerIndex].jackpotPrize;
+                            winningAmount = updatedPlayer.jackpotPrize;
                             jackpotAmount = winningAmount;
-                            jackpotType = allPlayerData[playerIndex].jackpotType || 'jackpot';
+                            jackpotType = updatedPlayer.jackpotType || 'jackpot';
                         } else {
                             // Regular win - deduct from instant prize
                             const instantPrize = await GoldenGoosePrize.findOne({
@@ -334,43 +424,46 @@ function liveChat(fastify) {
                     const scratchedEggsCount = eggs.filter(egg => egg.scratched === true).length;
 
                     await GoldenGooseRound.create({
-                        user_id: allPlayerData[playerIndex].userId,
+                        user_id: updatedPlayer.userId,
                         result: !winningItem ? 'Lose' : 'Win',
                         winning_amount: winningAmount.toFixed(2),
                         jackpot_amount: jackpotAmount.toFixed(2),
                         jackpot_type: jackpotType,
                         crack_count: scratchedEggsCount,
-                        eggs: allPlayerData[playerIndex].eggs
+                        eggs: updatedPlayer.eggs
                     });
 
-                    allPlayerData.splice(playerIndex, 1);
+                    allPlayerData.delete(userId);
+                    const playersArray = Array.from(allPlayerData.values());
 
                     // Send immediate update with gameOver status
                     const immediateResponse = JSON.stringify({
                         event: 'receiveAllPlayerData',
-                        data: allPlayerData,
+                        data: playersArray,
                         id: userId
                     });
                     
                     clients.forEach(client => {
-                        if (client.readyState === WebSocket.OPEN) {
-                            client.send(immediateResponse);
-                        }
-                    });
+                      if (client.readyState === WebSocket.OPEN) {
+                          client.send(immediateResponse);
+                      }
+                  });
                     
                     console.log('GoldenGooseRound record created successfully');
                 } catch (error) {
                   console.error('Error in gameOver processing:', error);
                   // Ensure player is removed even if there's an error
-                  if (playerIndex !== -1) {
-                      allPlayerData.splice(playerIndex, 1);
+                  if (allPlayerData.has(userId)) {
+                    allPlayerData.delete(userId);
                   }
                   console.error('Error processing prize or creating GoldenGooseRound record:', error);
                 }
 
+                const playersArray = Array.from(allPlayerData.values());
+
                 const delayedResponse = JSON.stringify({
                     event: 'receiveAllPlayerData',
-                    data: allPlayerData
+                    data: playersArray
                 });
                 
                 clients.forEach(client => {
@@ -407,14 +500,20 @@ function liveChat(fastify) {
         const userId = playerData.userId ? playerData.userId : false;
         
         if (userId) {
-          const playerIndex = allPlayerData.findIndex(player => player.userId === userId);
-          
-          if (playerIndex !== -1) {
-              allPlayerData[playerIndex].gameStarted = playerData.gameStarted;
+          const instantPrizePool = await GoldenGoosePrize.findOne({
+            where: { type: 'instant_prize' },
+          });
+          if (allPlayerData.has(userId)) {
+            const existingPlayer = allPlayerData.get(userId)!;
+            allPlayerData.set(userId, {
+              ...existingPlayer,
+              gameStarted: playerData.gameStarted
+          });
               const response = JSON.stringify({
                 event: 'receiveAllPlayerData',
-                data: allPlayerData,
-                id: userId
+                data: Array.from(allPlayerData.values()),
+                id: userId,
+                currentPrizePool: instantPrizePool.amount 
               });
             
               clients.forEach(client => {
@@ -471,7 +570,7 @@ function liveChat(fastify) {
       return { mini, minor, major, grand };
     }
 
-    async function checkJackpot(luckyPlayerId: number) {
+    async function checkJackpot() {
       const transaction = await sequelize.transaction();
       
       try {
@@ -717,10 +816,10 @@ function liveChat(fastify) {
     }
     
   
-    if (allPlayerData.length > 0) {
+    if (allPlayerData.size > 0) {
       const response = JSON.stringify({
         event: 'receiveAllPlayerData',
-        data: allPlayerData,
+        data: Array.from(allPlayerData.values()),
         id: userData.id,
       });
     
@@ -735,12 +834,20 @@ function liveChat(fastify) {
 
   startPingInterval();
 
-  // function sanitizeFileName(fileName) {
-  //     return fileName
-  //         .replace(/[<>:"/\\|?*]/g, '_')   // Replace unsafe characters with underscores
-  //         .replace(/\s+/g, '_')            // Replace spaces with underscores
-  //         .toLowerCase();                  // Optionally convert to lowercase
-  // }
+  const getRandomColor = () => {
+    const letters = '0123456789ABCDEF';
+    let color = '#';
+    for (let i = 0; i < 3; i++) {
+      let channel = '';
+      
+      for (let j = 0; j < 2; j++) {
+        channel += letters[Math.floor(Math.random() * 8)]; 
+      }
+      color += channel;
+    }
+  
+    return color;
+  };
 
   function extractTokenFromURL(url) {
     const urlParts = url.split('?');
@@ -749,6 +856,14 @@ function liveChat(fastify) {
       return queryParams.get('token');
     }
     return null;
+  }
+
+  function broadcastToClients(message: string) {
+    clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(message);
+        }
+    });
   }
 
   // async function updateConnectedClientsCount(){

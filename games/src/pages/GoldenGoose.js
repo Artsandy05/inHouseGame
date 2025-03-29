@@ -103,18 +103,38 @@ const GoldenGoose = () => {
     const playerBet = 10; // Assuming player bet is 10
     
     while (modifiedItems.length < items.length) {
-      // Calculate maximum possible percentage that won't make prize pool negative
-      const maxSafePercentage = ((currentPrizePool ?? 5) / playerBet) * 100;
-      
-      const maxPercentage = Math.min(1000, maxSafePercentage);
-      const percentage = 1 + Math.random() * (maxPercentage - 1); 
-      
-      const value = (playerBet * (percentage / 100)).toFixed(2);
-      
-      if (!uniqueValues.has(value)) {
-        uniqueValues.add(value);
-        modifiedItems.push(value);
-      }
+        // Calculate maximum possible percentage that won't make prize pool negative
+        const maxSafePercentage = ((currentPrizePool ?? 5) / playerBet) * 100;
+        let maxPercentage = Math.min(1000, maxSafePercentage);
+        let percentage;
+
+        // If currentPrizePool is more than 20, make values above 20 very rare
+        if (currentPrizePool > 20) {
+            // Use exponential distribution to heavily favor lower values
+            const random = Math.random();
+            // Higher exponent makes larger values exponentially more rare
+            const skewedRandom = Math.pow(random, 5); 
+            percentage = 1 + skewedRandom * (maxPercentage - 1);
+            
+            // Additional safeguard: hard cap at 20 if percentage would give higher value
+            const potentialValue = playerBet * (percentage / 100);
+            if (potentialValue > 20) {
+                // Make it exponentially less likely to accept values > 20
+                if (Math.random() > 0.3) { 
+                    continue;
+                }
+            }
+        } else {
+            // Original uniform distribution
+            percentage = 1 + Math.random() * (maxPercentage - 1);
+        }
+
+        const value = (playerBet * (percentage / 100)).toFixed(2);
+        
+        if (!uniqueValues.has(value)) {
+            uniqueValues.add(value);
+            modifiedItems.push(value);
+        }
     }
     
     return modifiedItems;

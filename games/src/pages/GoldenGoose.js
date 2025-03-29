@@ -98,7 +98,7 @@ const GoldenGoose = () => {
   const generateUniqueRandomItems = (currentPrizePool) => {
     const uniqueValues = new Set();
     const modifiedItems = [];
-    const playerBet = 10; // Assuming player bet is 10
+    const playerBet = 10; 
     
     while (modifiedItems.length < items.length) {
         const maxSafePercentage = ((currentPrizePool ?? 5) / playerBet) * 100;
@@ -257,15 +257,13 @@ const GoldenGoose = () => {
   
     return color;
   };
-
-  console.log(openDialog, gameOver, gameStarted)
   
   const startNewGame = async () => {
     playStartGameSound();
-    // Create a working copy of items that may be modified
+    
     let workingItems = [...items];
     
-    // Ensure we have unique items in the working set
+    
     if (new Set(workingItems).size !== workingItems.length) {
         console.warn("Duplicate items detected, regenerating...");
         await generateRandomPrize(Number(currentPrizePool));
@@ -313,7 +311,6 @@ const GoldenGoose = () => {
         itemDistribution = itemPool.slice(0, 12);
     }
   
-    // Final shuffle
     itemDistribution.sort(() => Math.random() - 0.5);
     
     const newEggs = itemDistribution.map((item, index) => ({
@@ -434,10 +431,10 @@ const GoldenGoose = () => {
         });
     
         if (isEggAnimated) {
-          await next({ transform: 'scale(1.2) rotate(360deg)' }); // Scale up quickly
-          await next({ transform: 'scale(0.9) rotate(360deg)' }); // Scale down quickly
-          await next({ transform: 'scale(1.1) rotate(360deg)' }); // Scale up slightly
-          await next({ transform: 'scale(1) rotate(360deg)' });  // Return to normal scale
+          await next({ transform: 'scale(1.2) rotate(360deg)' }); 
+          await next({ transform: 'scale(0.9) rotate(360deg)' }); 
+          await next({ transform: 'scale(1.1) rotate(360deg)' }); 
+          await next({ transform: 'scale(1) rotate(360deg)' });  
         }
       },
       from: {
@@ -488,7 +485,7 @@ const GoldenGoose = () => {
                     position: 'absolute', 
                     top: -14, 
                     left: -10,
-                    transform: 'rotate(10deg)', // Mag-rotate ng 10 degrees pakanan
+                    transform: 'rotate(10deg)', 
                   }} 
                 />
                 <animated.div
@@ -497,7 +494,7 @@ const GoldenGoose = () => {
                     position: 'absolute',
                     fontFamily: 'Paytone One',
                     fontWeight: '700',
-                    color: egg.color, // text color
+                    color: egg.color, 
                     left: -12,
                     ...scaleAndRotate,
                     textShadow: egg.textShadow,

@@ -6,6 +6,7 @@ import { getRequiredUrl } from '../services/common';
 import WebSocketManager from '../utils/WebSocketManager';
 import { formatMoney } from '../utils/gameutils';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import ResultDialog from '../components/ResultDialog';
 
 const useBackgroundAudio = (audioSrc) => {
   useEffect(() => {
@@ -72,8 +73,8 @@ const GoldenGoose = () => {
   const goldEgg = '/assets/goldEgg.png';
   const startGameSound = '/assets/sounds/8-bit-achievement-epic-stock-media-1-00-00.mp3';
   const crackEggSound = '/assets/sounds/crackingEgg.mp3';
-  const winSound = '/assets/sounds/you-win-sequence-3-183950.mp3';
-  const loseSound = '/assets/sounds/no-luck-too-bad-disappointing-sound-effect-112943.mp3';
+  const winSound = '/assets/sounds/win.mp3';
+  const loseSound = '/assets/sounds/losesound.mp3';
   const bgSound = '/assets/sounds/cottagecore-17463.mp3';
   const gameTitle = '/assets/gameTitle.png';
   const crackedEgg = '/assets/crackedGoldEgg.png';
@@ -106,7 +107,7 @@ const GoldenGoose = () => {
         let percentage;
         if (currentPrizePool > 20) {
             const random = Math.random();
-            const skewedRandom = Math.pow(random, 5); 
+            const skewedRandom = Math.pow(random,4); 
             percentage = 1 + skewedRandom * (maxPercentage - 1);
             const potentialValue = playerBet * (percentage / 100);
             if (potentialValue > 20) {
@@ -282,7 +283,7 @@ const GoldenGoose = () => {
         };
     });
 
-    const makeWinner = Math.random() < 0.3;
+    const makeWinner = Math.random() < 0.4;
     
     if (makeWinner) {
       
@@ -539,7 +540,7 @@ const GoldenGoose = () => {
         sx={{ 
           position: 'absolute', 
           top: 20, 
-          left: 20, 
+          left: 10, 
           textAlign: 'left',
           zIndex: 10,
         }}
@@ -553,7 +554,7 @@ const GoldenGoose = () => {
             display: 'inline-block',
             marginBottom: '8px',
             width: 150,
-            zIndex:1
+            zIndex: 1
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
@@ -563,12 +564,13 @@ const GoldenGoose = () => {
                 fontWeight: 'bold', 
                 color: 'black',
                 fontSize: '17px',
-                fontFamily: "'Paytone One', sans-serif",
+                fontFamily: "'Paytone One', cursive", // More impactful display font
                 textAlign: 'center',
                 lineHeight: '1',
+                letterSpacing: '0.5px' // Slightly increased letter spacing for better readability
               }}
             >
-              BET ₱ 10.00
+              <span style={{color:'rgba(87, 34, 41, 1)', fontWeight:'bold', fontSize:20}}>BET</span> ₱ 10.00
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mt: '4px' }}>
@@ -577,9 +579,10 @@ const GoldenGoose = () => {
               sx={{ 
                 color: 'black',
                 fontSize: '12px',
-                fontWeight:550,
-                fontFamily: "'Montserrat', sans-serif",
+                fontWeight: 'bold',
+                fontFamily: "'Open Sans', sans-serif", // Clean, modern sans-serif
                 textAlign: 'center',
+                letterSpacing: '0.3px' // Subtle letter spacing improvement
               }}
             >
               For 12 Golden Eggs
@@ -626,31 +629,49 @@ const GoldenGoose = () => {
         </Box>
       </Box>
 
-      {/* Right Column - Jackpot and Prize Pool */}
       <Box
         sx={{
           position: 'absolute',
           top: 20,
-          right: 20,
+          right: 10,
           zIndex: 10,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-end',
-          gap: '8px'
+          width: '40%'
         }}
       >
-        {/* Jackpot Banner */}
+        {/* Enhanced Jackpot Banner */}
         <Box 
           sx={{ 
-            background: 'linear-gradient(to right, #FFD700, #FFA500)',
-            padding: '6px 12px',
-            borderRadius: '8px',
-            boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
-            animation: 'pulse 2s infinite',
+            background: 'linear-gradient(45deg, #FFD700 0%, #FFA500 50%, #FFD700 100%)',
+            padding: '8px 12px',
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3), inset 0 0 8px rgba(255,255,255,0.5)',
+            border: '2px solid rgba(139, 0, 0, 0.3)',
+            animation: 'pulse 2s infinite, shine 3s infinite',
+            backgroundSize: '200% auto',
             '@keyframes pulse': {
               '0%': { transform: 'scale(1)' },
-              '50%': { transform: 'scale(1.05)' },
+              '50%': { transform: 'scale(1.03)' },
               '100%': { transform: 'scale(1)' },
+            },
+            '@keyframes shine': {
+              '0%': { backgroundPosition: '0% center' },
+              '100%': { backgroundPosition: '200% center' },
+            },
+            position: 'relative',
+            overflow: 'hidden',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+              transform: 'translateX(-100%)',
+              animation: 'shimmer 2s infinite',
+              '@keyframes shimmer': {
+                '100%': { transform: 'translateX(100%)' }
+              }
             }
           }}
         >
@@ -659,9 +680,11 @@ const GoldenGoose = () => {
             sx={{ 
               color: '#8B0000',
               fontFamily: "'Bangers', cursive",
-              textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
-              fontSize: '18px',
-              lineHeight: '1.1'
+              textShadow: '1px 1px 2px rgba(255,255,255,0.5)',
+              fontSize: '20px',
+              lineHeight: '1.1',
+              letterSpacing: '1px',
+              textAlign: 'center'
             }}
           >
             PLAY & WIN
@@ -670,53 +693,30 @@ const GoldenGoose = () => {
             variant="body1"
             sx={{ 
               color: '#8B0000',
-              textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
-              fontFamily: "'Bangers', cursive",
-              fontSize: '18px',
-              lineHeight: '1.1'
-            }}
-          >
-            ₱25000 JACKPOT!
-          </Typography>
-        </Box>
-
-        {/* Prize Pool Display */}
-        {currentPrizePool >= 10 && <Box
-          sx={{
-            background: 'rgba(0, 0, 0, 0.7)',
-            border: '2px solid gold',
-            borderRadius: '8px',
-            padding: '6px 12px',
-            textAlign: 'center',
-            width: '80%'
-          }}
-        >
-          <Typography
-            variant="body2"
-            sx={{
-              color: 'gold',
-              fontSize: '12px',
-              fontWeight: 'bold',
-              fontFamily: "'Poppins', sans-serif",
-              textTransform: 'uppercase'
-            }}
-          >
-            Max Prize
-          </Typography>
-          <Typography
-            variant="h6"
-            sx={{
-              color: 'white',
-              fontWeight: 'bold',
+              textShadow: '1px 1px 2px rgba(255,255,255,0.5)',
               fontFamily: "'Bangers', cursive",
               fontSize: '20px',
-              lineHeight: '1',
-              textShadow: '0 0 5px gold'
+              lineHeight: '1.1',
+              letterSpacing: '1px',
+              textAlign: 'center'
             }}
           >
-            ₱{Math.min(100, Number(currentPrizePool)).toLocaleString()}
+            ₱25,000
           </Typography>
-        </Box>}
+          <Typography 
+            variant="body2"
+            sx={{ 
+              color: '#8B0000',
+              fontFamily: "'Bangers', cursive",
+              fontSize: '16px',
+              lineHeight: '1',
+              textAlign: 'center',
+              mt: '2px'
+            }}
+          >
+            JACKPOT!
+          </Typography>
+        </Box>
       </Box>
 
       <Box textAlign={'center'} sx={{ marginTop: '90px' }}>
@@ -794,106 +794,13 @@ const GoldenGoose = () => {
       
       {isWinner && <ReactConfetti width={windowSize.width} height={windowSize.height} recycle={false} numberOfPieces={500} />}
       
-      <Dialog 
-        open={openDialog} 
+      <ResultDialog
+        open={openDialog}
         onClose={handleCloseDialog}
-        PaperProps={{
-          sx: {
-            borderRadius: '16px', // Border radius for the dialog
-            overflow: 'hidden', // Ensure the border radius is applied correctly
-            touchAction: 'manipulation',
-          }
-        }}
-      >
-        <DialogTitle 
-          sx={{ 
-            m: 0, 
-            p: 2, 
-            bgcolor: isWinner ? '#4CAF50' : '#B12B24', 
-            color: 'white',
-            fontFamily: 'Poppins, sans-serif', // Modern font family
-            fontSize: '1.2rem', // Larger font size for the title
-            textAlign: 'center', // Center align the text
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            position: 'relative'
-          }}
-        >
-          {isWinner ? '🎉 Congratulations! 🎉' : '😞 Better Luck Next Time 😞'}
-          
-        </DialogTitle>
-        <DialogContent 
-          dividers 
-          sx={{
-            background: '#FBDC6A',
-            textAlign: 'center', // Center align the content
-            fontFamily: 'Roboto, sans-serif', // Modern font family
-            padding: '10px',
-          }}
-        >
-          {isWinner ? (
-            <>
-              <Typography sx={{fontWeight:'bold', color:'#760504', fontSize:'1.2rem', mb:2,fontFamily: 'Poppins, sans-serif'}}>
-                YOU MATCHED 3
-              </Typography>
-              <Typography sx={{fontWeight:'bold', color:'#760504', fontSize:'4.2rem', mb:2,fontFamily: 'Paytone One', textAlign:'center', textShadow:`0 0 5px white, 0 0 5px white`}}>
-                {winningItem[0]}
-              </Typography>
-              
-            </>
-            
-          ) : (
-            <>
-              <Typography 
-                gutterBottom 
-                sx={{ 
-                  color: '#760504', 
-                  fontSize: '1.2rem',
-                  fontWeight: 'bold',
-                }}
-              >
-                No 3 matching prizes found.
-              </Typography>
-              <Typography 
-                gutterBottom 
-                sx={{ 
-                  color: '#760504', 
-                  fontSize: '1.2rem',
-                  fontWeight: 'bold',
-                }}
-              >
-                Try again!
-              </Typography>
-            </>
-          )}
-        </DialogContent>
-        <DialogActions 
-          sx={{
-            background: '#FBDC6A',
-            justifyContent: 'center', // Center align the button
-            padding: '16px',
-          }}
-        >
-          <Button 
-            onClick={handlePlayAgain} 
-            autoFocus 
-            sx={{ 
-              color: isWinner ? 'darkgreen' : '#760504',
-              fontFamily: 'Montserrat, sans-serif', // Modern font family
-              fontWeight: 'bold',
-              fontSize: '1rem',
-              borderRadius: '8px', // Rounded corners for the button
-              padding: '8px 24px',
-              '&:hover': {
-                backgroundColor: isWinner ? 'rgba(0, 100, 0, 0.1)' : 'rgba(118, 5, 4, 0.1)',
-              }
-            }}
-          >
-            Play Again
-          </Button>
-        </DialogActions>
-      </Dialog>
+        isWinner={isWinner}
+        winningItem={winningItem}
+        onPlayAgain={handlePlayAgain}
+      />
     </Container>
   );
 };

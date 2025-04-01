@@ -100,6 +100,7 @@ const GoldenGoose = () => {
     const uniqueValues = new Set();
     const modifiedItems = [];
     const playerBet = 10; 
+    const MIN_PERCENTAGE = 10; // Minimum 10% instead of 1%
     
     while (modifiedItems.length < items.length) {
         const maxSafePercentage = ((currentPrizePool ?? 5) / playerBet) * 100;
@@ -108,7 +109,7 @@ const GoldenGoose = () => {
         if (currentPrizePool > 20) {
             const random = Math.random();
             const skewedRandom = Math.pow(random,4); 
-            percentage = 1 + skewedRandom * (maxPercentage - 1);
+            percentage = MIN_PERCENTAGE + skewedRandom * (maxPercentage - MIN_PERCENTAGE);
             const potentialValue = playerBet * (percentage / 100);
             if (potentialValue > 20) {
                 if (Math.random() > 0.3) { 
@@ -116,7 +117,7 @@ const GoldenGoose = () => {
                 }
             }
         } else {
-            percentage = 1 + Math.random() * (maxPercentage - 1);
+            percentage = MIN_PERCENTAGE + Math.random() * (maxPercentage - MIN_PERCENTAGE);
         }
 
         const value = (playerBet * (percentage / 100)).toFixed(2);

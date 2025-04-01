@@ -538,7 +538,17 @@ function liveChat(fastify) {
 
     
     
-    async function initializeJackpots(transaction: any) {
+    async function initializeJackpots() {
+      const transaction = await sequelize.transaction();
+      
+      // Initialize the main jackpot prize pool
+      const [jackpotPrize] = await GoldenGoosePrize.findOrCreate({
+        where: { type: 'jackpot_prize' },
+        defaults: { amount: 0, count: 0 }, // Initialize with 0 amount and count
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+    
       const [mini] = await GoldenGoosePrize.findOrCreate({
         where: { type: 'mini_jackpot' },
         defaults: { amount: JACKPOT_CONFIG.MINI.amount, count: JACKPOT_CONFIG.MINI.count },
@@ -567,14 +577,18 @@ function liveChat(fastify) {
         lock: transaction.LOCK.UPDATE
       });
     
-      return { mini, minor, major, grand };
+      await transaction.commit();
+      
+      return { jackpotPrize, mini, minor, major, grand };
     }
+    
 
     async function checkJackpot() {
       const transaction = await sequelize.transaction();
       
       try {
-        await initializeJackpots(transaction);
+        // First ensure all jackpots are initialized
+        const { jackpotPrize } = await initializeJackpots();
     
         // Get current game jackpot level
         const game = await GameList.findOne({
@@ -591,42 +605,31 @@ function liveChat(fastify) {
         let prizeToAward = 0;
         let jackpotType = '';
     
-        // Get the main jackpot prize pool
-        const jackpotPrizePool = await GoldenGoosePrize.findOne({
-          where: { type: 'jackpot_prize' },
-          transaction,
-          lock: transaction.LOCK.UPDATE
-        });
-    
-        if (!jackpotPrizePool) {
-          throw new Error('Jackpot prize pool not found');
-        }
-    
         // Process based on current jackpot level
         switch (jackpotLevel) {
           case 'mini':
-            if (jackpotPrizePool.amount >= 500) {
+            if (jackpotPrize.amount >= 500) {
               prizeToAward = 500;
               jackpotType = 'mini';
             }
             break;
     
           case 'minor':
-            if (jackpotPrizePool.amount >= 2500) {
+            if (jackpotPrize.amount >= 2500) {
               prizeToAward = 2500;
               jackpotType = 'minor';
             }
             break;
     
           case 'major':
-            if (jackpotPrizePool.amount >= 10000) {
+            if (jackpotPrize.amount >= 10000) {
               prizeToAward = 10000;
               jackpotType = 'major';
             }
             break;
     
           case 'grand':
-            if (jackpotPrizePool.amount >= 25000) {
+            if (jackpotPrize.amount >= 25000) {
               prizeToAward = 25000;
               jackpotType = 'grand';
             }
@@ -653,148 +656,143 @@ function liveChat(fastify) {
       }
     }
 
-    async function awardJackpot(userId: number, prizeToAward:number) {
+    async function awardJackpot(userId: number, prizeToAward: number) {
       const transaction = await sequelize.transaction();
-      const { mini, minor, major, grand } = await initializeJackpots(transaction);
+      
+      try {
+        const { mini, minor, major, grand, jackpotPrize } = await initializeJackpots();
     
-      // Get current game jackpot level
-      const game = await GameList.findOne({
-        where: { id: 2 },
-        transaction,
-        lock: transaction.LOCK.UPDATE
-      });
-  
-      if (!game) {
-        throw new Error('Game not found');
-      }
-  
-      const jackpotLevel = game.jackpot_level;
-
-      let shouldUpdateLevel = false;
-  
-      // Get the main jackpot prize pool
-      const jackpotPrizePool = await GoldenGoosePrize.findOne({
-        where: { type: 'jackpot_prize' },
-        transaction,
-        lock: transaction.LOCK.UPDATE
-      });
-  
-      if (!jackpotPrizePool) {
-        throw new Error('Jackpot prize pool not found');
-      }
-
-      switch (jackpotLevel) {
-        case 'mini':
-          if (jackpotPrizePool.amount >= 500) {
-            // Deduct from prize pool
-            jackpotPrizePool.amount -= prizeToAward;
-            await jackpotPrizePool.save({ transaction });
-
-            // Log the jackpot win
-            await GoldenGooseJackpotLog.create({
-              userId: userId,
-              amount: prizeToAward,
-              type: 'mini'
-            }, { transaction });
-
-            // Decrement mini count
-            mini.count -= 1;
-            await mini.save({ transaction });
-
-            // Check if we need to level up
-            if (mini.count <= 0) {
-              game.jackpot_level = 'minor';
-              shouldUpdateLevel = true;
+        // Get current game jackpot level
+        const game = await GameList.findOne({
+          where: { id: 2 },
+          transaction,
+          lock: transaction.LOCK.UPDATE
+        });
+    
+        if (!game) {
+          throw new Error('Game not found');
+        }
+    
+        const jackpotLevel = game.jackpot_level;
+        let shouldUpdateLevel = false;
+    
+        switch (jackpotLevel) {
+          case 'mini':
+            if (jackpotPrize.amount >= 500) {
+              // Deduct from prize pool
+              jackpotPrize.amount -= prizeToAward;
+              await jackpotPrize.save({ transaction });
+    
+              // Log the jackpot win
+              await GoldenGooseJackpotLog.create({
+                userId: userId,
+                amount: prizeToAward,
+                type: 'mini'
+              }, { transaction });
+    
+              // Decrement mini count
+              mini.count -= 1;
+              await mini.save({ transaction });
+    
+              // Check if we need to level up
+              if (mini.count <= 0) {
+                game.jackpot_level = 'minor';
+                shouldUpdateLevel = true;
+              }
             }
-          }
-          break;
-  
-        case 'minor':
-          if (jackpotPrizePool.amount >= 2500) {
-            jackpotPrizePool.amount -= prizeToAward;
-            await jackpotPrizePool.save({ transaction });
-  
-            await GoldenGooseJackpotLog.create({
-              userId: userId,
-              amount: prizeToAward,
-              type: 'minor'
-            }, { transaction });
-  
-            minor.count -= 1;
-            await minor.save({ transaction });
-  
-            if (minor.count <= 0) {
-              game.jackpot_level = 'major';
-              shouldUpdateLevel = true;
+            break;
+    
+          case 'minor':
+            if (jackpotPrize.amount >= 2500) {
+              jackpotPrize.amount -= prizeToAward;
+              await jackpotPrize.save({ transaction });
+    
+              await GoldenGooseJackpotLog.create({
+                userId: userId,
+                amount: prizeToAward,
+                type: 'minor'
+              }, { transaction });
+    
+              minor.count -= 1;
+              await minor.save({ transaction });
+    
+              if (minor.count <= 0) {
+                game.jackpot_level = 'major';
+                shouldUpdateLevel = true;
+              }
             }
-          }
-          break;
-  
-        case 'major':
-          if (jackpotPrizePool.amount >= 10000) {
-            jackpotPrizePool.amount -= prizeToAward;
-            await jackpotPrizePool.save({ transaction });
-  
-            await GoldenGooseJackpotLog.create({
-              userId: userId,
-              amount: prizeToAward,
-              type: 'major'
-            }, { transaction });
-  
-            major.count -= 1;
-            await major.save({ transaction });
-  
-            if (major.count <= 0) {
-              game.jackpot_level = 'grand';
-              shouldUpdateLevel = true;
+            break;
+    
+          case 'major':
+            if (jackpotPrize.amount >= 10000) {
+              jackpotPrize.amount -= prizeToAward;
+              await jackpotPrize.save({ transaction });
+    
+              await GoldenGooseJackpotLog.create({
+                userId: userId,
+                amount: prizeToAward,
+                type: 'major'
+              }, { transaction });
+    
+              major.count -= 1;
+              await major.save({ transaction });
+    
+              if (major.count <= 0) {
+                game.jackpot_level = 'grand';
+                shouldUpdateLevel = true;
+              }
             }
-          }
-          break;
-  
-        case 'grand':
-          if (jackpotPrizePool.amount >= 25000) {
-            
-            jackpotPrizePool.amount -= prizeToAward;
-            await jackpotPrizePool.save({ transaction });
-  
-            await GoldenGooseJackpotLog.create({
-              userId: userId,
-              amount: prizeToAward,
-              type: 'grand'
-            }, { transaction });
-  
-            grand.count -= 1;
-            await grand.save({ transaction });
-  
-            if (grand.count <= 0) {
-              // Reset all counts and cycle back to mini
-              game.jackpot_level = 'mini';
-              shouldUpdateLevel = true;
-              
-              // Reset all counts
-              mini.count = 10;
-              minor.count = 50;
-              major.count = 10;
-              major.count = 1;
-              
-              await Promise.all([
-                mini.save({ transaction }),
-                minor.save({ transaction }),
-                major.save({ transaction })
-              ]);
+            break;
+    
+          case 'grand':
+            if (jackpotPrize.amount >= 25000) {
+              jackpotPrize.amount -= prizeToAward;
+              await jackpotPrize.save({ transaction });
+    
+              await GoldenGooseJackpotLog.create({
+                userId: userId,
+                amount: prizeToAward,
+                type: 'grand'
+              }, { transaction });
+    
+              grand.count -= 1;
+              await grand.save({ transaction });
+    
+              if (grand.count <= 0) {
+                // Reset all counts and cycle back to mini
+                game.jackpot_level = 'mini';
+                shouldUpdateLevel = true;
+                
+                // Reset all counts
+                mini.count = JACKPOT_CONFIG.MINI.count;
+                minor.count = JACKPOT_CONFIG.MINOR.count;
+                major.count = JACKPOT_CONFIG.MAJOR.count;
+                grand.count = JACKPOT_CONFIG.GRAND.count;
+                
+                await Promise.all([
+                  mini.save({ transaction }),
+                  minor.save({ transaction }),
+                  major.save({ transaction }),
+                  grand.save({ transaction })
+                ]);
+              }
             }
-          }
-          break;
-  
-        default:
-          throw new Error(`Unknown jackpot level: ${jackpotLevel}`);
+            break;
+    
+          default:
+            throw new Error(`Unknown jackpot level: ${jackpotLevel}`);
+        }
+    
+        if (shouldUpdateLevel) {
+          await game.save({ transaction });
+        }
+    
+        await transaction.commit();
+      } catch (error) {
+        await transaction.rollback();
+        console.error('Error in awardJackpot:', error);
+        throw error;
       }
-
-      if (shouldUpdateLevel) {
-        await game.save({ transaction });
-      }
-
-      await transaction.commit();
     }
 
     // Get the main jackpot prize pool

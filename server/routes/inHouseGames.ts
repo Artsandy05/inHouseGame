@@ -4,7 +4,7 @@ import axios from 'axios';
 import GameList from '../models/GameList';
 import { mockKingfisherAPI } from '../utils/tests/mockings';
 
-// Kingfisher API configuration
+
 const IN_HOUSE_GAME = {
   baseUrl: 'https://kingfisher.com/api',
   endpoints: {
@@ -76,7 +76,7 @@ export default async function (fastify: FastifyInstance) {
       });
     }
   };
-  // Endpoint to get games list (protected with Bearer token)
+  
   fastify.get('/get-games', {
     preHandler: [authenticate]
   }, async (request: AuthenticatedRequest, reply: FastifyReply) => {
@@ -84,7 +84,6 @@ export default async function (fastify: FastifyInstance) {
       let userDetails: { id?: string } = {};
       let walletInfo: { balance?: number } = {};
   
-      // Parse user_details if provided (OPTIONAL)
       if (request.query.user_details) {
         try {
           userDetails = JSON.parse(request.query.user_details as string);
@@ -96,7 +95,6 @@ export default async function (fastify: FastifyInstance) {
         }
       }
   
-      // Parse wallet if provided (OPTIONAL)
       if (request.query.wallet) {
         try {
           walletInfo = JSON.parse(request.query.wallet as string);
@@ -108,13 +106,11 @@ export default async function (fastify: FastifyInstance) {
         }
       }
   
-      // Get active games from database
       const games = await GameList.findAll({
         where: { isActive: true },
         attributes: ['id', 'name', 'label', 'gameRoute', 'banner', 'jackpot_level', 'url']
       });
   
-      // If no games found
       if (!games || games.length === 0) {
         return reply.code(404).send({
           success: false,
@@ -122,16 +118,13 @@ export default async function (fastify: FastifyInstance) {
         });
       }
   
-      // Modify game URLs (only append params if they exist)
       const modifiedGames = games.map(game => {
         const gameUrl = new URL(game.url);
         
-        // Append user_id if available
         if (userDetails?.id) {
           gameUrl.searchParams.append('user_id', userDetails.id);
         }
         
-        // Append balance if available
         if (walletInfo?.balance !== undefined) {
           gameUrl.searchParams.append('balance', walletInfo.balance.toString());
         }

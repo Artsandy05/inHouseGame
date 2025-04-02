@@ -49,6 +49,11 @@ module.exports = {
         allowNull: true,
         defaultValue: ""
       },
+      url: {
+        type: Sequelize.STRING,
+        allowNull: true,
+        defaultValue: 'mini'
+      },
       createdAt: {
         type: Sequelize.DATE,
         allowNull: false,

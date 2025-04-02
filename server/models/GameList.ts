@@ -14,6 +14,7 @@ class GameList extends Model {
   public name!: string;
   public moderatorRoute!: string;
   public jackpot_level!: string;
+  public url!: string;
   public createdAt!: Date;
   public updatedAt!: Date;
 }
@@ -61,6 +62,11 @@ GameList.init(
       defaultValue: ""
     },
     jackpot_level: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: "mini"
+    },
+    url: {
       type: DataTypes.STRING,
       allowNull: false,
       defaultValue: ""

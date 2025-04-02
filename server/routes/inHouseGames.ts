@@ -5,7 +5,7 @@ import GameList from '../models/GameList';
 import { mockKingfisherAPI } from '../utils/tests/mockings';
 
 // Kingfisher API configuration
-const KINGFISHER_API = {
+const IN_HOUSE_GAME = {
   baseUrl: 'https://kingfisher.com/api',
   endpoints: {
     walletBalance: '/get-wallet-balance',
@@ -15,15 +15,24 @@ const KINGFISHER_API = {
     createSales: '/create-sales',
     updateSales: '/update-sales'
   },
-  apiKey: process.env.KINGFISHER_API_KEY || 'default-key-in-dev' // Set this in your .env
+  apiKey: process.env.IN_HOUSE_GAME_KEY || 'default-key-in-dev' // Set this in your .env
 };
+
+interface AuthenticatedRequest extends FastifyRequest {
+  headers: {
+    'x-api-key'?: string;
+  };
+  query: {
+    apiKey?: string;
+  };
+}
 
 // Helper function to call Kingfisher APIs
 async function callKingfisherAPI(endpoint: string, data: any = {}, method = 'POST') {
   try {
-    const url = `${KINGFISHER_API.baseUrl}${endpoint}`;
+    const url = `${IN_HOUSE_GAME.baseUrl}${endpoint}`;
     const headers = {
-      'Authorization': `Bearer ${KINGFISHER_API.apiKey}`,
+      'Authorization': `Bearer ${IN_HOUSE_GAME.apiKey}`,
       'Content-Type': 'application/json'
     };
 
@@ -41,11 +50,15 @@ async function callKingfisherAPI(endpoint: string, data: any = {}, method = 'POS
 }
 
 export default async function (fastify: FastifyInstance) {
-  const authenticate = async (request: FastifyRequest, reply: FastifyReply) => {
+  const authenticate = async (request: AuthenticatedRequest, reply: FastifyReply) => {
     try {
-      await request.jwtVerify();
+      const apiKey = request.headers['x-api-key'] || request.query.apiKey;
+
+      if (!apiKey || apiKey !== IN_HOUSE_GAME.apiKey) {
+        throw new Error('Invalid API Key');
+      }
     } catch (err) {
-      reply.code(401).send({ error: 'Unauthorized' });
+      reply.code(401).send({ error: 'Unauthorized: Invalid API Key' });
     }
   };
   // Endpoint to get games list (protected with Bearer token)
@@ -104,12 +117,12 @@ export default async function (fastify: FastifyInstance) {
       const useMock = process.env.NODE_ENV === 'local';
       const userDetails = useMock
       ? await mockKingfisherAPI('/get-user-details', { user_token })
-      : await callKingfisherAPI(KINGFISHER_API.endpoints.userDetails, { user_token });
+      : await callKingfisherAPI(IN_HOUSE_GAME.endpoints.userDetails, { user_token });
 
       // Get wallet balance (mock or real)
       const walletBalance = useMock
       ? await mockKingfisherAPI('/get-wallet-balance', { user_token })
-      : await callKingfisherAPI(KINGFISHER_API.endpoints.walletBalance, { user_token });
+      : await callKingfisherAPI(IN_HOUSE_GAME.endpoints.walletBalance, { user_token });
       // Get user details from Kingfisher
       // const userDetails = await callKingfisherAPI(
       //   KINGFISHER_API.endpoints.userDetails,
@@ -158,7 +171,7 @@ export default async function (fastify: FastifyInstance) {
     try {
       // Update wallet balance on Kingfisher
       const walletUpdate = await callKingfisherAPI(
-        KINGFISHER_API.endpoints.updateWallet,
+        IN_HOUSE_GAME.endpoints.updateWallet,
         { 
           user_token,
           amount: win_amount - bet_amount,
@@ -168,7 +181,7 @@ export default async function (fastify: FastifyInstance) {
 
       // Create round result record
       const roundResult = await callKingfisherAPI(
-        KINGFISHER_API.endpoints.createRound,
+        IN_HOUSE_GAME.endpoints.createRound,
         {
           user_token,
           game_id,
@@ -180,12 +193,12 @@ export default async function (fastify: FastifyInstance) {
 
       // Create/update sales record
       const salesRecord = win_amount > bet_amount 
-        ? await callKingfisherAPI(KINGFISHER_API.endpoints.updateSales, {
+        ? await callKingfisherAPI(IN_HOUSE_GAME.endpoints.updateSales, {
             user_token,
             game_id,
             amount: bet_amount - win_amount
           })
-        : await callKingfisherAPI(KINGFISHER_API.endpoints.createSales, {
+        : await callKingfisherAPI(IN_HOUSE_GAME.endpoints.createSales, {
             user_token,
             game_id,
             amount: bet_amount

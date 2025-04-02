@@ -4,7 +4,6 @@ import axios from 'axios';
 import GameList from '../models/GameList';
 import { mockKingfisherAPI } from '../utils/tests/mockings';
 
-
 const IN_HOUSE_GAME = {
   baseUrl: 'https://kingfisher.com/api',
   endpoints: {
@@ -24,8 +23,15 @@ interface AuthenticatedRequest extends FastifyRequest {
   };
   query: {
     apiKey?: string;
-    user_details:any;
-    wallet:any;
+  };
+}
+
+interface InitGameRequestBody {
+  game_id: string;
+  user_details?: {
+    id: number;
+    name: string;
+    credits: number;
   };
 }
 
@@ -81,31 +87,6 @@ export default async function (fastify: FastifyInstance) {
     preHandler: [authenticate]
   }, async (request: AuthenticatedRequest, reply: FastifyReply) => {
     try {
-      let userDetails: { id?: string } = {};
-      let walletInfo: { balance?: number } = {};
-  
-      if (request.query.user_details) {
-        try {
-          userDetails = JSON.parse(request.query.user_details as string);
-        } catch (parseError) {
-          return reply.code(400).send({
-            success: false,
-            error: 'Invalid JSON format in user_details parameter'
-          });
-        }
-      }
-  
-      if (request.query.wallet) {
-        try {
-          walletInfo = JSON.parse(request.query.wallet as string);
-        } catch (parseError) {
-          return reply.code(400).send({
-            success: false,
-            error: 'Invalid JSON format in wallet parameter'
-          });
-        }
-      }
-  
       const games = await GameList.findAll({
         where: { isActive: true },
         attributes: ['id', 'name', 'label', 'gameRoute', 'banner', 'jackpot_level', 'url']
@@ -120,15 +101,6 @@ export default async function (fastify: FastifyInstance) {
   
       const modifiedGames = games.map(game => {
         const gameUrl = new URL(game.url);
-        
-        if (userDetails?.id) {
-          gameUrl.searchParams.append('user_id', userDetails.id);
-        }
-        
-        if (walletInfo?.balance !== undefined) {
-          gameUrl.searchParams.append('balance', walletInfo.balance.toString());
-        }
-        
         return {
           game_id: game.id,
           name: game.name,
@@ -152,130 +124,61 @@ export default async function (fastify: FastifyInstance) {
     }
   });
 
-  // Kingfisher callback endpoint
-  // fastify.get('/in-house-games-callback', async (request: FastifyRequest<{
-  //   Querystring: { game_id: string; user_token: string }
-  // }>, reply: FastifyReply) => {
-  //   const { game_id, user_token } = request.query;
-    
-  //   if (!game_id || !user_token) {
-  //     return reply.code(400).send({ 
-  //       success: false, 
-  //       error: 'Missing game_id or user_token' 
-  //     });
-  //   }
-
-  //   try {
-  //     // Get game details from database
-  //     const game = await GameList.findByPk(game_id);
-  //     if (!game) {
-  //       return reply.code(404).send({
-  //         success: false,
-  //         error: 'Game not found'
-  //       });
-  //     }
-
-  //     const useMock = process.env.NODE_ENV === 'local';
-  //     const userDetails = useMock
-  //     ? await mockKingfisherAPI('/get-user-details', { user_token })
-  //     : await callKingfisherAPI(IN_HOUSE_GAME.endpoints.userDetails, { user_token });
-
-  //     // Get wallet balance (mock or real)
-  //     const walletBalance = useMock
-  //     ? await mockKingfisherAPI('/get-wallet-balance', { user_token })
-  //     : await callKingfisherAPI(IN_HOUSE_GAME.endpoints.walletBalance, { user_token });
-  //     // Get user details from Kingfisher
-  //     // const userDetails = await callKingfisherAPI(
-  //     //   KINGFISHER_API.endpoints.userDetails,
-  //     //   { user_token }
-  //     // );
-
-  //     // // Get wallet balance from Kingfisher
-  //     // const walletBalance = await callKingfisherAPI(
-  //     //   KINGFISHER_API.endpoints.walletBalance,
-  //     //   { user_token }
-  //     // );
-
-  //     // Redirect to the appropriate game page with necessary data
-  //     const redirectUrl = `${process.env.LOCAL_FRONTEND_URL}${game.gameRoute}?` + 
-  //       `user_token=${encodeURIComponent(user_token)}&` +
-  //       `user_id=${encodeURIComponent(userDetails.user_id)}&` +
-  //       `balance=${encodeURIComponent(walletBalance.balance)}&` +
-  //       `game_id=${encodeURIComponent(game_id)}`;
-
-  //       console.log(redirectUrl)
-
-  //     return reply.redirect(redirectUrl, 302);  // New signature: (url, statusCode)
-      
-  //   } catch (error: any) {
-  //     reply.code(500).send({ 
-  //       success: false, 
-  //       error: error.message 
-  //     });
-  //   }
-  // });
-
-  // Game result submission endpoint
-  fastify.post('/submit-game-result', {
+  fastify.post('/init-game', {
     preHandler: [authenticate]
-  }, async (request: FastifyRequest<{
-    Body: {
-      user_token: string;
-      game_id: string;
-      bet_amount: number;
-      win_amount: number;
-      round_details: any;
-    }
-  }>, reply: FastifyReply) => {
-    const { user_token, game_id, bet_amount, win_amount, round_details } = request.body;
-    
+  }, async (request: FastifyRequest<{ Body: InitGameRequestBody }>, reply: FastifyReply) => {
     try {
-      // Update wallet balance on Kingfisher
-      const walletUpdate = await callKingfisherAPI(
-        IN_HOUSE_GAME.endpoints.updateWallet,
-        { 
-          user_token,
-          amount: win_amount - bet_amount,
-          transaction_type: 'game_result'
-        }
-      );
+      const { game_id, user_details } = request.body;
+  
+      // Validate required game_id
+      if (!game_id) {
+        return reply.code(400).send({
+          success: false,
+          error: 'game_id is required'
+        });
+      }
 
-      // Create round result record
-      const roundResult = await callKingfisherAPI(
-        IN_HOUSE_GAME.endpoints.createRound,
-        {
-          user_token,
-          game_id,
-          bet_amount,
-          win_amount,
-          round_details
-        }
-      );
-
-      // Create/update sales record
-      const salesRecord = win_amount > bet_amount 
-        ? await callKingfisherAPI(IN_HOUSE_GAME.endpoints.updateSales, {
-            user_token,
-            game_id,
-            amount: bet_amount - win_amount
-          })
-        : await callKingfisherAPI(IN_HOUSE_GAME.endpoints.createSales, {
-            user_token,
-            game_id,
-            amount: bet_amount
-          });
-
-      return { 
-        success: true,
-        wallet_balance: walletUpdate.new_balance,
-        round_id: roundResult.round_id,
-        sales_id: salesRecord.sales_id
-      };
+      if (!user_details) {
+        return reply.code(400).send({
+          success: false,
+          error: 'user_details is required'
+        });
+      }
+  
+      // Get the specific game by ID
+      const game = await GameList.findOne({
+        where: { id: game_id },
+        attributes: ['id', 'name', 'label', 'gameRoute', 'banner', 'jackpot_level', 'url']
+      });
+  
+      if (!game) {
+        return reply.code(404).send({
+          success: false,
+          error: 'Game not found with the specified ID'
+        });
+      }
+  
+      // Create modified game URL
+      const gameUrl = new URL(game.url);
       
+      // Add entire user_details object as a JSON string in URL search params
+      if (user_details) {
+        gameUrl.searchParams.append('user_details', JSON.stringify(user_details));
+      }
+  
+      return reply.code(200).send({
+        success: true,
+        game_url: gameUrl.toString(),
+        game_id: game.id,
+        game_name: game.name
+      });
+  
     } catch (error: any) {
-      reply.code(500).send({ 
-        success: false, 
-        error: error.message 
+      console.error('Error in /init-game:', error);
+      return reply.code(500).send({
+        success: false,
+        error: 'Internal Server Error',
+        message: error.message
       });
     }
   });

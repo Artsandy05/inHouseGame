@@ -14,16 +14,9 @@ const fs = require('fs');
 const path = require('path');
 
 interface UserInfo {
-  id: number;                           // User's ID
-  uuid: string;                         // Unique identifier (UUID)
-  firstName: string;                    // First name of the user
-  lastName: string;                     // Last name of the user
-  nickName: string;                     // Nickname of the user
-  role: string;                         // Role (e.g. 'player')
-  mobile: string;                       // Mobile number of the user
-  isActive: boolean;                    // Whether the user is active or not
-  game: string;                         // Game the user is associated with (e.g. 'zodiac', 'dos')
-  isPlayerInChatSupport?: boolean;      // Optional: Indicates if the player is in chat support
+  id: number;                
+  name: string; 
+  credits: number;
 }
 
 type ResponseData = {
@@ -66,20 +59,9 @@ function liveChat(fastify) {
     const path = url.pathname;
     
     if (path === '/api/livechat') {
-      const token = extractTokenFromURL(request.url);
-      
-      
       try {
         const queryParams = url.searchParams;
         const userData: UserInfo = JSON.parse(queryParams.get('userInfo'))
-        const uuid = userData?.uuid;
-        if (hasValue(token)) {
-          await fastify.jwt.verify(token);
-        } else {
-          console.log("No uuid nor token");
-        }
-        
-        
         wss.handleUpgrade(request, socket, head, async (ws) => {
           wss.emit('connection', ws, userData);
         });
@@ -91,7 +73,7 @@ function liveChat(fastify) {
   });
   
   wss.on('connection', async (socket: WebSocket, userData: UserInfo ) => {
-    console.log(`User connected: ${JSON.stringify(userData.nickName)} with ID ${JSON.stringify(userData.id)}`);
+    console.log(`User connected: ${JSON.stringify(userData.name)} with ID ${JSON.stringify(userData.id)}`);
     
     clients.add(socket);
 

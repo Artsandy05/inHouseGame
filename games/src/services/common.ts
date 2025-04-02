@@ -1,15 +1,16 @@
 
 import { getCookie } from "../utils/cookie";
 import { hasValue } from "../utils/gameutils";
+import { useSearchParams } from 'react-router-dom'; 
 
 
 
 /**
  * Will return either with uuid(for testing) or with token when returning url
  */
-export function getRequiredUrl(liveChatUrl: boolean = false) {
+export function getRequiredUrl(liveChatUrl: boolean = false, userInfo = false) {
 
-  const url = getWsUrl(liveChatUrl);
+  const url = getWsUrl(liveChatUrl,userInfo);
   return url;
 }
 
@@ -19,19 +20,13 @@ export function isLoginValid() {
   return (getCookie('token') !== null || hasValue(uuid))
 }
 
-function getWsUrl(liveChatUrl = false) {
-  const userData = JSON.parse(localStorage.getItem('user') || 'null');
-  const authToken = userData.userData.data.token;
-  const userInfo = userData.userData.data.user;
-  if (!hasValue(authToken)) {
-    return null;
-  }
+function getWsUrl(liveChatUrl = false, userInfo) {
 
   const wsBaseUrl = process.env.REACT_APP_WS_BASE_URL || 'ws://localhost:8001/api';
 
 let url = liveChatUrl
-  ? `${wsBaseUrl}/livechat?token=${authToken}&userInfo=${encodeURIComponent(JSON.stringify(userInfo))}`
-  : `${wsBaseUrl}/websocket?token=${authToken}&userInfo=${encodeURIComponent(JSON.stringify(userInfo))}`;
+  ? `${wsBaseUrl}/livechat?userInfo=${encodeURIComponent(JSON.stringify(userInfo))}`
+  : `${wsBaseUrl}/websocket?userInfo=${encodeURIComponent(JSON.stringify(userInfo))}`;
 
   // Determine the game based on the pathname
   let game = null;

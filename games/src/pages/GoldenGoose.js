@@ -7,7 +7,7 @@ import WebSocketManager from '../utils/WebSocketManager';
 import { formatMoney } from '../utils/gameutils';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import ResultDialog from '../components/ResultDialog';
-import { useSearchParams } from 'react-router-dom'; // Add this import
+import { useSearchParams } from 'react-router-dom'; 
 
 const useBackgroundAudio = (audioSrc) => {
   useEffect(() => {
@@ -57,7 +57,32 @@ const GoldenGoose = () => {
   const [clickedEgg, setClickedEgg] = useState(false);
   const [userInteracted, setUserInteracted] = useState(false);
   const [currentPrizePool, setCurrentPrizePool] = useState(5);
-  const url = getRequiredUrl(true);
+  const [searchParams] = useSearchParams();
+  const userDetailsParam = searchParams.get('user_details');
+  
+  const urlUserDetails = userDetailsParam 
+    ? JSON.parse(decodeURIComponent(userDetailsParam))
+    : null;
+    
+  const localStorageUser = JSON.parse(localStorage.getItem('user') || 'null');
+
+  const userInfo = {
+    userData: {
+      data: {
+        user: {
+          id: urlUserDetails?.id || localStorageUser?.userData?.data?.user?.id || 0,
+          name: urlUserDetails?.name || localStorageUser?.userData?.data?.user?.name || 'Guest',
+          credits: urlUserDetails?.credits || localStorageUser?.userData?.data?.wallet?.balance || 0,
+        },
+        wallet: {
+          balance: urlUserDetails?.credits || localStorageUser?.userData?.data?.wallet?.balance || 0
+        }
+      }
+    }
+  };
+
+  const url = getRequiredUrl(true, userInfo.userData.data.user);
+
   usePreventZoom();
   if (!url) {
     throw new Error(`No valid url: ${url}`);
@@ -68,28 +93,9 @@ const GoldenGoose = () => {
     height: window.innerHeight,
   });
 
-  const [searchParams] = useSearchParams();
-  const userDetailsParam = searchParams.get('user_details');
   
-  const urlUserDetails = userDetailsParam 
-    ? JSON.parse(decodeURIComponent(userDetailsParam))
-    : null;
-    
-  const localStorageUser = JSON.parse(localStorage.getItem('user') || 'null');
   
-  const userInfo = {
-    userData: {
-      data: {
-        user: {
-          id: urlUserDetails?.id || localStorageUser?.userData?.data?.user?.id || 'guest',
-          name: urlUserDetails?.name || localStorageUser?.userData?.data?.user?.name || 'Guest'
-        },
-        wallet: {
-          balance: urlUserDetails?.credits || localStorageUser?.userData?.data?.wallet?.balance || 0
-        }
-      }
-    }
-  };
+  
 
   const audioRef = useRef(null);
 

@@ -104,7 +104,7 @@ function liveChat(fastify) {
         if (userId) {
           try {
               const game_id = '4'; // Fixed game_id as per requirement
-              const round_id = `4-${userId}-${Date.now()}`; // Unique round_id combining game_id, userId and timestamp
+              const round_id = `4${userId}${Date.now()}`; // Unique round_id combining game_id, userId and timestamp
               const transaction_number = `KFH-${randomBytes(10).toString('hex')}`; // Using UUID for unique transaction number
               
               const transaction = await GoldenGooseTransaction.create({
@@ -496,7 +496,7 @@ function liveChat(fastify) {
                           amount: winningAmount.toFixed(2),
                           game_uuid: updatedPlayer.game_id,
                           transaction_id: resultTransactionNumber,
-                          bet_transaction_id: updatedPlayer.transaction_number
+                          transaction_bet_id: updatedPlayer.transaction_number
                       };
         
                       const callbackResponse = await axios.post(process.env.KINGFISHER_API, callbackData);

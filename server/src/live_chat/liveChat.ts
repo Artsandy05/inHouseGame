@@ -8,6 +8,10 @@ import { JACKPOT_CONFIG } from '../../config/goldenGoose/jackpot_config';
 import sequelize from "../../config/database";
 import GameList from '../../models/GameList';
 import createEncryptor from '../../utils/createEncryptor';
+import GoldenGooseTransaction from '../../models/GoldenGooseTransaction';
+import { UUIDV4 } from 'sequelize';
+import { randomBytes } from 'crypto';
+import axios from 'axios';
 const { Mutex } = require('async-mutex');
 const mutex = new Mutex();
 
@@ -28,6 +32,7 @@ type ResponseData = {
   jackpotPrize?: number; // Optional property
   jackpotType?: string;  // Optional property
   currentPrizePool: any;
+  updatedCredit: any;
 };
 
 const wss = new WebSocket.Server({ noServer: true });
@@ -42,6 +47,9 @@ type PlayerData = {
   eggs: any[]; // Replace 'any' with the actual type of your eggs array
   jackpotPrize: number;
   jackpotType: string;
+  game_id: string;
+  round_id: string;
+  transaction_number: string;
 };
 
 const encryptor = createEncryptor(process.env.ENCRYPTION_SECRET);
@@ -94,6 +102,48 @@ function liveChat(fastify) {
         const userId = playerData.userId;
     
         if (userId) {
+          try {
+              const game_id = '4'; // Fixed game_id as per requirement
+              const round_id = `4-${userId}-${Date.now()}`; // Unique round_id combining game_id, userId and timestamp
+              const transaction_number = `KFH-${randomBytes(10).toString('hex')}`; // Using UUID for unique transaction number
+              
+              const transaction = await GoldenGooseTransaction.create({
+                  game_id,
+                  round_id,
+                  transaction_number,
+                  amount: Number(playerData.bet),
+                  type: 'bet' as const
+              });
+              
+              try {
+                  const callbackData = {
+                      player_id: userId,
+                      action: 'bet',
+                      round_id: round_id,
+                      amount: playerData.bet.toString(),
+                      game_uuid: game_id,
+                      transaction_id: transaction_number
+                  };
+    
+                  const callbackResponse = await axios.post(process.env.KINGFISHER_API, callbackData);
+                  console.log('Callback successful:', callbackResponse.data);
+                  
+                  playerData.updatedCredit = callbackResponse.data.credit;
+              } catch (callbackError) {
+                  console.error('Error in API callback:', callbackError);
+                  playerData.updatedCredit = 0;
+              }
+              
+              console.log('Transaction record created:', transaction.transaction_number);
+              
+              playerData.game_id = game_id;
+              playerData.round_id = round_id;
+              playerData.transaction_number = transaction_number;
+              
+          } catch (error) {
+              console.error('Error creating transaction record:', error);
+          }
+
           let jackpotPrize = { amount: null as number | null, type: null as string | null };
           jackpotPrize = await checkJackpot();
           if (jackpotPrize && jackpotPrize.amount) {
@@ -203,11 +253,12 @@ function liveChat(fastify) {
               event: 'receiveAllPlayerData',
               data: playersArray,
               id: userId,
-              currentPrizePool: instantPrizePool?.amount || 0
+              currentPrizePool: instantPrizePool?.amount || 0,
+              updatedCredit: playerData.updatedCredit // Add the credit from callback
           };
-  
+    
           const response = JSON.stringify(responseData);
-  
+    
           clients.forEach(client => {
               if (client.readyState === WebSocket.OPEN) {
                   client.send(response);
@@ -419,10 +470,43 @@ function liveChat(fastify) {
                         winning_amount: winningAmount.toFixed(2),
                         jackpot_amount: jackpotAmount.toFixed(2),
                         jackpot_type: jackpotType,
+                        transaction_number: updatedPlayer.transaction_number, // Added from playerData
+                        game_id: updatedPlayer.game_id, // Added from playerData
+                        round_id: updatedPlayer.round_id,
                         crack_count: scratchedEggsCount,
-                        eggs: updatedPlayer.eggs
+                        eggs: updatedPlayer.eggs,
                     });
 
+                    const resultTransactionNumber = `KFH-${randomBytes(10).toString('hex')}`;
+
+                    await GoldenGooseTransaction.create({
+                      game_id: '4',
+                      round_id: updatedPlayer.round_id,
+                      transaction_number: resultTransactionNumber,
+                      amount: winningAmount.toFixed(2),
+                      type: 'payout',
+                    });
+
+                    try {
+                      const callbackData = {
+                          player_id: userId,
+                          action: !winningItem ? 'lose' : 'win',
+                          round_id: updatedPlayer.round_id,
+                          amount: winningAmount.toFixed(2),
+                          game_uuid: updatedPlayer.game_id,
+                          transaction_id: resultTransactionNumber,
+                          bet_transaction_id: updatedPlayer.transaction_number
+                      };
+        
+                      const callbackResponse = await axios.post(process.env.KINGFISHER_API, callbackData);
+                      console.log('Callback successful:', callbackResponse.data);
+                      
+                      playerData.updatedCredit = callbackResponse.data.credit;
+                  } catch (callbackError) {
+                      console.error('Error in API callback:', callbackError);
+                      playerData.updatedCredit = 0;
+                  }
+                    
                     allPlayerData.delete(userId);
                     const playersArray = Array.from(allPlayerData.values());
 
@@ -517,9 +601,6 @@ function liveChat(fastify) {
         }
       }
     });
-
-    
-    
 
     socket.on('close', async (code, reason) => {
       console.log(`User disconnected with code: ${code} and reason: ${reason}`);

@@ -10,6 +10,9 @@ class GoldenGooseRound extends Model {
   public winning_amount: number;
   public jackpot_amount: number;
   public jackpot_type: string | null;
+  public transaction_number: string | null;
+  public game_id: string | null;
+  public round_id: string | null;
   public crack_count: number;
   public eggs: number[];
   public createdAt!: Date;
@@ -23,6 +26,18 @@ GoldenGooseRound.init(
       allowNull: false
     },
     result: {
+      type: DataTypes.STRING(50),
+      allowNull: false
+    },
+    transaction_number: {
+      type: DataTypes.STRING(50),
+      allowNull: false
+    },
+    game_id: {
+      type: DataTypes.STRING(50),
+      allowNull: false
+    },
+    round_id: {
       type: DataTypes.STRING(50),
       allowNull: false
     },

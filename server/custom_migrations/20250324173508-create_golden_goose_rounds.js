@@ -17,6 +17,18 @@ module.exports = {
         type: Sequelize.STRING(50),
         allowNull: false
       },
+      transaction_number: {
+        type: Sequelize.STRING(50),
+        allowNull: false
+      },
+      game_id: {
+        type: Sequelize.STRING(50),
+        allowNull: false
+      },
+      round_id: {
+        type: Sequelize.STRING(50),
+        allowNull: false
+      },
       winning_amount: {
         type: Sequelize.DECIMAL(10, 2),
         allowNull: false,

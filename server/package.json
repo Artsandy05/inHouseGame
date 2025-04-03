@@ -197,6 +197,7 @@
     "moment-timezone": "^0.5.45",
     "multer": "^1.4.5-lts.1",
     "mysql2": "^3.9.4",
+    "nanoid": "^5.1.5",
     "node-cron": "^3.0.3",
     "nodemon": "^3.1.4",
     "react-avatar-editor": "^13.0.2",

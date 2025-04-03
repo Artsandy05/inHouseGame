@@ -52,6 +52,7 @@ function usePreventZoom() {
 const GoldenGoose = () => {
   const [eggs, setEggs] = useState([]);
   const [gameOver, setGameOver] = useState(true);
+  const [credits, setCredits] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
   const [items, setItems] = useState(['/assets/500.png', 1, 1, 1, 1, 1]);
   const [isWinner, setIsWinner] = useState(false);
@@ -70,6 +71,11 @@ const GoldenGoose = () => {
     : null;
     
   const localStorageUser = JSON.parse(localStorage.getItem('user') || 'null');
+
+  useEffect(() => {
+    setCredits(urlUserDetails?.credits || localStorageUser?.userData?.data?.wallet?.balance)
+  }, []);
+
 
   const userInfo = {
     userData: {
@@ -186,7 +192,7 @@ const GoldenGoose = () => {
   useEffect(() => {
     
     const handleMessage = async (event) => {
-      const { event: eventType, data, id, currentPrizePool } = JSON.parse(event.data);
+      const { event: eventType, data, id, currentPrizePool, updatedCredit } = JSON.parse(event.data);
 
       if(currentPrizePool){
         setCurrentPrizePool(currentPrizePool);
@@ -196,9 +202,17 @@ const GoldenGoose = () => {
         const message = data.message;
         console.log(message);
       }
-
+      
       if (eventType === "receiveCurrentInstantPrize") {
         setCurrentPrizePool(data.currentPrizePool)
+      }
+
+      if (id === userInfo.userData.data.user.id && updatedCredit) {
+        setCredits(updatedCredit);
+      }
+
+      if (eventType === "receivedUpdatedCredits" && id === userInfo.userData.data.user.id) {
+        setCredits(data.updatedCredits);
       }
       
       if (eventType === "receiveAllPlayerData") {

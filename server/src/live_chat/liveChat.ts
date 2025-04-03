@@ -424,6 +424,7 @@ function liveChat(fastify) {
                     let prizeToDeduct = 0;
                     let jackpotAmount = 0;
                     let jackpotType = 'none';
+                    let updatedCredit = 0;
                     
                     // Check if this is a jackpot win
                     const isJackpotWin = updatedPlayer.jackpotPrize !== 0 && 
@@ -514,7 +515,8 @@ function liveChat(fastify) {
                     const immediateResponse = JSON.stringify({
                         event: 'receiveAllPlayerData',
                         data: playersArray,
-                        id: userId
+                        id: userId,
+                        updatedCredit: updatedCredit
                     });
                     
                     clients.forEach(client => {
@@ -870,6 +872,31 @@ function liveChat(fastify) {
     const instantPrizePool = await GoldenGoosePrize.findOne({
       where: { type: 'instant_prize' },
     });
+
+    // if(userData){
+    //     try {
+    //       const callbackData = {
+    //           player_id: userData.id,
+    //           action: 'get-balance',
+    //       };
+
+    //       const callbackResponse = await axios.post(process.env.KINGFISHER_API, callbackData);
+    //       const reponseData = JSON.stringify({
+    //         event: 'receivedUpdatedCredits',
+    //         data: {updatedCredit: callbackResponse.data.credits }
+    //       });
+      
+    //       clients.forEach(client => {
+    //         if (client.readyState === WebSocket.OPEN) {
+    //           client.send(reponseData);
+    //         }
+    //       });
+
+    //       console.log('Callback successful:', callbackResponse.data.credits);
+    //   } catch (callbackError) {
+    //       console.error('Error in API callback:', callbackError);
+    //   }
+    // }
 
     if(instantPrizePool){
       const instantPrizeResponse = JSON.stringify({

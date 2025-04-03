@@ -7,6 +7,7 @@ import GoldenGooseJackpotLog from '../../models/GoldenGooseJackpotLog';
 import { JACKPOT_CONFIG } from '../../config/goldenGoose/jackpot_config';
 import sequelize from "../../config/database";
 import GameList from '../../models/GameList';
+import createEncryptor from '../../utils/createEncryptor';
 const { Mutex } = require('async-mutex');
 const mutex = new Mutex();
 
@@ -43,6 +44,8 @@ type PlayerData = {
   jackpotType: string;
 };
 
+const encryptor = createEncryptor(process.env.ENCRYPTION_SECRET);
+
 const allPlayerData: Map<string, PlayerData> = new Map();
 
 const PING_INTERVAL = 10000;
@@ -61,10 +64,15 @@ function liveChat(fastify) {
     if (path === '/api/livechat') {
       try {
         const queryParams = url.searchParams;
-        const userData: UserInfo = JSON.parse(queryParams.get('userInfo'))
-        wss.handleUpgrade(request, socket, head, async (ws) => {
-          wss.emit('connection', ws, userData);
-        });
+        const encryptedUserInfo = queryParams.get('userInfo');
+        if (hasValue(encryptedUserInfo)) {
+          const decrypted = encryptor.decryptParams(encryptedUserInfo);
+          const userData: UserInfo = decrypted;
+          wss.handleUpgrade(request, socket, head, async (ws) => {
+            wss.emit('connection', ws, userData);
+          });
+        }
+        
       } catch (err) {
         console.error('JWT token verification failed:', err.message);
         socket.destroy();

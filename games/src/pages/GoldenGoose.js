@@ -8,6 +8,7 @@ import { formatMoney } from '../utils/gameutils';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import ResultDialog from '../components/ResultDialog';
 import { useSearchParams } from 'react-router-dom'; 
+import createEncryptor from '../utils/createEncryptor';
 
 const useBackgroundAudio = (audioSrc) => {
   useEffect(() => {
@@ -27,6 +28,8 @@ const useBackgroundAudio = (audioSrc) => {
     };
   }, [audioSrc]);
 };
+
+const encryptor = createEncryptor(process.env.REACT_APP_DECRYPTION_KEY);
 
 function usePreventZoom() {
   useEffect(() => {
@@ -58,10 +61,12 @@ const GoldenGoose = () => {
   const [userInteracted, setUserInteracted] = useState(false);
   const [currentPrizePool, setCurrentPrizePool] = useState(5);
   const [searchParams] = useSearchParams();
-  const userDetailsParam = searchParams.get('user_details');
+  const userDetailsParam = searchParams.get('data');
   
-  const urlUserDetails = userDetailsParam 
-    ? JSON.parse(decodeURIComponent(userDetailsParam))
+  const decrypted = encryptor.decryptParams(userDetailsParam);
+
+  const urlUserDetails = decrypted 
+    ? decrypted
     : null;
     
   const localStorageUser = JSON.parse(localStorage.getItem('user') || 'null');
@@ -92,10 +97,6 @@ const GoldenGoose = () => {
     width: window.innerWidth,
     height: window.innerHeight,
   });
-
-  
-  
-  
 
   const audioRef = useRef(null);
 

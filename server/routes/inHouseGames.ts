@@ -3,6 +3,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import axios from 'axios';
 import GameList from '../models/GameList';
 import { mockKingfisherAPI } from '../utils/tests/mockings';
+import createEncryptor from '../utils/createEncryptor';
 
 const IN_HOUSE_GAME = {
   baseUrl: 'https://kingfisher.com/api',
@@ -16,6 +17,8 @@ const IN_HOUSE_GAME = {
   },
   apiKey: process.env.IN_HOUSE_GAME_KEY || 'default-key-in-dev' // Set this in your .env
 };
+
+const encryptor = createEncryptor(process.env.ENCRYPTION_SECRET);
 
 interface AuthenticatedRequest extends FastifyRequest {
   headers: {
@@ -129,7 +132,7 @@ export default async function (fastify: FastifyInstance) {
   }, async (request: FastifyRequest<{ Body: InitGameRequestBody }>, reply: FastifyReply) => {
     try {
       const { game_id, user_details } = request.body;
-  
+      
       // Validate required game_id
       if (!game_id) {
         return reply.code(400).send({
@@ -157,13 +160,15 @@ export default async function (fastify: FastifyInstance) {
           error: 'Game not found with the specified ID'
         });
       }
-  
+      const encrypted = encryptor.encryptParams(user_details);
+      
+      
       // Create modified game URL
       const gameUrl = new URL(game.url);
       
       // Add entire user_details object as a JSON string in URL search params
       if (user_details) {
-        gameUrl.searchParams.append('user_details', JSON.stringify(user_details));
+        gameUrl.searchParams.append('data', encrypted);
       }
   
       return reply.code(200).send({

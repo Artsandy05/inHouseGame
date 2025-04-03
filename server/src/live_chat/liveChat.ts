@@ -873,30 +873,30 @@ function liveChat(fastify) {
       where: { type: 'instant_prize' },
     });
 
-    // if(userData){
-    //     try {
-    //       const callbackData = {
-    //           player_id: userData.id,
-    //           action: 'get-balance',
-    //       };
+    if(userData){
+        try {
+          const callbackData = {
+              player_id: userData.id,
+              action: 'get-balance',
+          };
 
-    //       const callbackResponse = await axios.post(process.env.KINGFISHER_API, callbackData);
-    //       const reponseData = JSON.stringify({
-    //         event: 'receivedUpdatedCredits',
-    //         data: {updatedCredit: callbackResponse.data.credits }
-    //       });
+          const callbackResponse = await axios.post(process.env.KINGFISHER_API, callbackData);
+          const reponseData = JSON.stringify({
+            event: 'receivedUpdatedCredits',
+            data: {updatedCredit: callbackResponse.data.credits }
+          });
       
-    //       clients.forEach(client => {
-    //         if (client.readyState === WebSocket.OPEN) {
-    //           client.send(reponseData);
-    //         }
-    //       });
+          clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(reponseData);
+            }
+          });
 
-    //       console.log('Callback successful:', callbackResponse.data.credits);
-    //   } catch (callbackError) {
-    //       console.error('Error in API callback:', callbackError);
-    //   }
-    // }
+          console.log('Callback successful:', callbackResponse.data.credits);
+      } catch (callbackError) {
+          console.error('Error in API callback:', callbackError);
+      }
+    }
 
     if(instantPrizePool){
       const instantPrizeResponse = JSON.stringify({

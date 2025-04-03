@@ -73,7 +73,9 @@ const GoldenGoose = () => {
   const localStorageUser = JSON.parse(localStorage.getItem('user') || 'null');
 
   useEffect(() => {
-    setCredits(urlUserDetails?.credits || localStorageUser?.userData?.data?.wallet?.balance)
+    if(credits === 0){
+      setCredits(urlUserDetails?.credits || localStorageUser?.userData?.data?.wallet?.balance);
+    }
   }, []);
 
 

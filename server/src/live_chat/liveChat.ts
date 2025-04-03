@@ -50,6 +50,7 @@ type PlayerData = {
   game_id: string;
   round_id: string;
   transaction_number: string;
+  playerGameOver: boolean;
 };
 
 const encryptor = createEncryptor(process.env.ENCRYPTION_SECRET);
@@ -139,6 +140,7 @@ function liveChat(fastify) {
               playerData.game_id = game_id;
               playerData.round_id = round_id;
               playerData.transaction_number = transaction_number;
+              playerData.playerGameOver = false;
               
           } catch (error) {
               console.error('Error creating transaction record:', error);
@@ -397,7 +399,6 @@ function liveChat(fastify) {
         
         if (userId) {
             if (allPlayerData.has(userId)) {
-                // Update the gameOver status first
                 const player = allPlayerData.get(userId)!;
                 const updatedPlayer = {
                     ...player,
@@ -489,24 +490,31 @@ function liveChat(fastify) {
                     });
 
                     try {
-                      const callbackData = {
-                          player_id: userId,
-                          action: !winningItem ? 'lose' : 'win',
-                          round_id: updatedPlayer.round_id,
-                          amount: winningAmount.toFixed(2),
-                          game_uuid: updatedPlayer.game_id,
-                          transaction_id: resultTransactionNumber,
-                          transaction_bet_id: updatedPlayer.transaction_number
-                      };
-        
-                      const callbackResponse = await axios.post(process.env.KINGFISHER_API, callbackData);
-                      console.log('Callback successful:', callbackResponse.data);
-                      
-                      playerData.updatedCredit = callbackResponse.data.credit;
-                  } catch (callbackError) {
-                      console.error('Error in API callback:', callbackError);
-                      playerData.updatedCredit = 0;
-                  }
+                      if (!updatedPlayer.playerGameOver) {
+                          const updatedPlayerWithGameOver = {
+                              ...updatedPlayer,
+                              playerGameOver: true
+                          };
+                          allPlayerData.set(userId, updatedPlayerWithGameOver);
+                          
+                          const callbackData = {
+                              player_id: userId,
+                              action: !winningItem ? 'lose' : 'win',
+                              round_id: updatedPlayer.round_id,
+                              amount: winningAmount.toFixed(2),
+                              game_uuid: updatedPlayer.game_id,
+                              transaction_id: resultTransactionNumber,
+                              transaction_bet_id: updatedPlayer.transaction_number
+                          };
+                  
+                          const callbackResponse = await axios.post(process.env.KINGFISHER_API, callbackData);
+                          console.log('Callback successful:', callbackResponse.data);
+                          updatedCredit = callbackResponse.data.credit;
+                      }
+                    } catch (callbackError) {
+                        console.error('Error in API callback:', callbackError);
+                        playerData.updatedCredit = 0;
+                    }
                     
                     allPlayerData.delete(userId);
                     const playersArray = Array.from(allPlayerData.values());
@@ -883,7 +891,8 @@ function liveChat(fastify) {
           const callbackResponse = await axios.post(process.env.KINGFISHER_API, callbackData);
           const reponseData = JSON.stringify({
             event: 'receivedUpdatedCredits',
-            data: {updatedCredit: callbackResponse.data.credits }
+            data: {updatedCredit: callbackResponse.data.credit },
+            id: userData.id
           });
       
           clients.forEach(client => {
@@ -892,7 +901,7 @@ function liveChat(fastify) {
             }
           });
 
-          console.log('Callback successful:', callbackResponse.data.credits);
+          console.log('Callback successful:', callbackResponse.data.credit);
       } catch (callbackError) {
           console.error('Error in API callback:', callbackError);
       }

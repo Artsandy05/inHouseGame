@@ -52,7 +52,8 @@ function usePreventZoom() {
 const GoldenGoose = () => {
   const [eggs, setEggs] = useState([]);
   const [gameOver, setGameOver] = useState(true);
-  const [credits, setCredits] = useState(0);
+  const [credits, setCredits] = useState('');
+  const [latestCreds, setLatestCreds] = useState('');
   const [gameStarted, setGameStarted] = useState(false);
   const [items, setItems] = useState(['/assets/500.png', 1, 1, 1, 1, 1]);
   const [isWinner, setIsWinner] = useState(false);
@@ -73,10 +74,12 @@ const GoldenGoose = () => {
   const localStorageUser = JSON.parse(localStorage.getItem('user') || 'null');
 
   useEffect(() => {
-    if(credits === 0){
+    if(latestCreds !== ''){
+      setCredits(latestCreds);
+    }else{
       setCredits(urlUserDetails?.credits || localStorageUser?.userData?.data?.wallet?.balance);
     }
-  }, []);
+  }, [latestCreds]);
 
 
   const userInfo = {
@@ -210,11 +213,11 @@ const GoldenGoose = () => {
       }
 
       if (id === userInfo.userData.data.user.id && updatedCredit) {
-        setCredits(updatedCredit);
+        setLatestCreds(updatedCredit);
       }
 
       if (eventType === "receivedUpdatedCredits" && id === userInfo.userData.data.user.id) {
-        setCredits(data.updatedCredits);
+        setLatestCreds(data.updatedCredit);
       }
       
       if (eventType === "receiveAllPlayerData") {
@@ -670,7 +673,7 @@ const GoldenGoose = () => {
                 fontFamily: "'Poppins', cursive",
               }}
             >
-              {`${formatMoney(parseFloat(userInfo.userData.data.wallet.balance).toFixed(2))}`}
+              {`${formatMoney(parseFloat(credits).toFixed(2))}`}
             </Typography>
           </Box>
         </Box>

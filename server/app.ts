@@ -50,13 +50,13 @@ fastify.register(fastifyCors, {
   credentials: true
 });
 
-// fastify.addHook("onRequest", async (request, reply) => {
-//   reply.header('Referrer-Policy', 'no-referrer-when-downgrade');
-//   reply.header('X-Content-Type-Options', 'nosniff');
-//   reply.header('X-Frame-Options', 'DENY');
-//   request.session.ipAddress = request.headers['x-forwarded-for']?.split(',')[0].trim() || request.ip;
-//   request.session.userAgent = request.userAgent;
-// });
+fastify.addHook("onRequest", async (request, reply) => {
+  reply.header('Referrer-Policy', 'no-referrer-when-downgrade');
+  reply.header('X-Content-Type-Options', 'nosniff');
+  reply.header('X-Frame-Options', 'DENY');
+  request.session.ipAddress = request.headers['x-forwarded-for']?.split(',')[0].trim() || request.ip;
+  request.session.userAgent = request.userAgent;
+});
 
 fastify.register(require("@fastify/static"), {
   root: path.join(__dirname, "public/uploads/images"),

@@ -44,12 +44,16 @@ fastify.register(multipart);
 
 fastify.register(fastifyCors, {
   origin: "*",
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-API-Key", "Referrer-Policy"],
+  exposedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
 });
 
-fastify.addHook("onRequest", async (request) => {
-  // Set the client IP address from X-Forwarded-For or fall back to request.ip
+fastify.addHook("onRequest", async (request, reply) => {
+  reply.header('Referrer-Policy', 'no-referrer-when-downgrade');
+  reply.header('X-Content-Type-Options', 'nosniff');
+  reply.header('X-Frame-Options', 'DENY');
   request.session.ipAddress = request.headers['x-forwarded-for']?.split(',')[0].trim() || request.ip;
   request.session.userAgent = request.userAgent;
 });

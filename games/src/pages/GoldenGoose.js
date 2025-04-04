@@ -60,7 +60,6 @@ const GoldenGoose = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [scratchCount, setScratchCount] = useState(0);
   const [clickedEgg, setClickedEgg] = useState(false);
-  const [userInteracted, setUserInteracted] = useState(false);
   const [currentPrizePool, setCurrentPrizePool] = useState(5);
   const [searchParams] = useSearchParams();
   const userDetailsParam = searchParams.get('data');
@@ -141,7 +140,7 @@ const GoldenGoose = () => {
     const uniqueValues = new Set();
     const modifiedItems = [];
     const playerBet = 10; 
-    const MIN_PERCENTAGE = 10; // Minimum 10% instead of 1%
+    const MIN_PERCENTAGE = 10;
     
     while (modifiedItems.length < items.length) {
         const maxSafePercentage = ((currentPrizePool ?? 5) / playerBet) * 100;

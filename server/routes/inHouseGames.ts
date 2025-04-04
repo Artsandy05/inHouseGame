@@ -64,6 +64,8 @@ export default async function (fastify: FastifyInstance) {
   fastify.addHook('onRequest', (request, reply, done) => {
     reply.header('Referrer-Policy', 'no-referrer-when-downgrade');
     reply.header('Access-Control-Allow-Origin', '*');
+    reply.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    reply.header('Access-Control-Allow-Headers', 'Content-Type, X-API-Key');
     done();
   });
   const authenticate = async (request: AuthenticatedRequest, reply: FastifyReply) => {
@@ -138,6 +140,8 @@ export default async function (fastify: FastifyInstance) {
     try {
       reply.header('Referrer-Policy', 'no-referrer-when-downgrade');
       reply.header('Access-Control-Allow-Origin', '*');
+      reply.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+      reply.header('Access-Control-Allow-Headers', 'Content-Type, X-API-Key');
       const { game_id, user_details } = request.body;
       
       // Validate required game_id

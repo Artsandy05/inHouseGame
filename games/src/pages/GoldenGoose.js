@@ -9,6 +9,33 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import ResultDialog from '../components/ResultDialog';
 import { useSearchParams } from 'react-router-dom'; 
 import createEncryptor from '../utils/createEncryptor';
+import axios from 'axios';
+
+const API_BASE_URL = 'http://gg.kingfisher777.com/api/v1';
+const API_KEY = 'asdasdA1@';
+
+export const initGame = async (gameId, userDetails) => {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}/in-house-games/init-game`,
+      {
+        game_id: gameId,
+        user_details: userDetails
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': API_KEY,
+          'Referrer-Policy': 'no-referrer-when-downgrade'
+        }
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error initializing game:', error);
+    throw error;
+  }
+};
 
 const useBackgroundAudio = (audioSrc) => {
   useEffect(() => {
@@ -63,6 +90,34 @@ const GoldenGoose = () => {
   const [currentPrizePool, setCurrentPrizePool] = useState(5);
   const [searchParams] = useSearchParams();
   const userDetailsParam = searchParams.get('data');
+  const [loading, setLoading] = useState(false);
+  const [gameUrl, setGameUrl] = useState('');
+  const [error, setError] = useState('');
+
+  const handleInitGame = async () => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await initGame(4, {
+        id: 6,
+        name: 'makoy',
+        credits: 500
+      });
+      
+      setGameUrl(response.game_url);
+      console.log('Game initialized successfully:', response);
+      
+      // If you want to redirect to the game URL automatically:
+      // window.location.href = response.game_url;
+      
+    } catch (err) {
+      setError('Failed to initialize game. Please try again.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
   
   const decrypted = encryptor.decryptParams(userDetailsParam);
 
@@ -594,6 +649,23 @@ const GoldenGoose = () => {
           zIndex: 10,
         }}
       >
+        <button 
+          onClick={handleInitGame} 
+          disabled={loading}
+        >
+          {loading ? 'Initializing...' : 'Start Game'}
+        </button>
+
+        {error && <p className="error">{error}</p>}
+        
+        {gameUrl && (
+          <div className="game-url">
+            <p>Game URL:</p>
+            <a href={gameUrl} target="_blank" rel="noopener noreferrer">
+              {gameUrl}
+            </a>
+          </div>
+        )}
         {/* Bet Info Box */}
         <Box 
           sx={{ 

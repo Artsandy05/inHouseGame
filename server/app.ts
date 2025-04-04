@@ -47,7 +47,9 @@ fastify.register(fastifyCors, {
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-API-Key", "Referrer-Policy"],
   exposedHeaders: ["Content-Type", "Authorization"],
-  credentials: true
+  credentials: true,
+  preflightContinue: false, 
+  optionsSuccessStatus: 204
 });
 
 fastify.addHook("onRequest", async (request, reply) => {

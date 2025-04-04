@@ -61,11 +61,11 @@ async function callKingfisherAPI(endpoint: string, data: any = {}, method = 'POS
 }
 
 export default async function (fastify: FastifyInstance) {
-  fastify.addHook('onRequest', (request, reply, done) => {
-    reply.header('Referrer-Policy', 'no-referrer-when-downgrade');
-    reply.header('Access-Control-Allow-Origin', '*');
-    done();
-  });
+  // fastify.addHook('onRequest', (request, reply, done) => {
+  //   reply.header('Referrer-Policy', 'no-referrer-when-downgrade');
+  //   reply.header('Access-Control-Allow-Origin', '*');
+  //   done();
+  // });
   const authenticate = async (request: AuthenticatedRequest, reply: FastifyReply) => {
     try {
       const apiKey = request.headers['x-api-key'] || request.query.apiKey;
@@ -136,8 +136,8 @@ export default async function (fastify: FastifyInstance) {
     preHandler: [authenticate]
   }, async (request: FastifyRequest<{ Body: InitGameRequestBody }>, reply: FastifyReply) => {
     try {
-      reply.header('Referrer-Policy', 'no-referrer-when-downgrade');
-      reply.header('Access-Control-Allow-Origin', '*');
+      // reply.header('Referrer-Policy', 'no-referrer-when-downgrade');
+      // reply.header('Access-Control-Allow-Origin', '*');
       const { game_id, user_details } = request.body;
       
       // Validate required game_id

@@ -131,3 +131,27 @@ export function formatWinnerAmount(amount: any) {
   }
   return Math.floor(amount).toString(); // Format for less than thousand
 }
+
+export function formatTruncatedMoney(credits) {
+  // Convert to string to handle decimal places
+  const creditsStr = parseFloat(credits).toString();
+  
+  // Find the decimal point
+  const decimalIndex = creditsStr.indexOf('.');
+  
+  let truncatedStr;
+  if (decimalIndex === -1) {
+    // No decimal places, just add .00
+    truncatedStr = creditsStr + '.00';
+  } else {
+    // Truncate to exactly 2 decimal places
+    truncatedStr = creditsStr.substring(0, decimalIndex + 3);
+    
+    // If there was only 1 decimal digit, add a 0
+    if (truncatedStr.length === decimalIndex + 2) {
+      truncatedStr += '0';
+    }
+  }
+  
+  return formatMoney(truncatedStr);
+}

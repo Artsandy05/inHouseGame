@@ -4,7 +4,7 @@ import { useSpring, animated } from '@react-spring/web';
 import ReactConfetti from 'react-confetti';
 import { getRequiredUrl } from '../services/common';
 import WebSocketManager from '../utils/WebSocketManager';
-import { formatMoney } from '../utils/gameutils';
+import { formatMoney, formatTruncatedMoney } from '../utils/gameutils';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import ResultDialog from '../components/ResultDialog';
 import { useSearchParams } from 'react-router-dom'; 
@@ -679,7 +679,7 @@ const GoldenGoose = () => {
                 fontFamily: "'Poppins', cursive",
               }}
             >
-              {`${formatMoney(parseFloat(credits))}`}
+              {`${formatTruncatedMoney(credits)}`}
             </Typography>
           </Box>
         </Box>
@@ -965,7 +965,7 @@ const GoldenGoose = () => {
             mb: 1,
             fontSize: '18px'
           }}>
-            {formatMoney(parseFloat(credits))}
+            {formatTruncatedMoney(credits)}
           </Typography>
         </DialogContent>
 

@@ -115,8 +115,8 @@ function liveChat(fastify) {
                   amount: Number(playerData.bet),
                   type: 'bet' as const
               });
-              
-              try {
+              const isTesting = process.env.IS_TESTING_GOLDEN_GOOSE;
+              if(isTesting === 'false'){try {
                   const callbackData = {
                       player_id: userId,
                       action: 'bet',
@@ -133,7 +133,7 @@ function liveChat(fastify) {
               } catch (callbackError) {
                   console.error('Error in API callback:', callbackError);
                   playerData.updatedCredit = 0;
-              }
+              }}
               
               console.log('Transaction record created:', transaction.transaction_number);
               
@@ -488,8 +488,8 @@ function liveChat(fastify) {
                       amount: winningAmount.toFixed(2),
                       type: 'payout',
                     });
-
-                    try {
+                    const isTesting = process.env.IS_TESTING_GOLDEN_GOOSE;
+                    if(isTesting === 'false'){try {
                       if (!updatedPlayer.playerGameOver) {
                           const updatedPlayerWithGameOver = {
                               ...updatedPlayer,
@@ -514,7 +514,7 @@ function liveChat(fastify) {
                     } catch (callbackError) {
                         console.error('Error in API callback:', callbackError);
                         playerData.updatedCredit = 0;
-                    }
+                    }}
                     
                     allPlayerData.delete(userId);
                     const playersArray = Array.from(allPlayerData.values());
@@ -882,7 +882,9 @@ function liveChat(fastify) {
     });
 
     if(userData){
-        try {
+      const isTesting = process.env.IS_TESTING_GOLDEN_GOOSE;
+      
+      if (isTesting === 'false'){try {
           const callbackData = {
               player_id: userData.id,
               action: 'get-balance',
@@ -904,7 +906,7 @@ function liveChat(fastify) {
           console.log('Callback successful:', callbackResponse.data.credit);
       } catch (callbackError) {
           console.error('Error in API callback:', callbackError);
-      }
+      }}
     }
 
     if(instantPrizePool){

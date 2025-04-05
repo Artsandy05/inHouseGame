@@ -52,7 +52,7 @@ function usePreventZoom() {
 const GoldenGoose = () => {
   const [eggs, setEggs] = useState([]);
   const [gameOver, setGameOver] = useState(true);
-  const [credits, setCredits] = useState('');
+  const [credits, setCredits] = useState(0);
   const [latestCreds, setLatestCreds] = useState('');
   const [gameStarted, setGameStarted] = useState(false);
   const [items, setItems] = useState(['/assets/500.png', 1, 1, 1, 1, 1]);
@@ -63,6 +63,7 @@ const GoldenGoose = () => {
   const [currentPrizePool, setCurrentPrizePool] = useState(5);
   const [searchParams] = useSearchParams();
   const userDetailsParam = searchParams.get('data');
+  const [insufficientCreditsOpen, setInsufficientCreditsOpen] = useState(false);
   
   const decrypted = encryptor.decryptParams(userDetailsParam);
 
@@ -309,6 +310,12 @@ const GoldenGoose = () => {
   };
   
   const startNewGame = async () => {
+
+    if (parseFloat(credits) < 10.00) {
+      setInsufficientCreditsOpen(true);
+      return;
+    }
+
     playStartGameSound();
     
     let workingItems = [...items];
@@ -850,6 +857,176 @@ const GoldenGoose = () => {
         winningItem={winningItem}
         onPlayAgain={handlePlayAgain}
       />
+      {/* Insufficient Credits Dialog - Enhanced Version */}
+      {/* Compact Enhanced Insufficient Credits Dialog */}
+      <Dialog
+        open={insufficientCreditsOpen}
+        onClose={() => setInsufficientCreditsOpen(false)}
+        PaperProps={{
+          style: {
+            backgroundColor: 'rgba(87, 34, 41, 0.97)',
+            borderRadius: '12px',
+            border: '2px solid #FFD700',
+            padding: '0',
+            color: 'white',
+            overflow: 'hidden',
+            boxShadow: '0 0 15px rgba(255, 215, 0, 0.4)',
+            maxWidth: '280px',
+            width: '90%'
+          }
+        }}
+      >
+        {/* Compact Header */}
+        <Box sx={{
+          background: 'linear-gradient(to right, #8B0000, #A52A2A)',
+          padding: '12px',
+          textAlign: 'center',
+          borderBottom: '1px solid #FFD700',
+          position: 'relative'
+        }}>
+          <Typography variant="h6" sx={{ 
+            color: '#FFD700', 
+            fontFamily: "'Bangers', cursive",
+            fontSize: '22px',
+            letterSpacing: '1px',
+            textShadow: '1px 1px 3px rgba(0,0,0,0.5)'
+          }}>
+            INSUFFICIENT CREDITS
+          </Typography>
+          <Box sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '3px',
+            background: 'linear-gradient(to right, transparent, #FFD700, transparent)'
+          }} />
+        </Box>
+
+        {/* Compact Content */}
+        <DialogContent sx={{ textAlign: 'center', padding: '16px' }}>
+          <Box sx={{
+            width: '60px',
+            height: '60px',
+            margin: '0 auto 12px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(139,0,0,0.8) 0%, rgba(87,34,41,0.9) 70%)',
+            border: '2px solid #FFD700',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            animation: 'pulse 2s infinite'
+          }}>
+            <AccountBalanceWalletIcon sx={{ 
+              fontSize: '30px', 
+              color: '#FFD700'
+            }} />
+          </Box>
+
+          <Typography variant="body1" sx={{ 
+            mb: 1, 
+            fontFamily: "'Paytone One', sans-serif",
+            color: '#FFD700',
+            fontSize: '16px'
+          }}>
+            Minimum bet:
+          </Typography>
+          
+          <Box sx={{
+            background: 'rgba(0,0,0,0.3)',
+            borderRadius: '6px',
+            padding: '6px 12px',
+            display: 'inline-block',
+            marginBottom: '12px',
+            border: '1px solid #FFD700'
+          }}>
+            <Typography variant="h6" sx={{ 
+              fontFamily: "'Permanent Marker', cursive",
+              color: '#FFD700',
+              fontWeight: 'bold',
+              fontSize: '20px'
+            }}>
+              ₱10.00
+            </Typography>
+          </Box>
+
+          <Typography variant="body2" sx={{ 
+            fontFamily: "'Open Sans', sans-serif",
+            color: 'white',
+            fontSize: '14px'
+          }}>
+            Your balance:
+          </Typography>
+          
+          <Typography variant="h6" sx={{ 
+            fontFamily: "'Poppins', sans-serif",
+            color: credits < 10 ? '#FF6B6B' : '#7CFC00',
+            fontWeight: 'bold',
+            mb: 1,
+            fontSize: '18px'
+          }}>
+            {formatMoney(parseFloat(credits).toFixed(2))}
+          </Typography>
+        </DialogContent>
+
+        {/* Compact Footer */}
+        <DialogActions sx={{ 
+          justifyContent: 'center', 
+          padding: '12px',
+          background: 'linear-gradient(to bottom, rgba(87, 34, 41, 0.9), rgba(69, 32, 37, 0.9))',
+          borderTop: '1px solid #FFD700'
+        }}>
+          <Button 
+            onClick={() => setInsufficientCreditsOpen(false)}
+            variant="contained"
+            sx={{
+              background: 'linear-gradient(to bottom, #FFD700, #FFA500)',
+              color: '#8B0000',
+              fontWeight: 'bold',
+              fontSize: '14px',
+              padding: '6px 24px',
+              borderRadius: '18px',
+              boxShadow: '0 3px 6px rgba(0,0,0,0.2)',
+              textTransform: 'uppercase',
+              fontFamily: "'Bangers', cursive",
+              letterSpacing: '1px',
+              minWidth: '120px',
+              '&:hover': {
+                background: 'linear-gradient(to bottom, #FFA500, #FF8C00)',
+                transform: 'translateY(-1px)',
+                boxShadow: '0 4px 8px rgba(0,0,0,0.3)'
+              },
+              transition: 'all 0.2s ease'
+            }}
+          >
+            I UNDERSTAND
+          </Button>
+        </DialogActions>
+
+        {/* Smaller Decorative Coins */}
+        <Box sx={{
+          position: 'absolute',
+          top: 6,
+          left: 6,
+          width: '18px',
+          height: '18px',
+          backgroundImage: 'url(/assets/gold-coin.png)',
+          backgroundSize: 'contain',
+          opacity: 0.7,
+          transform: 'rotate(-15deg)'
+        }} />
+        <Box sx={{
+          position: 'absolute',
+          top: 6,
+          right: 6,
+          width: '18px',
+          height: '18px',
+          backgroundImage: 'url(/assets/gold-coin.png)',
+          backgroundSize: 'contain',
+          opacity: 0.7,
+          transform: 'rotate(15deg)'
+        }} />
+      </Dialog>
     </Container>
   );
 };

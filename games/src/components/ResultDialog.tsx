@@ -94,10 +94,10 @@ const ResultDialog: React.FC<ResultDialogProps> = ({
           width: '90vw',
           maxWidth: '380px',
           boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
-          border: isWinner ? '3px solid #4CAF50' : '3px solid #B12B24',
+          border: isWinner ? '3px solid #4CAF50' : '3px solid #FF9800',
           background: isWinner 
             ? 'linear-gradient(145deg, #FBDC6A 0%, #FFEB3B 100%)'
-            : 'linear-gradient(145deg, #FBDC6A 0%, #FF9800 100%)',
+            : 'linear-gradient(145deg, #FBDC6A 0%, #FFC107 100%)',
           position: 'relative',
           '&:before': {
             content: '""',
@@ -108,7 +108,7 @@ const ResultDialog: React.FC<ResultDialogProps> = ({
             height: '4px',
             background: isWinner 
               ? 'linear-gradient(90deg, #4CAF50, #81C784, #4CAF50)'
-              : 'linear-gradient(90deg, #B12B24, #E57373, #B12B24)',
+              : 'linear-gradient(90deg, #FF9800, #FFC107, #FF9800)',
             backgroundSize: '200% 100%',
             animation: `${shimmer} 3s linear infinite`,
             zIndex: 1
@@ -122,7 +122,7 @@ const ResultDialog: React.FC<ResultDialogProps> = ({
           p: 2,
           background: isWinner 
             ? 'linear-gradient(135deg, #4CAF50 0%, #81C784 100%)' 
-            : 'linear-gradient(135deg, #B12B24 0%, #E57373 100%)',
+            : 'linear-gradient(135deg, #FF9800 0%, #FFC107 100%)',
           color: 'white',
           fontFamily: '"Luckiest Guy", cursive, sans-serif',
           fontSize: { xs: '1.2rem', sm: '1.4rem' },
@@ -172,9 +172,9 @@ const ResultDialog: React.FC<ResultDialogProps> = ({
             </>
           ) : (
             <>
-              <Box sx={{ animation: `${float} 3s ease-in-out infinite` }}>😞</Box>
-              <Typography sx={{fontSize:'1rem', fontWeight:'bold', fontFamily:'Poppins'}}>BETTER LUCK NEXT TIME!</Typography>
-              <Box sx={{ animation: `${float} 3s ease-in-out infinite`, animationDelay: '0.5s' }}>😞</Box>
+              <Box sx={{ animation: `${float} 3s ease-in-out infinite` }}>✨</Box>
+              NEXT TIME FOR SURE!
+              <Box sx={{ animation: `${float} 3s ease-in-out infinite`, animationDelay: '0.5s' }}>✨</Box>
             </>
           )}
         </Box>
@@ -198,7 +198,7 @@ const ResultDialog: React.FC<ResultDialogProps> = ({
             bottom: 0,
             background: isWinner 
               ? 'radial-gradient(circle, rgba(76,175,80,0.1) 0%, transparent 70%)'
-              : 'radial-gradient(circle, rgba(177,43,36,0.1) 0%, transparent 70%)',
+              : 'radial-gradient(circle, rgba(255,152,0,0.1) 0%, transparent 70%)',
             zIndex: 0
           }
         }}
@@ -292,8 +292,8 @@ const ResultDialog: React.FC<ResultDialogProps> = ({
             zIndex: 1
           }}>
             <Box sx={{
-              width: 80,
-              height: 80,
+              width: 100,
+              height: 100,
               margin: '0 auto 15px',
               background: 'rgba(255,255,255,0.7)',
               borderRadius: '50%',
@@ -301,14 +301,16 @@ const ResultDialog: React.FC<ResultDialogProps> = ({
               alignItems: 'center',
               justifyContent: 'center',
               boxShadow: '0 3px 10px rgba(0,0,0,0.1)',
-              border: '2px solid rgba(177,43,36,0.3)'
+              border: '2px solid rgba(255,152,0,0.3)',
+              animation: `${pulse} 2s infinite`
             }}>
-              <Typography sx={{ 
-                fontSize: '2.5rem',
-                animation: `${float} 2s ease-in-out infinite`
+              <Box sx={{ 
+                fontSize: '3rem',
+                animation: `${float} 2s ease-in-out infinite`,
+                lineHeight: 1
               }}>
-                ❌
-              </Typography>
+                🍀
+              </Box>
             </Box>
             <Typography 
               sx={{ 
@@ -320,16 +322,29 @@ const ResultDialog: React.FC<ResultDialogProps> = ({
                 letterSpacing: '0.5px'
               }}
             >
-              NO 3 MATCHING PRIZES
+              ALMOST THERE!
             </Typography>
             <Typography 
               sx={{ 
                 color: '#4a4949',
-                fontSize: { xs: '0.9rem', sm: '1.1rem' },
-                fontFamily: '"Paytone One", cursive, sans-serif',
+                fontSize: { xs: '0.9rem', sm: '1rem' },
+                mb: 2,
+                fontFamily: '"Poppins", sans-serif',
               }}
             >
-              Don't worry, you can try again!
+              You were just one step away from winning!
+            </Typography>
+            <Typography 
+              sx={{ 
+                color: '#FF9800',
+                fontSize: { xs: '0.9rem', sm: '1rem' },
+                fontWeight: 'bold',
+                fontFamily: '"Poppins", sans-serif',
+                fontStyle: 'italic',
+                animation: `${pulse} 1.5s infinite`
+              }}
+            >
+              Your next bet could be the lucky one!
             </Typography>
           </Box>
         )}
@@ -360,7 +375,7 @@ const ResultDialog: React.FC<ResultDialogProps> = ({
           sx={{
             background: isWinner 
               ? 'linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%)' 
-              : 'linear-gradient(135deg, #B12B24 0%, #7B1C1C 100%)',
+              : 'linear-gradient(135deg, #FF9800 0%, #FF5722 100%)',
             color: 'white',
             fontFamily: '"Montserrat", sans-serif',
             fontWeight: 'bold',
@@ -397,7 +412,7 @@ const ResultDialog: React.FC<ResultDialogProps> = ({
             }
           }}
         >
-          PLAY AGAIN
+          TRY AGAIN
         </Button>
       </DialogActions>
     </Dialog>

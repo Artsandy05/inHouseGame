@@ -679,7 +679,7 @@ const GoldenGoose = () => {
                 fontFamily: "'Poppins', cursive",
               }}
             >
-              {`${formatMoney(parseFloat(credits).toFixed(2))}`}
+              {`${formatMoney(parseFloat(credits))}`}
             </Typography>
           </Box>
         </Box>
@@ -965,7 +965,7 @@ const GoldenGoose = () => {
             mb: 1,
             fontSize: '18px'
           }}>
-            {formatMoney(parseFloat(credits).toFixed(2))}
+            {formatMoney(parseFloat(credits))}
           </Typography>
         </DialogContent>
 

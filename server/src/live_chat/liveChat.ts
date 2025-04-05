@@ -469,8 +469,8 @@ function liveChat(fastify) {
                     await GoldenGooseRound.create({
                         user_id: updatedPlayer.userId,
                         result: !winningItem ? 'Lose' : 'Win',
-                        winning_amount: winningAmount.toFixed(2),
-                        jackpot_amount: jackpotAmount.toFixed(2),
+                        winning_amount: winningAmount,
+                        jackpot_amount: jackpotAmount,
                         jackpot_type: jackpotType,
                         transaction_number: updatedPlayer.transaction_number, // Added from playerData
                         game_id: updatedPlayer.game_id, // Added from playerData
@@ -485,7 +485,7 @@ function liveChat(fastify) {
                       game_id: '4',
                       round_id: updatedPlayer.round_id,
                       transaction_number: resultTransactionNumber,
-                      amount: winningAmount.toFixed(2),
+                      amount: winningAmount,
                       type: 'payout',
                     });
                     const isTesting = process.env.IS_TESTING_GOLDEN_GOOSE;
@@ -501,7 +501,7 @@ function liveChat(fastify) {
                               player_id: userId,
                               action: !winningItem ? 'lose' : 'win',
                               round_id: updatedPlayer.round_id,
-                              amount: winningAmount.toFixed(2),
+                              amount: winningAmount,
                               game_uuid: updatedPlayer.game_id,
                               transaction_id: resultTransactionNumber,
                               transaction_bet_id: updatedPlayer.transaction_number

@@ -247,7 +247,7 @@ const AdminReports = () => {
         ) : (
           <ArrowDownwardIcon fontSize="small" sx={{ mr: 0.5, color:'pink' }} />
         )}
-        <Typography color={result === 'win' ? 'success.main' : 'pink'}>
+        <Typography color={result === 'Win' ? 'success.main' : 'pink'}>
           {result.toUpperCase()}
         </Typography>
       </Box>

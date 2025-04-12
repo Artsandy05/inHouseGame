@@ -215,6 +215,8 @@ const AdminReports = () => {
   const [maxAmountFilter, setMaxAmountFilter] = useState<number | ''>('');
   const [showEggDetails, setShowEggDetails] = useState(false);
 
+  console.log('transactionFilter', transactionFilter);
+
   // Enhanced column definitions
   const jackpotColumns: Column[] = [
     { id: 'createdAt', label: 'Date', sortable: true, format: formatDate, width: '180px' },
@@ -1218,14 +1220,9 @@ const AdminReports = () => {
                           }
                         }}
                       >
-                        {['All Types', 'Bets Only', 'Payouts Only'].map((type) => (
-                          <MenuItem 
-                            key={type.toLowerCase().replace(' ', '')} 
-                            value={type.toLowerCase().replace(' ', '')}
-                          >
-                            {type}
-                          </MenuItem>
-                        ))}
+                        <MenuItem value="all">All Types</MenuItem>
+                        <MenuItem value="bet">Bets Only</MenuItem>
+                        <MenuItem value="payout">Payouts Only</MenuItem>
                       </Select>
                     </FormControl>
                   </Grid>

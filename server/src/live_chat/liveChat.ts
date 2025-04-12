@@ -470,51 +470,54 @@ function liveChat(fastify) {
                     // Create the round record
                     const scratchedEggsCount = eggs.filter(egg => egg.scratched === true).length;
 
-                    await GoldenGooseRound.create({
-                        user_id: updatedPlayer.userId,
-                        result: !winningItem ? 'Lose' : 'Win',
-                        winning_amount: winningAmount,
-                        jackpot_amount: jackpotAmount,
-                        jackpot_type: jackpotType,
-                        transaction_number: updatedPlayer.transaction_number, // Added from playerData
-                        game_id: updatedPlayer.game_id, // Added from playerData
-                        round_id: updatedPlayer.round_id,
-                        crack_count: scratchedEggsCount,
-                        eggs: updatedPlayer.eggs,
-                    });
-
-                    const resultTransactionNumber = `KFH-${randomBytes(10).toString('hex')}`;
-
-                    await GoldenGooseTransaction.create({
-                      game_id: '4',
-                      round_id: updatedPlayer.round_id,
-                      transaction_number: resultTransactionNumber,
-                      amount: winningAmount,
-                      type: 'payout',
-                      user_id: userId, 
-                  });
+                    
                     const isTesting = process.env.IS_TESTING_GOLDEN_GOOSE;
                     if(isTesting === 'false'){try {
                       if (!updatedPlayer.playerGameOver) {
-                          const updatedPlayerWithGameOver = {
-                              ...updatedPlayer,
-                              playerGameOver: true
-                          };
-                          allPlayerData.set(userId, updatedPlayerWithGameOver);
-                          
-                          const callbackData = {
-                              player_id: userId,
-                              action: !winningItem ? 'lose' : 'win',
-                              round_id: updatedPlayer.round_id,
-                              amount: winningAmount,
-                              game_uuid: updatedPlayer.game_id,
-                              transaction_id: resultTransactionNumber,
-                              transaction_bet_id: updatedPlayer.transaction_number
-                          };
-                  
-                          const callbackResponse = await axios.post(process.env.KINGFISHER_API, callbackData);
-                          console.log('Callback successful:', callbackResponse.data);
-                          updatedCredit = callbackResponse.data.credit;
+                        await GoldenGooseRound.create({
+                            user_id: updatedPlayer.userId,
+                            result: !winningItem ? 'Lose' : 'Win',
+                            winning_amount: winningAmount,
+                            jackpot_amount: jackpotAmount,
+                            jackpot_type: jackpotType,
+                            transaction_number: updatedPlayer.transaction_number, // Added from playerData
+                            game_id: updatedPlayer.game_id, // Added from playerData
+                            round_id: updatedPlayer.round_id,
+                            crack_count: scratchedEggsCount,
+                            eggs: updatedPlayer.eggs,
+                        });
+    
+                        const resultTransactionNumber = `KFH-${randomBytes(10).toString('hex')}`;
+    
+                        await GoldenGooseTransaction.create({
+                          game_id: '4',
+                          round_id: updatedPlayer.round_id,
+                          transaction_number: resultTransactionNumber,
+                          amount: winningAmount,
+                          type: 'payout',
+                          user_id: userId, 
+                        });
+
+                        const updatedPlayerWithGameOver = {
+                            ...updatedPlayer,
+                            playerGameOver: true
+                        };
+                        
+                        allPlayerData.set(userId, updatedPlayerWithGameOver);
+                        
+                        const callbackData = {
+                            player_id: userId,
+                            action: !winningItem ? 'lose' : 'win',
+                            round_id: updatedPlayer.round_id,
+                            amount: winningAmount,
+                            game_uuid: updatedPlayer.game_id,
+                            transaction_id: resultTransactionNumber,
+                            transaction_bet_id: updatedPlayer.transaction_number
+                        };
+                
+                        const callbackResponse = await axios.post(process.env.KINGFISHER_API, callbackData);
+                        console.log('Callback successful:', callbackResponse.data);
+                        updatedCredit = callbackResponse.data.credit;
                       }
                     } catch (callbackError) {
                         console.error('Error in API callback:', callbackError);

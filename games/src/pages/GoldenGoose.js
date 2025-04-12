@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Button, Typography, Box, Container, Dialog, DialogTitle, DialogContent, DialogActions, Grid, IconButton } from '@mui/material';
+import { Button, Typography, Box, Container, Dialog, DialogContent, DialogActions, Grid } from '@mui/material';
 import { useSpring, animated } from '@react-spring/web';
 import ReactConfetti from 'react-confetti';
 import { getRequiredUrl } from '../services/common';
 import WebSocketManager from '../utils/WebSocketManager';
-import { formatMoney, formatTruncatedMoney } from '../utils/gameutils';
+import { formatTruncatedMoney } from '../utils/gameutils';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import ResultDialog from '../components/ResultDialog';
 import { useSearchParams } from 'react-router-dom'; 
@@ -82,7 +82,7 @@ const GoldenGoose = () => {
     }else{
       setCredits(urlUserDetails?.credits || localStorageUser?.userData?.data?.wallet?.balance);
     }
-  }, [latestCreds]);
+  }, [latestCreds,localStorageUser]);
 
 
   const userInfo = {
@@ -112,7 +112,7 @@ const GoldenGoose = () => {
     height: window.innerHeight,
   });
 
-  const audioRef = useRef(null);
+  
 
   const goldEgg = '/assets/goldEgg.png';
   const startGameSound = '/assets/sounds/8-bit-achievement-epic-stock-media-1-00-00.mp3';
@@ -183,7 +183,7 @@ const GoldenGoose = () => {
         setItems(generateUniqueRandomItems(Number(currentPrizePool)));
       }
     }
-  }, [items, currentPrizePool]);
+  }, [items, currentPrizePool,generateUniqueRandomItems]);
 
   const generateRandomPrize = (currentPrizePool) => {
     setItems(generateUniqueRandomItems(Number(currentPrizePool)));
@@ -236,7 +236,7 @@ const GoldenGoose = () => {
     };
 
     wss.setOnMessage(handleMessage);
-  }, [wss]);
+  }, [wss, userInfo.userData.data.user.id]);
 
   
   useEffect(() => {

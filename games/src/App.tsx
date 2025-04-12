@@ -3,7 +3,6 @@
 // src/App.js
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { UserProvider } from './context/UserContext'; // Import the UserProvider
 import LoginForm from './components/LoginForm';
 import GameList from './components/GameList';
 import BatoBatoPik from './pages/BatoBatoPik';

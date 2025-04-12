@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Typography, Box, Paper, Avatar, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Slide, Fade, Zoom } from '@mui/material';
+import { Button, Typography, Box, Paper, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Slide, Fade, Zoom } from '@mui/material';
 import { GameState } from '../utils/gameutils';
 import moderatorStore from '../utils/Store';
 import { useNavigate } from 'react-router-dom';

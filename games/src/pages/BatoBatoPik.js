@@ -4,7 +4,9 @@ import { useSpring, animated } from "@react-spring/web";
 import CloseIcon from '@mui/icons-material/Close';
 import { playerStore } from "../utils/playerStore";
 import { getRequiredUrl } from "../services/common";
+import moderatorStore from "../utils/Store";
 import { formatWinnerAmount, GameState, mapToArray } from "../utils/gameutils";
+import { usePlayerStore } from "../context/PlayerStoreContext";
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import TimerIcon from '@mui/icons-material/Timer';
@@ -40,6 +42,11 @@ const getRandomChoice = () => {
 const BatoBatoPik = () => {
   const [juanChoice, setJuanChoice] = useState('');
   const [pedroChoice, setPedroChoice] = useState('');
+  const [roundResult, setRoundResult] = useState("");
+  const [isGameRunning, setIsGameRunning] = useState(false);
+  const [juanBet, setJuanBet] = useState(0);
+  const [pedroBet, setPedroBet] = useState(0);
+  const [tieBet, setTieBet] = useState(0);
   const [openBetDialog, setOpenBetDialog] = useState(false);
   const [betType, setBetType] = useState("");
   const [betAmount, setBetAmount] = useState(0);
@@ -68,13 +75,13 @@ const BatoBatoPik = () => {
         socket.close();
       }
     };
-  }, [connect]);
+  }, []);
 
   useEffect(() => {
     if(gameState === GameState.Closed){
       startGame();
     }
-  }, [gameState,startGame]);
+  }, [gameState]);
 
   useEffect(() => {
     if(gameState === GameState.Open){

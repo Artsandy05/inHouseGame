@@ -1999,7 +1999,7 @@ const AdminReports = () => {
                                         borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
                                         ...(column.id === 'winning_amount' || column.id === 'jackpot_amount' ? { 
                                           fontWeight: 'bold',
-                                          color: column.id === 'winning_amount' ? '#4CAF50' : '#8B0000'
+                                          color: column.id === 'winning_amount' ? '#4CAF50' : 'yellow'
                                         } : {})
                                       }}
                                     >

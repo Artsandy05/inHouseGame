@@ -1879,7 +1879,7 @@ const AdminReports = () => {
                                       borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
                                       ...(column.id === 'amount' ? { 
                                         fontWeight: 'bold',
-                                        color: '#8B0000'
+                                        color: '#4CAF50'
                                       } : {})
                                     }}
                                   >
@@ -2198,7 +2198,7 @@ const AdminReports = () => {
                                       borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
                                       ...(column.id === 'amount' ? { 
                                         fontWeight: 'bold',
-                                        color: tx.type === 'deposit' ? '#4CAF50' : '#8B0000'
+                                        color: tx.type === 'bet' ? '#1976d2' : '#4CAF50'
                                       } : {})
                                     }}
                                   >

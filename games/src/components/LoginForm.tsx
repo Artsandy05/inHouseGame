@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { use, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { setCookie } from '../utils/cookie';
@@ -10,6 +10,7 @@ import {
   Typography,
   Paper,
   InputAdornment,
+  IconButton,
   Fade,
   Slide,
   styled,
@@ -50,7 +51,7 @@ const LoginForm = () => {
         navigate('/games');
       }
     }
-  }, [userData, navigate]);
+  }, []);
 
   // Update the handleLogin function in your LoginForm component
 const handleLogin = async (e: React.FormEvent) => {

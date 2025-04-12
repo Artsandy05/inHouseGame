@@ -12,6 +12,10 @@ module.exports = {
         type: Sequelize.STRING(50),
         allowNull: false
       },
+      user_id: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+      },
       round_id: {
         type: Sequelize.STRING(50),
         allowNull: false
@@ -42,7 +46,7 @@ module.exports = {
     });
   },
 
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface) {
     await queryInterface.dropTable('golden_goose_transactions');
   }
 };

@@ -64,9 +64,12 @@ const GoldenGoose = () => {
   const [searchParams] = useSearchParams();
   const userDetailsParam = searchParams.get('data');
   const [insufficientCreditsOpen, setInsufficientCreditsOpen] = useState(false);
-  
-  const decrypted = encryptor.decryptParams(userDetailsParam);
+  let decrypted;
 
+  if(userDetailsParam){
+    decrypted = encryptor.decryptParams(userDetailsParam);
+  }
+  
   const urlUserDetails = decrypted 
     ? decrypted
     : null;
@@ -512,7 +515,7 @@ const GoldenGoose = () => {
           height: '100%',
           display: 'flex',
           justifyContent: 'center',
-          border: `${winningItem && (egg.item === winningItem[0] && egg.scratched) ? '3px solid lightgreen' : '1px solid rgba(155, 120, 9, 1)'}`,
+          border: `${winningItem && (egg.item === winningItem[0] && egg.scratched) ? '3px solid lightgreen' : 'none'}`,
           alignItems: 'center',
           cursor: egg.scratched ? 'default' : 'pointer',
           background: 'rgba(57, 42, 54, 1)',
@@ -525,7 +528,7 @@ const GoldenGoose = () => {
           left:-8,
           overflow: 'hidden',
           margin: 'auto',
-          zIndex:winningItem && (egg.item === winningItem[0] && egg.scratched) && 999
+          zIndex:winningItem && (egg.item === winningItem[0] && egg.scratched) ? 999 : 0
         }}
         onClick={() => {handleClick(); }}
       >
@@ -773,16 +776,21 @@ const GoldenGoose = () => {
             JACKPOT!
           </Typography>
         </Box>
+        <Box sx={{ position: 'relative', width:'100%', mt:1.5 }}>
+          <Typography variant="body2" color="gold" sx={{ fontFamily:'helvetica' }}>
+            Eggs Cracked: {scratchCount} / 12
+          </Typography>
+        </Box>
       </Box>
 
-      <Box textAlign={'center'} sx={{ marginTop: '90px' }}>
-        <img src={gameTitle} style={{ width: '65%', position:'relative', top:60, zIndex:1 }} />
+      <Box textAlign={'center'} sx={{ marginTop: '20%' }}>
+        <img src={gameTitle} style={{ width: '65%', position:'relative', top:60, zIndex:3 }} />
       </Box>
       
-      <Box sx={{ mb: 4, mt:5 }}>
-        <Grid container spacing={2}>
+      <Box sx={{ mb: 4, mt:'13%' }}>
+        <Grid container spacing={2.5} >
           {eggs.map((egg) => (
-            <Grid item xs={4} key={egg.id} sx={{ height: '70px', }}>
+            <Grid item xs={4} key={egg.id} sx={{ height: '70px',zIndex:2 }}>
               <EggItem egg={egg} />
             </Grid>
           ))}
@@ -805,12 +813,6 @@ const GoldenGoose = () => {
       >
         Click "PLAY GAME to Start"
       </Box>}
-
-      <Box sx={{ position: 'absolute', bottom: 120, left: '0%',margin: '0 auto', zIndex: 10, width:'100%' }}>
-        <Typography variant="body2" color="gold" sx={{ fontFamily:'helvetica' }}>
-          Eggs Cracked: {scratchCount} / 12
-        </Typography>
-      </Box>
       
 
       {!openDialog && gameOver && !gameStarted && (

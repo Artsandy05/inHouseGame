@@ -42,34 +42,54 @@ const LoginForm = () => {
 
   useEffect(() => {
     if (userData) {
-      navigate(`${userData?.userData?.data?.user?.role === 'moderator' ? '/moderator' : '/games'}`);
+      const role = userData?.userData?.data?.user?.role;
+      if (role === 'superadmin') {
+        navigate('/admin/reports');
+      } else if (role === 'moderator') {
+        navigate('/moderator');
+      } else {
+        navigate('/games');
+      }
     }
   }, []);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setError('');
+  // Update the handleLogin function in your LoginForm component
+const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setIsSubmitting(true);
+  setError('');
 
-    try {
-      const response = await api.post('/auth/login', { mobile });
-      const { token, user } = response.data.data;
-      console.log(response.data)
-      api.defaults.headers['Authorization'] = `Bearer ${token}`;
-      setCookie('token', token, 1); // Set token in cookies
-      const expirationTime = new Date().getTime() + 24 * 60 * 60 * 1000; 
-      localStorage.setItem('user', JSON.stringify({userData:response.data, expirationTime}));
-      
-      if(user && token){
-        navigate(`${user.role === 'moderator' ? '/moderator' : '/games'}`);
+  try {
+    const response = await api.post('/auth/login', { mobile });
+    const { token, user } = response.data.data;
+    console.log(response.data);
+    
+    api.defaults.headers['Authorization'] = `Bearer ${token}`;
+    setCookie('token', token, 1); // Set token in cookies
+    
+    const expirationTime = new Date().getTime() + 24 * 60 * 60 * 1000; 
+    localStorage.setItem('user', JSON.stringify({userData: response.data, expirationTime}));
+    
+    // Enhanced role-based routing
+    if (user && token) {
+      switch (user.role) {
+        case 'superadmin':
+          navigate('/admin/reports');
+          break;
+        case 'moderator':
+          navigate('/moderator');
+          break;
+        default:
+          navigate('/games');
       }
-    } catch (err) {
-      console.log(err);
-      setError('Login failed. Please check your mobile number.');
-    } finally {
-      setIsSubmitting(false);
     }
-  };
+  } catch (err) {
+    console.log(err);
+    setError('Login failed. Please check your mobile number.');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const handleMobileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target.value;

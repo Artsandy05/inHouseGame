@@ -2,7 +2,7 @@
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
-  async up (queryInterface, Sequelize) {
+  async up(queryInterface, Sequelize) {
     await queryInterface.createTable("golden_goose_jackpot_logs", {
       id: {
         type: Sequelize.INTEGER,
@@ -21,20 +21,24 @@ module.exports = {
         type: Sequelize.ENUM('mini', 'minor', 'major', 'grand'),
         allowNull: false,
       },
-      created_at: {
+      game_round_id: {
+        type: Sequelize.STRING(50),
+        allowNull: true,
+      },
+      createdAt: {  // Changed to createdAt
         type: Sequelize.DATE,
         allowNull: false,
         defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
       },
-      updated_at: {
+      updatedAt: {  // Changed to updatedAt
         type: Sequelize.DATE,
         allowNull: false,
         defaultValue: Sequelize.literal("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"),
       },
-    })
+    });
   },
 
-  async down (queryInterface, Sequelize) {
+  async down(queryInterface, Sequelize) {
     await queryInterface.dropTable("golden_goose_jackpot_logs");
   }
 };

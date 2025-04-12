@@ -1,26 +1,34 @@
-"use strict";
-
+// 3. Fix for GoldenGooseRound model - correct association naming
 import { DataTypes, Model } from "sequelize";
 import sequelize from "../config/database";
+import User from "./User";
 
 class GoldenGooseRound extends Model {
-  public id: number;
-  public user_id: number;
-  public result: string;
-  public winning_amount: number;
-  public jackpot_amount: number;
-  public jackpot_type: string | null;
-  public transaction_number: string | null;
-  public game_id: string | null;
-  public round_id: string | null;
-  public crack_count: number;
-  public eggs: number[];
+  public id!: number;
+  public user_id!: number;
+  public result!: string;
+  public winning_amount!: number;
+  public jackpot_amount!: number;
+  public jackpot_type!: string | null;
+  public transaction_number!: string;
+  public game_id!: string;
+  public round_id!: string;
+  public crack_count!: number;
+  public eggs!: number[];
   public createdAt!: Date;
   public updatedAt!: Date;
+  
+  // Define user association with consistent naming
+  public user?: User;
 }
 
 GoldenGooseRound.init(
   {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+    },
     user_id: {
       type: DataTypes.INTEGER,
       allowNull: false
@@ -73,5 +81,11 @@ GoldenGooseRound.init(
     timestamps: true,
   }
 );
+
+// Use consistent association naming
+GoldenGooseRound.belongsTo(User, {
+  foreignKey: 'user_id',
+  as: 'user'
+});
 
 export default GoldenGooseRound;

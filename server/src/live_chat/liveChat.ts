@@ -103,169 +103,173 @@ function liveChat(fastify) {
         const userId = playerData.userId;
     
         if (userId) {
-          try {
-              const game_id = '4'; // Fixed game_id as per requirement
-              const round_id = `4${userId}${Date.now()}`; // Unique round_id combining game_id, userId and timestamp
-              const transaction_number = `KFH-${randomBytes(10).toString('hex')}`; // Using UUID for unique transaction number
-              
-              const transaction = await GoldenGooseTransaction.create({
-                  game_id,
-                  round_id,
-                  transaction_number,
-                  amount: Number(playerData.bet),
-                  type: 'bet' as const
-              });
-              const isTesting = process.env.IS_TESTING_GOLDEN_GOOSE;
-              if(isTesting === 'false'){try {
-                  const callbackData = {
-                      player_id: userId,
-                      action: 'bet',
-                      round_id: round_id,
-                      amount: playerData.bet.toString(),
-                      game_uuid: game_id,
-                      transaction_id: transaction_number
-                  };
-    
-                  const callbackResponse = await axios.post(process.env.KINGFISHER_API, callbackData);
-                  console.log('Callback successful:', callbackResponse.data);
-                  
-                  playerData.updatedCredit = callbackResponse.data.credit;
-              } catch (callbackError) {
-                  console.error('Error in API callback:', callbackError);
-                  playerData.updatedCredit = 0;
-              }}
-              
-              console.log('Transaction record created:', transaction.transaction_number);
-              
-              playerData.game_id = game_id;
-              playerData.round_id = round_id;
-              playerData.transaction_number = transaction_number;
-              playerData.playerGameOver = false;
-              
-          } catch (error) {
-              console.error('Error creating transaction record:', error);
-          }
-
-          let jackpotPrize = { amount: null as number | null, type: null as string | null };
-          jackpotPrize = await checkJackpot();
-          if (jackpotPrize && jackpotPrize.amount) {
-            await awardJackpot(userId, jackpotPrize.amount);
-            const jackpotAmountStr = jackpotPrize.amount.toString();
-            const eggs = playerData.eggs;
-            playerData.jackpotPrize = jackpotPrize.amount;
-            playerData.jackpotType = jackpotPrize.type;
-        
-            // Case 1: May existing na 3+ matching scratched eggs -> palitan ang value
-            const itemCounts: Record<string, number> = {};
-            eggs.forEach(egg => {
-                if (egg.scratched) itemCounts[egg.item] = (itemCounts[egg.item] || 0) + 1;
-            });
-            const winningItem = Object.entries(itemCounts).find(([_, count]) => count >= 3)?.[0];
-        
-            if (winningItem) {
-                // Palitan lahat ng winningItem eggs ng jackpot value
-                eggs.forEach(egg => {
-                    if (egg.item === winningItem) egg.item = jackpotAmountStr;
+            try {
+                const game_id = '4'; // Fixed game_id as per requirement
+                const round_id = `4${userId}${Date.now()}`; // Unique round_id combining game_id, userId and timestamp
+                const transaction_number = `KFH-${randomBytes(10).toString('hex')}`; // Using UUID for unique transaction number
+                
+                // Create transaction record
+                const transaction = await GoldenGooseTransaction.create({
+                    game_id,
+                    round_id,
+                    transaction_number,
+                    amount: Number(playerData.bet),
+                    type: 'bet' as const,
+                    user_id: userId, 
                 });
-            } 
-            // Case 2: Walang 3 matches -> magdagdag ng 3 bagong eggs na may jackpot value
-            else {
-                // Alisin ang 3 random eggs (kung may enough eggs)
-                for (let i = 0; i < 3 && eggs.length > 0; i++) {
-                    const randomIndex = Math.floor(Math.random() * eggs.length);
-                    eggs.splice(randomIndex, 1); // Remove 1 egg at random position
+    
+                const isTesting = process.env.IS_TESTING_GOLDEN_GOOSE;
+                if (isTesting === 'false') {
+                    try {
+                        const callbackData = {
+                            player_id: userId,
+                            action: 'bet',
+                            round_id: round_id,
+                            amount: playerData.bet.toString(),
+                            game_uuid: game_id,
+                            transaction_id: transaction_number
+                        };
+    
+                        const callbackResponse = await axios.post(process.env.KINGFISHER_API, callbackData);
+                        console.log('Callback successful:', callbackResponse.data);
+                        
+                        playerData.updatedCredit = callbackResponse.data.credit;
+                    } catch (callbackError) {
+                        console.error('Error in API callback:', callbackError);
+                        playerData.updatedCredit = 0;
+                    }
                 }
-        
-                const jackpotColor = getRandomColor();  // Metallic gold color
-                // Dagdagan ng 3 bagong eggs na may jackpot value (random positions)
-                for (let i = 0; i < 3; i++) {
-                    const newEgg = {
-                        id: eggs.length > 0 ? Math.max(...eggs.map(e => e.id)) + 1 : i,
-                        item: jackpotAmountStr,
-                        scratched: false,
-                        cracked: false,
-                        showCracked: false,
-                        color: jackpotColor, 
-                        textShadow: '0 0 3.5px white, 0 0 3.5px white'
-                    };
-                    const randomPos = Math.floor(Math.random() * (eggs.length + 1));
-                    eggs.splice(randomPos, 0, newEgg); // Insert at random position
+                
+                console.log('Transaction record created:', transaction.transaction_number);
+                
+                playerData.game_id = game_id;
+                playerData.round_id = round_id;
+                playerData.transaction_number = transaction_number;
+                playerData.playerGameOver = false;
+    
+                // Check and award jackpot with the round_id
+                let jackpotPrize = { amount: null as number | null, type: null as string | null };
+                jackpotPrize = await checkJackpot();
+                
+                if (jackpotPrize?.amount) {
+                    await awardJackpot(userId, jackpotPrize.amount, round_id); // Pass round_id here
+                    const jackpotAmountStr = jackpotPrize.amount.toString();
+                    const eggs = playerData.eggs;
+                    playerData.jackpotPrize = jackpotPrize.amount;
+                    playerData.jackpotType = jackpotPrize.type;
+                
+                    // Handle egg updates for jackpot display
+                    const itemCounts: Record<string, number> = {};
+                    eggs.forEach(egg => {
+                        if (egg.scratched) itemCounts[egg.item] = (itemCounts[egg.item] || 0) + 1;
+                    });
+                    const winningItem = Object.entries(itemCounts).find(([_, count]) => count >= 3)?.[0];
+                
+                    if (winningItem) {
+                        // Replace all winningItem eggs with jackpot value
+                        eggs.forEach(egg => {
+                            if (egg.item === winningItem) egg.item = jackpotAmountStr;
+                        });
+                    } else {
+                        // Remove 3 random eggs (if enough eggs)
+                        for (let i = 0; i < 3 && eggs.length > 0; i++) {
+                            const randomIndex = Math.floor(Math.random() * eggs.length);
+                            eggs.splice(randomIndex, 1);
+                        }
+                
+                        const jackpotColor = getRandomColor(); // Metallic gold color
+                        // Add 3 new eggs with jackpot value
+                        for (let i = 0; i < 3; i++) {
+                            const newEgg = {
+                                id: eggs.length > 0 ? Math.max(...eggs.map(e => e.id)) + 1 : i,
+                                item: jackpotAmountStr,
+                                scratched: false,
+                                cracked: false,
+                                showCracked: false,
+                                color: jackpotColor, 
+                                textShadow: '0 0 3.5px white, 0 0 3.5px white'
+                            };
+                            const randomPos = Math.floor(Math.random() * (eggs.length + 1));
+                            eggs.splice(randomPos, 0, newEgg);
+                        }
+                    }
                 }
+    
+                allPlayerData.set(userId, playerData);
+    
+                // Update prize pools
+                try {
+                    const betAmount = Number(playerData.bet);
+                    
+                    // Find existing records
+                    const [instantPrize, jackpotPrize, appProfit] = await Promise.all([
+                        GoldenGoosePrize.findOne({ where: { type: 'instant_prize' } }),
+                        GoldenGoosePrize.findOne({ where: { type: 'jackpot_prize' } }),
+                        GoldenGoosePrize.findOne({ where: { type: 'app_profit' } })
+                    ]);
+                
+                    // Update or create records with proper numeric operations
+                    await Promise.all([
+                        instantPrize 
+                            ? instantPrize.update({ 
+                                amount: sequelize.literal(`amount + ${betAmount * 0.5}`),
+                            })
+                            : GoldenGoosePrize.create({
+                                type: 'instant_prize',
+                                amount: betAmount * 0.5,
+                            }),
+                        
+                        jackpotPrize
+                            ? jackpotPrize.update({ 
+                                amount: sequelize.literal(`amount + ${betAmount * 0.1}`),
+                            }) 
+                            : GoldenGoosePrize.create({
+                                type: 'jackpot_prize',
+                                amount: betAmount * 0.1,
+                                count: 0
+                            }),
+                        
+                        appProfit
+                            ? appProfit.update({ 
+                                amount: sequelize.literal(`amount + ${betAmount * 0.4}`),
+                            })
+                            : GoldenGoosePrize.create({
+                                type: 'app_profit',
+                                amount: betAmount * 0.4,
+                            })
+                    ]);
+                
+                    console.log('Successfully updated prize records');
+                } catch (error) {
+                    console.error('Error updating prize records:', error);
+                }
+    
+                // Get updated instant prize pool
+                const instantPrizePool = await GoldenGoosePrize.findOne({
+                    where: { type: 'instant_prize' },
+                });
+                
+                // Prepare response
+                const playersArray = Array.from(allPlayerData.values());
+                const responseData: ResponseData = {
+                    event: 'receiveAllPlayerData',
+                    data: playersArray,
+                    id: userId,
+                    currentPrizePool: instantPrizePool?.amount || 0,
+                    updatedCredit: playerData.updatedCredit
+                };
+            
+                // Broadcast to all clients
+                const response = JSON.stringify(responseData);
+                clients.forEach(client => {
+                    if (client.readyState === WebSocket.OPEN) {
+                        client.send(response);
+                    }
+                });
+    
+            } catch (error) {
+                console.error('Error in startGame handler:', error);
             }
-          }
-        
-          allPlayerData.set(userId, playerData);
-  
-          try {
-              // Convert bet to number to ensure proper math operations
-              const betAmount = Number(playerData.bet);
-              
-              // Find existing records
-              const [instantPrize, jackpotPrize, appProfit] = await Promise.all([
-                  GoldenGoosePrize.findOne({ where: { type: 'instant_prize' } }),
-                  GoldenGoosePrize.findOne({ where: { type: 'jackpot_prize' } }),
-                  GoldenGoosePrize.findOne({ where: { type: 'app_profit' } })
-              ]);
-        
-              // Update or create records with proper numeric operations
-              await Promise.all([
-                  instantPrize 
-                      ? instantPrize.update({ 
-                          amount: Number(instantPrize.amount) + (betAmount * 0.5),
-                      })
-                      : GoldenGoosePrize.create({
-                          type: 'instant_prize',
-                          amount: betAmount * 0.5,
-                      }),
-                  
-                  jackpotPrize
-                      ? jackpotPrize.update({ 
-                          amount: Number(jackpotPrize.amount) + (betAmount * 0.1),
-                      }) 
-                      : GoldenGoosePrize.create({
-                          type: 'jackpot_prize',
-                          amount: betAmount * 0.1,
-                          count: 0
-                      }),
-                  
-                  appProfit
-                      ? appProfit.update({ 
-                          amount: Number(appProfit.amount) + (betAmount * 0.4),
-                      })
-                      : GoldenGoosePrize.create({
-                          type: 'app_profit',
-                          amount: betAmount * 0.4,
-                      })
-              ]);
-        
-              console.log('Successfully updated prize records');
-          } catch (error) {
-              console.error('Error updating prize records:', error);
-          }
-  
-          const instantPrizePool = await GoldenGoosePrize.findOne({
-              where: { type: 'instant_prize' },
-          });
-  
-          // Convert Map values to array for response
-          const playersArray = Array.from(allPlayerData.values());
-          
-          // Initialize the response object
-          const responseData: ResponseData = {
-              event: 'receiveAllPlayerData',
-              data: playersArray,
-              id: userId,
-              currentPrizePool: instantPrizePool?.amount || 0,
-              updatedCredit: playerData.updatedCredit // Add the credit from callback
-          };
-    
-          const response = JSON.stringify(responseData);
-    
-          clients.forEach(client => {
-              if (client.readyState === WebSocket.OPEN) {
-                  client.send(response);
-              }
-          });
         }
       }
 
@@ -487,7 +491,8 @@ function liveChat(fastify) {
                       transaction_number: resultTransactionNumber,
                       amount: winningAmount,
                       type: 'payout',
-                    });
+                      user_id: userId, 
+                  });
                     const isTesting = process.env.IS_TESTING_GOLDEN_GOOSE;
                     if(isTesting === 'false'){try {
                       if (!updatedPlayer.playerGameOver) {
@@ -737,7 +742,11 @@ function liveChat(fastify) {
       }
     }
 
-    async function awardJackpot(userId: number, prizeToAward: number) {
+    async function awardJackpot(
+      userId: number, 
+      prizeToAward: number,
+      gameRoundId?: string  // Add optional gameRoundId parameter
+    ) {
       const transaction = await sequelize.transaction();
       
       try {
@@ -757,106 +766,97 @@ function liveChat(fastify) {
         const jackpotLevel = game.jackpot_level;
         let shouldUpdateLevel = false;
     
+        // Common jackpot award logic
+        const awardJackpotPrize = async (level: 'mini' | 'minor' | 'major' | 'grand') => {
+          // Verify sufficient funds in the jackpot pool
+          if (jackpotPrize.amount < prizeToAward) {
+            throw new Error(`Insufficient funds in ${level} jackpot pool`);
+          }
+    
+          // Deduct from prize pool
+          jackpotPrize.amount -= prizeToAward;
+          await jackpotPrize.save({ transaction });
+    
+          // Log the jackpot win with gameRoundId if provided
+          await GoldenGooseJackpotLog.create({
+            user_id: userId,
+            amount: prizeToAward,
+            type: level,
+            game_round_id:gameRoundId  // Include the game round ID if provided
+          }, { transaction });
+    
+          // Return the prize level object
+          switch (level) {
+            case 'mini': return mini;
+            case 'minor': return minor;
+            case 'major': return major;
+            case 'grand': return grand;
+          }
+        };
+    
         switch (jackpotLevel) {
           case 'mini':
-            if (jackpotPrize.amount >= 500) {
-              // Deduct from prize pool
-              jackpotPrize.amount -= prizeToAward;
-              await jackpotPrize.save({ transaction });
+            const miniPrize = await awardJackpotPrize('mini');
+            miniPrize.count -= 1;
+            await miniPrize.save({ transaction });
     
-              // Log the jackpot win
-              await GoldenGooseJackpotLog.create({
-                userId: userId,
-                amount: prizeToAward,
-                type: 'mini'
-              }, { transaction });
-    
-              // Decrement mini count
-              mini.count -= 1;
-              await mini.save({ transaction });
-    
-              // Check if we need to level up
-              if (mini.count <= 0) {
-                game.jackpot_level = 'minor';
-                shouldUpdateLevel = true;
-              }
+            if (miniPrize.count <= 0) {
+              game.jackpot_level = 'minor';
+              shouldUpdateLevel = true;
             }
             break;
     
           case 'minor':
-            if (jackpotPrize.amount >= 2500) {
-              jackpotPrize.amount -= prizeToAward;
-              await jackpotPrize.save({ transaction });
+            const minorPrize = await awardJackpotPrize('minor');
+            minorPrize.count -= 1;
+            await minorPrize.save({ transaction });
     
-              await GoldenGooseJackpotLog.create({
-                userId: userId,
-                amount: prizeToAward,
-                type: 'minor'
-              }, { transaction });
-    
-              minor.count -= 1;
-              await minor.save({ transaction });
-    
-              if (minor.count <= 0) {
-                game.jackpot_level = 'major';
-                shouldUpdateLevel = true;
-              }
+            if (minorPrize.count <= 0) {
+              game.jackpot_level = 'major';
+              shouldUpdateLevel = true;
             }
             break;
     
           case 'major':
-            if (jackpotPrize.amount >= 10000) {
-              jackpotPrize.amount -= prizeToAward;
-              await jackpotPrize.save({ transaction });
+            const majorPrize = await awardJackpotPrize('major');
+            majorPrize.count -= 1;
+            await majorPrize.save({ transaction });
     
-              await GoldenGooseJackpotLog.create({
-                userId: userId,
-                amount: prizeToAward,
-                type: 'major'
-              }, { transaction });
-    
-              major.count -= 1;
-              await major.save({ transaction });
-    
-              if (major.count <= 0) {
-                game.jackpot_level = 'grand';
-                shouldUpdateLevel = true;
-              }
+            if (majorPrize.count <= 0) {
+              game.jackpot_level = 'grand';
+              shouldUpdateLevel = true;
             }
             break;
     
           case 'grand':
-            if (jackpotPrize.amount >= 25000) {
-              jackpotPrize.amount -= prizeToAward;
-              await jackpotPrize.save({ transaction });
+            const grandPrize = await awardJackpotPrize('grand');
+            grandPrize.count -= 1;
+            await grandPrize.save({ transaction });
     
-              await GoldenGooseJackpotLog.create({
-                userId: userId,
-                amount: prizeToAward,
-                type: 'grand'
-              }, { transaction });
-    
-              grand.count -= 1;
-              await grand.save({ transaction });
-    
-              if (grand.count <= 0) {
-                // Reset all counts and cycle back to mini
-                game.jackpot_level = 'mini';
-                shouldUpdateLevel = true;
-                
-                // Reset all counts
-                mini.count = JACKPOT_CONFIG.MINI.count;
-                minor.count = JACKPOT_CONFIG.MINOR.count;
-                major.count = JACKPOT_CONFIG.MAJOR.count;
-                grand.count = JACKPOT_CONFIG.GRAND.count;
-                
-                await Promise.all([
-                  mini.save({ transaction }),
-                  minor.save({ transaction }),
-                  major.save({ transaction }),
-                  grand.save({ transaction })
-                ]);
-              }
+            if (grandPrize.count <= 0) {
+              // Reset all counts and cycle back to mini
+              game.jackpot_level = 'mini';
+              shouldUpdateLevel = true;
+              
+              // Reset all counts
+              const [updatedMini, updatedMinor, updatedMajor, updatedGrand] = await Promise.all([
+                GoldenGoosePrize.update(
+                  { count: JACKPOT_CONFIG.MINI.count },
+                  { where: { type: 'mini' }, transaction }
+                ),
+                GoldenGoosePrize.update(
+                  { count: JACKPOT_CONFIG.MINOR.count },
+                  { where: { type: 'minor' }, transaction }
+                ),
+                GoldenGoosePrize.update(
+                  { count: JACKPOT_CONFIG.MAJOR.count },
+                  { where: { type: 'major' }, transaction }
+                ),
+                GoldenGoosePrize.update(
+                  { count: JACKPOT_CONFIG.GRAND.count },
+                  { where: { type: 'grand' }, transaction }
+                )
+              ]);
             }
             break;
     
@@ -869,6 +869,7 @@ function liveChat(fastify) {
         }
     
         await transaction.commit();
+        return { success: true, jackpotLevel, amountAwarded: prizeToAward };
       } catch (error) {
         await transaction.rollback();
         console.error('Error in awardJackpot:', error);

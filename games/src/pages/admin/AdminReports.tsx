@@ -242,7 +242,7 @@ const AdminReports = () => {
     { id: 'bet_amount', label: 'Bet', align: 'right', sortable: true, format: (amount: number) => formatCurrency(amount || 0) },
     { id: 'result', label: 'Result', format: (result: string) => (
       <Box display="flex" alignItems="center">
-        {result === 'win' ? (
+        {result === 'Win' ? (
           <ArrowUpwardIcon color="success" fontSize="small" sx={{ mr: 0.5 }} />
         ) : (
           <ArrowDownwardIcon fontSize="small" sx={{ mr: 0.5, color:'pink' }} />

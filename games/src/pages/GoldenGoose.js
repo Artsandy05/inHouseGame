@@ -423,7 +423,7 @@ const GoldenGoose = () => {
         setOpenDialog(true);
       }, 500);
     } else if (scratchedEggsCount >= 12) {
-      playLoseAnnouncementSound();
+      // playLoseAnnouncementSound();
       updatePlayerIsWinner(false);
       updatePlayerGameOver(true);
       generateRandomPrize(Number(currentPrizePool));

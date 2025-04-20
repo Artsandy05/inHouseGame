@@ -2,14 +2,29 @@ import { hasValue } from "../../common/gameutils";
 import { Main } from "../src/main";
 
 import WebSocket from 'ws';
+import createEncryptor from "../utils/createEncryptor";
+import User from "../models/User";
+import Wallet from "../models/Wallet";
 const wss = new WebSocket.Server({ noServer: true });
 
 const PING_INTERVAL = 10000;
 let pingIntervalId: NodeJS.Timeout | null = null;
 const clients: Set<WebSocket> = new Set();
 
+interface UserInfo {
+  id: number;                
+  firstName: string; 
+  lastName: string; 
+  balance: number;
+  mobile: any;
+  uuid: string;
+  email: string;
+  role:string;
+}
+
 let main = Main.getInstance();
 main.game.run();
+const encryptor = createEncryptor(process.env.ENCRYPTION_SECRET);
 
 function gameRoutes(fastify) {
   
@@ -17,30 +32,39 @@ function gameRoutes(fastify) {
     const url = new URL(request.url, 'http://localhost');
     const path = url.pathname;
     
-    
     if (path === '/api/websocket') {
-      const token = extractTokenFromURL(request.url);
-      let userData = null;
-
       try {
         const queryParams = url.searchParams;
-        
-        const userInfo = JSON.parse(queryParams.get('userInfo'))
-        const uuid = userInfo?.uuid;
+        const encryptedUserInfo = queryParams.get('userInfo');
 
-        if (hasValue(uuid)) {  // Test mode, bypassing validation to make it easier to test
-          userData = { uuid: uuid, userInfo };
-        } else {
-          if (hasValue(token)) {
-            userData = await fastify.jwt.verify(token);
-          } else {
-            console.log("No uuid nor token")
-          }
+        if (hasValue(encryptedUserInfo)) {
+          const decrypted = encryptor.decryptParams(encryptedUserInfo);
+          const userData: UserInfo = decrypted;
+
+          const userDataTransformed = {
+            id: userData && userData.id,
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            mobile: userData.mobile,
+            email: userData.email,
+            role: userData.role, 
+            isActive: false,
+            status: 'active',
+            isMobileVerified: true,
+            actionStatus: 'approved'
+          };
+      
+          const [user] = await User.findOrCreate({
+              where: { id: userDataTransformed.id },
+              defaults: userDataTransformed
+          });
+
+          await Wallet.findOrCreateByUserId(user.id, Number(userData.balance));
+          
+          wss.handleUpgrade(request, socket, head, async (ws) => {
+            wss.emit('connection', ws, userData);
+          });
         }
-        
-        wss.handleUpgrade(request, socket, head, async (ws) => {
-          wss.emit('connection', ws, userData);
-        });
       } catch (err) {
         console.error('JWT token verification failed:', err.message);
         socket.destroy();

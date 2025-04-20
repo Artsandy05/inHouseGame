@@ -54,6 +54,7 @@ type State = {
   voidMessage: boolean;
   triggerRefetchBalance: boolean;
   isHostGifted: boolean;
+  userInfo: any;
 };
 
 export const playerStore = create<State>((set) => ({
@@ -66,6 +67,10 @@ export const playerStore = create<State>((set) => ({
   gameState: null,
   setGameState: (g) => {
     set({ gameState: g });
+  },
+  userInfo: null,
+  setUserInfo: (g) => {
+    set({ userInfo: g });
   },
   eventData: null,
   setEventData: (g) => {
@@ -254,9 +259,8 @@ export const playerStore = create<State>((set) => ({
 }));
 
 export default function connect(set) {
-  
-  //const isBatoBatoPik = window.location.pathname.includes('/bato_bato_pik');
-  const url = getRequiredUrl();
+  const { userInfo } = playerStore.getState();
+  const url = getRequiredUrl(false, userInfo);
   if (!hasValue(url)) {
     throw `No valid url: ${url}`;
   }

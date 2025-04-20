@@ -5,7 +5,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { playerStore } from "../utils/playerStore";
 import { getRequiredUrl } from "../services/common";
 import moderatorStore from "../utils/Store";
-import { formatWinnerAmount, GameState, mapToArray } from "../utils/gameutils";
+import { formatTruncatedMoney, formatWinnerAmount, GameState, mapToArray } from "../utils/gameutils";
 import { usePlayerStore } from "../context/PlayerStoreContext";
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
@@ -15,6 +15,8 @@ import SavingsIcon from '@mui/icons-material/Savings';
 import StackedBarChartIcon from '@mui/icons-material/StackedBarChart';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import BalanceIcon from '@mui/icons-material/Balance';
+import createEncryptor from "../utils/createEncryptor";
+import { useSearchParams } from "react-router-dom";
 
 
 // Image assets
@@ -38,7 +40,7 @@ const getRandomChoice = () => {
   const choices = ["rock", "paper", "scissors"];
   return choices[Math.floor(Math.random() * choices.length)];
 };
-
+const encryptor = createEncryptor(process.env.REACT_APP_DECRYPTION_KEY);
 const BatoBatoPik = () => {
   const [juanChoice, setJuanChoice] = useState('');
   const [pedroChoice, setPedroChoice] = useState('');
@@ -50,21 +52,53 @@ const BatoBatoPik = () => {
   const [openBetDialog, setOpenBetDialog] = useState(false);
   const [betType, setBetType] = useState("");
   const [betAmount, setBetAmount] = useState(0);
-  const url = getRequiredUrl();
-  const { gameState, setPlayerInfo, sendMessage, countdown, slots,setSlots,odds, allBets,winningBall } = playerStore();
-  const { connect } = playerStore.getState();
-
   
+  const { gameState, setPlayerInfo, sendMessage, countdown, slots,setSlots,odds, allBets, winningBall, setUserInfo, topPlayers } = playerStore();
+  const { connect } = playerStore.getState();
+  const [searchParams] = useSearchParams();
+  const userDetailsParam = searchParams.get('data');
+  let decrypted;
 
-
-  if (!url) {
-    throw new Error(`No valid url: ${url}`);
+  if(userDetailsParam){
+    decrypted = encryptor.decryptParams(userDetailsParam);
   }
+  
+  const urlUserDetails = decrypted 
+    ? decrypted
+    : null;
+    
+  const localStorageUser = JSON.parse(localStorage.getItem('user') || 'null');
+
+  const userInfo = {
+    userData: {
+      data: {
+        user: {
+          id: Number(urlUserDetails?.id) || localStorageUser?.userData?.data?.user?.id || 0,
+          firstName: urlUserDetails?.first_name || localStorageUser?.userData?.data?.user?.firstName || 'Guest',
+          lastName: urlUserDetails?.last_name || localStorageUser?.userData?.data?.user?.lastName || 'Guest',
+          balance: urlUserDetails?.credits || localStorageUser?.userData?.data?.wallet?.balance || 0,
+          mobile: urlUserDetails?.mobile || localStorageUser?.userData?.data?.user?.mobile || 'N/A',
+          uuid: urlUserDetails?.uuid || localStorageUser?.userData?.data?.user?.uuid || '0',
+          email: urlUserDetails?.email || localStorageUser?.userData?.data?.user?.email || 'test@gmail.com',
+          role: 'player',
+        },
+        wallet: {
+          balance: urlUserDetails?.credits || localStorageUser?.userData?.data?.wallet?.balance || 0
+        }
+      }
+    }
+  };
+
+  useEffect(() => {
+    if(userInfo){
+      setUserInfo(userInfo.userData.data.user);
+    }
+  }, []);
+  
 
   // Spring animation for tilting Juan's and Pedro's images
   const [juanTilt, setJuanTilt] = useState(0);
   const [pedroTilt, setPedroTilt] = useState(0);
-  const userData = JSON.parse(localStorage.getItem('user') || 'null');
 
   useEffect(() => {
     connect();
@@ -137,7 +171,7 @@ const BatoBatoPik = () => {
             cmd: GameState.WinnerDeclared,
             game: "bbp",
             winnerOrders: determineWinner(juanChoice, pedroChoice),
-            uuid: userData.userData.data.user.uuid,
+            uuid: userInfo.userData.data.user.uuid,
           })
         );
       }
@@ -176,7 +210,7 @@ const BatoBatoPik = () => {
         alert("Minimum bet amount is 5");
         return;
       }
-      if ((userData.userData.data.wallet.balance - parseFloat(betAmount)) < 0) {
+      if ((userInfo.userData.data.wallet.balance - parseFloat(betAmount)) < 0) {
         alert("Insufficient Balance");
         return;
       }
@@ -227,6 +261,8 @@ const BatoBatoPik = () => {
     }
     return Number(parseFloat(str).toFixed(2));
   };
+
+  console.log(topPlayers)
 
   // Dynamically set the dialog colors based on the bet type
   const getDialogTheme = (type) => {
@@ -373,44 +409,223 @@ const BatoBatoPik = () => {
         <Box
           sx={{
             position: 'absolute',
-            top: 100,
+            top: 60,
             left: 0,
             right: 0,
             textAlign: 'center',
             zIndex: 10,
+            padding: '0 16px',
             animation: 'pulse 1.5s infinite',
             '@keyframes pulse': {
               '0%': { transform: 'scale(1)' },
-              '50%': { transform: 'scale(1.1)' },
+              '50%': { transform: 'scale(1.05)' },
               '100%': { transform: 'scale(1)' },
             }
           }}
         >
-          <Typography
-            variant="h3"
-            sx={{
-              fontFamily: "'Bangers', cursive",
-              fontSize: "3.5rem",
-              color: "#ffd700",
-              textShadow: `
-                3px 3px 0 #000,
-                -1px -1px 0 #000,  
-                1px -1px 0 #000,
-                -1px 1px 0 #000,
-                1px 1px 0 #000`,
-              letterSpacing: '2px',
-              lineHeight: 1.2,
-              padding: '10px 20px',
-              background: 'rgba(0,0,0,0.7)',
-              borderRadius: '10px',
-              display: 'inline-block',
-              boxShadow: '0 0 20px rgba(255,215,0,0.5)'
-            }}
-          >
-            {winningBall.bbp === 'juan' ? 'JUAN WINS!' : 
-            winningBall.bbp === 'pedro' ? 'PEDRO WINS!' : 
-            'ITS A TIE!'}
-          </Typography>
+          {/* Main Winner Banner */}
+          <Box sx={{
+            background: 'linear-gradient(135deg, rgba(0,0,0,0.9) 0%, rgba(50,50,50,0.9) 100%)',
+            borderRadius: '16px',
+            padding: '16px',
+            marginBottom: '16px',
+            border: '3px solid #ffd700',
+            boxShadow: '0 0 20px rgba(255, 215, 0, 0.7), 0 0 30px rgba(255, 215, 0, 0.4)',
+            transform: 'rotate(-2deg)',
+            position: 'relative',
+            overflow: 'hidden',
+            '&:before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '4px',
+              background: 'linear-gradient(90deg, #ffd700, #ff8c00, #ffd700)',
+            }
+          }}>
+            <Typography
+              variant="h3"
+              sx={{
+                fontFamily: "'Bangers', cursive",
+                fontSize: { xs: "2.5rem", sm: "3.5rem" },
+                color: "#ffd700",
+                textShadow: `
+                  3px 3px 0 #000,
+                  -1px -1px 0 #000,  
+                  1px -1px 0 #000,
+                  -1px 1px 0 #000,
+                  1px 1px 0 #000`,
+                letterSpacing: '3px',
+                lineHeight: 1.2,
+                padding: '8px 16px',
+                background: 'rgba(0,0,0,0.3)',
+                borderRadius: '8px',
+                display: 'inline-block',
+                transform: 'rotate(1deg)',
+                position: 'relative',
+                zIndex: 1
+              }}
+            >
+              {winningBall.bbp === 'juan' ? 'JUAN WINS!' : 
+              winningBall.bbp === 'pedro' ? 'PEDRO WINS!' : 
+              'ITS A TIE!'}
+              <Box sx={{
+                position: 'absolute',
+                top: -10,
+                right: -10,
+                width: '40px',
+                height: '40px',
+                backgroundImage: 'url(/sparkle.png)',
+                backgroundSize: 'contain',
+                backgroundRepeat: 'no-repeat',
+                filter: 'drop-shadow(0 0 4px gold)',
+                animation: 'spin 2s linear infinite',
+                '@keyframes spin': {
+                  '0%': { transform: 'rotate(0deg)' },
+                  '100%': { transform: 'rotate(360deg)' },
+                }
+              }} />
+            </Typography>
+            
+            {/* Confetti Effect */}
+            <Box sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundImage: 'url(/confetti.png)',
+              backgroundSize: 'contain',
+              opacity: 0.3,
+              pointerEvents: 'none',
+              zIndex: 0
+            }} />
+          </Box>
+
+          {/* Top Players Section - Only shows if there are top players */}
+          {topPlayers?.length > 0 && (
+            <Box sx={{
+              background: 'linear-gradient(135deg, rgba(0,0,0,0.9) 0%, rgba(30,30,30,0.9) 100%)',
+              borderRadius: '16px',
+              padding: '16px',
+              border: '2px solid rgba(255, 215, 0, 0.5)',
+              boxShadow: '0 0 15px rgba(255, 215, 0, 0.3)',
+              maxWidth: '400px',
+              margin: '0 auto',
+              backdropFilter: 'blur(5px)'
+            }}>
+              <Typography variant="h5" sx={{ 
+                color: '#ffd700', 
+                fontFamily: "'Bangers', cursive",
+                fontSize: { xs: "1.5rem", sm: "1.8rem" },
+                marginBottom: '12px',
+                letterSpacing: '1px',
+                textShadow: '2px 2px 3px rgba(0,0,0,0.8)',
+                position: 'relative',
+                display: 'inline-block',
+                '&:after': {
+                  content: '""',
+                  position: 'absolute',
+                  bottom: -5,
+                  left: '10%',
+                  right: '10%',
+                  height: '3px',
+                  background: 'linear-gradient(90deg, transparent, #ffd700, transparent)'
+                }
+              }}>
+                TOP WINNERS
+              </Typography>
+              
+              <Box sx={{
+                maxHeight: '200px',
+                overflowY: 'auto',
+                '&::-webkit-scrollbar': {
+                  width: '5px',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  background: '#ffd700',
+                  borderRadius: '10px',
+                }
+              }}>
+                {topPlayers.map((player, index) => {
+                  const isCurrentUser = player.uuid === userInfo.userData.data.user.uuid;
+                  return (
+                    <Box key={player.uuid} sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '10px 8px',
+                      marginBottom: '8px',
+                      borderRadius: '8px',
+                      background: isCurrentUser 
+                        ? 'linear-gradient(90deg, rgba(255,215,0,0.2) 0%, rgba(255,215,0,0.4) 100%)' 
+                        : 'rgba(255,255,255,0.05)',
+                      border: isCurrentUser ? '1px solid #ffd700' : '1px solid rgba(255,255,255,0.1)',
+                      boxShadow: isCurrentUser ? '0 0 10px rgba(255,215,0,0.3)' : 'none',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      '&:before': isCurrentUser ? {
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '3px',
+                        height: '100%',
+                        background: '#ffd700'
+                      } : {}
+                    }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Box sx={{
+                          width: '24px',
+                          height: '24px',
+                          background: isCurrentUser ? '#ffd700' : '#fff',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginRight: '10px',
+                          color: isCurrentUser ? '#000' : '#333',
+                          fontWeight: 'bold',
+                          fontSize: '0.8rem',
+                          boxShadow: '0 0 5px rgba(0,0,0,0.3)'
+                        }}>
+                          {index + 1}
+                        </Box>
+                        <Typography sx={{ 
+                          color: isCurrentUser ? '#ffd700' : '#fff',
+                          fontWeight: isCurrentUser ? 'bold' : 'normal',
+                          fontFamily: "'Bangers', cursive",
+                          fontSize: { xs: "1.1rem", sm: "1.3rem" },
+                          letterSpacing: '1px',
+                          textShadow: isCurrentUser ? '0 0 5px rgba(255,215,0,0.7)' : 'none'
+                        }}>
+                          {player.name} {isCurrentUser && <span style={{ fontSize: '0.8rem' }}>(YOU)</span>}
+                        </Typography>
+                      </Box>
+                      
+                      <Box sx={{
+                        background: 'rgba(0,0,0,0.4)',
+                        borderRadius: '12px',
+                        padding: '4px 10px',
+                        border: `1px solid ${isCurrentUser ? '#ffd700' : '#444'}`,
+                        boxShadow: '0 0 5px rgba(0,0,0,0.3)'
+                      }}>
+                        <Typography sx={{ 
+                          color: isCurrentUser ? '#ffd700' : '#fff',
+                          fontWeight: 'bold',
+                          fontFamily: "'Bangers', cursive",
+                          fontSize: { xs: "1.1rem", sm: "1.3rem" },
+                        }}>
+                          +{player.prize.toFixed(2)}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  );
+                })}
+              </Box>
+            </Box>
+          )}
         </Box>
       )}
 
@@ -434,7 +649,7 @@ const BatoBatoPik = () => {
           color: "#4CAF50",
           marginBottom: '4px'
         }}>
-          {userData?.userData?.data?.user?.firstName} {userData?.userData?.data?.user?.lastName}
+          {userInfo?.userData?.data?.user?.firstName}
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <AccountBalanceWalletIcon sx={{ color: '#FFD700', marginRight: '8px' }} />
@@ -443,7 +658,7 @@ const BatoBatoPik = () => {
             color: "#fff",
             fontWeight: '500'
           }}>
-            ₱ {userData?.userData?.data?.wallet?.balance.toLocaleString()}
+            {`${formatTruncatedMoney(userInfo?.userData?.data?.wallet?.balance.toLocaleString())}`}
           </Typography>
         </Box>
       </Box>

@@ -1,6 +1,10 @@
 
 import { ClientCommands, GameState, ZODIAC_LABELS, arrayToMap, hasValue, mapToArray } from "../../../common/gameutils";
+import Config from "../../models/Config";
+import Transaction from "../../models/Transaction";
+import User from "../../models/User";
 import Wallet from "../../models/Wallet";
+import BetModel from "../../models/Bet";
 import { Bet } from "./Bet";
 import { Prize } from "./Bet/Prize";
 import { CountdownStateChanged, BBPGameStateChanged, Game, GameData, Input, Output, Plugin, SelectedHostStateChanged, ZodiacGameStateChanged } from "./Code";
@@ -8,6 +12,9 @@ import { Player } from "./Player";
 import { GameDb } from "./plugins/GameDbPlugin";
 import { SocketManager } from "./SocketManager";
 import { UserData } from "./UserData";
+import WinningBets from "../../models/WinningBets";
+import WinningBall from "../../models/WinningBall";
+import LosingBets from "../../models/LosingBets";
 
 
 export class PlayerManager implements Plugin {
@@ -141,12 +148,11 @@ function broadcastWinners(game: Game) {
   gameData.games.forEach(gameName => {
     game.view(gameName === 'bbp' ? BBPGameStateChanged : null, UserData, Player, Prize, Output)
     .each((entity, stateChanged, userData, player, prize, output) => {
-      // && player.slots.size > 0
       if (gameData.state[gameName] === GameState.WinnerDeclared) {
         
         const winner = gameName === 'bbp' && gameData.winnerOrders[gameName];
         if(player.game === gameName){
-          player.slots.forEach((val, key:any) => {
+          player.slots.forEach(async (val, key:any) => {
             if (winner === key && gameName === prize.game) {
               const p = prize.values.get(key);
               const odds = gameData.odds[gameName].get(key);
@@ -160,6 +166,15 @@ function broadcastWinners(game: Game) {
                 odds,
                 uuid: userData.data.dataValues.uuid
               });
+              const wallet = await getWallet(userData.data.dataValues.id);
+              let finalWinPrize = Number(wallet.balance) + Number(p);
+              const transaction = await Transaction.new(wallet.id, gameData.gamesTableId[gameName], p, "wonprize", odds, gameData.gameId[gameName]);
+              await processBet(userData.data.dataValues.id, val, odds, gameName, gameData, key, transaction);
+              await WinningBets.new(transaction.id, key, val, p);
+              await Wallet.update(
+                { balance: finalWinPrize - val },
+                { where: { user_id: userData.data.dataValues.id } }
+              );
               if(hasValue(output.msg) && typeof output.msg === 'string'){
                 let newOutPut = JSON.parse(output.msg);
                 newOutPut.prize = p;
@@ -179,6 +194,10 @@ function broadcastWinners(game: Game) {
                 loseOnGame:player.game,
                 odds
               });
+              const wallet = await getWallet(userData.data.dataValues.id);
+              const transaction = await Transaction.new(wallet.id, gameData.gamesTableId[gameName], val, "losebet", odds, gameData.gameId[gameName]);
+              await processBet(userData.data.dataValues.id, val, odds, gameName, gameData, key, transaction);
+              await LosingBets.new(transaction.id, key, val, 0);
             }
           });
         }
@@ -268,80 +287,6 @@ function requestRollingState(gameData, msg, output) {
 }
 
 
-// async function resetPlayerBets(gameData, player: Player, msg, userData: UserData, output) {
-//   const userBalance = await Wallet.findOne({ where: { user_id: userData.data.dataValues.id } });
-//   if (msg.resetSlots) {
-//     if (player.uuid === msg.resetSlots.uuid && player.game === msg.game) {
-//       player.slots = new Map<string, number>();
-//       player.game = '';
-//     }
-
-//     const existingBalanceEntry = gameData.playerCurrentBalance[msg.game].find(balance => 
-//       balance.playerUUID === userData.data.dataValues.uuid
-//     );
-
-//     if (existingBalanceEntry) {
-//       existingBalanceEntry.currentBalance = userBalance.balance;
-//     } else {
-//       gameData.playerCurrentBalance[msg.game].push({ playerUUID: userData.data.dataValues.uuid, currentBalance: userBalance.balance });
-//     }
-
-//     if(hasValue(output.msg) && typeof output.msg === 'string'){
-//       let newOutPut = JSON.parse(output.msg);
-//       newOutPut.balance = [{ playerUUID: userData.data.dataValues.uuid, currentBalance: userBalance.balance }];
-//       newOutPut.betOnGame = player.game;
-//       output.msg = JSON.stringify(newOutPut);
-//     }else{
-//       output.insert('balance', [{ playerUUID: userData.data.dataValues.uuid, currentBalance: userBalance.balance }]);
-//       output.insert('betOnGame', player.game);
-//     }
-
-//     gameData.calculateAllBets[msg.game] = true;
-//   }
-// }
-
-
-
-// async function processRepresentativePlayerBets(game: Game, entity, gameData: GameData,  msg, output) {
-//   if(msg.isRepresentative && (gameData.state[msg.game] === GameState.Open || gameData.state[msg.game] === GameState.LastCall)){
-    
-//     const representativeBetInfo = await RepresentativeBetInfo.create({
-//       representative_id:msg.data.representative_id,
-//       game_name: msg.data.game_name,  // Using msg.game_name from the top level
-//       ticket_number: msg.data.ticket_number,  // msg.ticket_number from the top level
-//       total_number_of_bets: msg.data.total_number_of_bets,  // msg.total_number_of_bets from the top level
-//       total_amount: msg.data.total_amount,  // msg.total_amount from the top level
-//       payment_amount: msg.data.payment_amount,  // msg.payment_amount from the top level
-//       change_amount: msg.data.change_amount  // msg.change_amount from the top level
-//     });
-
-//     // Step 2: Insert related data into RepresentativePlayerBets table
-//     // Loop through msg.data and insert each player's bet data
-//     for (const bet of msg.data.data) {  // Looping through the msg.data array which contains the bets
-//       await RepresentativePlayerBets.create({
-//         representative_bet_info_id: representativeBetInfo.id,  
-//         zodiac_ball_name: bet.zodiac_ball_name,
-//         quantity: bet.qty,
-//         total_bet: bet.total_bet,
-//         bet_type: bet.betType
-//       });
-//     }
-
-//     const representativeWallet = await Wallet.findOne({ where: { user_id: msg.data.representative_id } });
-    
-//     await Wallet.update(
-//       { balance: representativeWallet.balance - msg.data.total_amount },
-//       { where: { user_id: msg.data.representative_id } }
-//     );
-
-
-//     game.insert(entity, new Bet);
-//     gameData.calculateAllBetsForWalkin[msg.game] = true;
-//     msg.data.isAddedToSlotBetsWalkin = false;
-//     gameData.walkinPlayers[msg.game].push(msg.data);
-//   }
-// }
-
 
 async function onBettingState(game: Game, entity, gameData: GameData, player: Player, msg, userData: UserData, output) {
 
@@ -384,45 +329,6 @@ async function onBettingState(game: Game, entity, gameData: GameData, player: Pl
 	}
 }
 
-// async function sendGift(game: Game, entity, gameData: GameData, player: Player, msg, userData: UserData, output) {
-//   if(msg.cmdType === 'gift'){
-//     const userBalance = await Wallet.findOne({ where: { user_id: userData.data.dataValues.id } });
-//     const playerUUID = userData.data.dataValues.uuid;
-//     const existingBalanceEntry = gameData.playerCurrentBalance[msg.game].find(entry => entry.playerUUID === playerUUID);
-    
-//     if (existingBalanceEntry) {
-//       // Update the existing balance
-//       existingBalanceEntry.currentBalance -= msg.giftAmount;
-//     } else {
-//       gameData.playerCurrentBalance[msg.game].push({ playerUUID, currentBalance: userBalance.balance });
-//     }
-
-//     output.insert('balance', [{ playerUUID, currentBalance: existingBalanceEntry ? existingBalanceEntry.currentBalance : userBalance.balance}]);
-//   }
-// }
-
-// async function withdrawBalance(game: Game, entity, gameData: GameData, player: Player, msg, userData: UserData, output) {
-
-//   if(msg.msgType === 'withdraw'){
-  
-//     const userBalance = await Wallet.findOne({ include:{ 
-//       model:User,
-//       where:{ uuid: userData.data.dataValues.uuid }
-//     } 
-//   });
-//     const playerUUID = userData.data.dataValues.uuid;
-//     const existingBalanceEntry = gameData.playerCurrentBalance[msg.game].find(entry => entry.playerUUID === playerUUID);
-    
-//     if (existingBalanceEntry) {
-//       // Update the existing balance
-//       existingBalanceEntry.currentBalance -= msg.amount;
-//     } else {
-//       gameData.playerCurrentBalance[msg.game].push({ playerUUID, currentBalance: userBalance.balance });
-//     }
-
-//     output.insert('balance', [{ playerUUID, currentBalance: existingBalanceEntry ? existingBalanceEntry.currentBalance : userBalance.balance}]);
-//   }
-// }
 
 
 
@@ -441,4 +347,24 @@ function appendMaps<K, V>(map1: Map<K, V>, map2: Map<K, V>): Map<K, V> {
 		appendedMap.set(key, value);
 	}
 	return appendedMap;
+}
+
+async function processBet(userId, bet, odds, gameName, gameData, ball, winLossTransaction) {
+  const w = await Wallet.findByUserId(userId);
+
+  const companyCommission = Number(bet * (gameName === 'bbp' && gameData.bbpCommission));
+  await Transaction.new(w.id, gameData.gamesTableId[gameName], bet, "bet", odds, gameData.gameId[gameName]);
+  const config = await Config.findOne({ where: { id: gameName === 'bbp' && 3} });
+
+  const overAllCommission = Number(bet * config.fee);
+  await BetModel.new(gameData.gamesTableId[gameName], winLossTransaction.id, gameName === 'bbp' && ball, gameData.gameId[gameName], companyCommission, overAllCommission);
+}
+
+async function getWallet(userId){
+  const wallet = await Wallet.findByUserId(userId);
+  return wallet;
+}
+
+const insertWinningBall = async (gameData: GameData, gameName) => {
+	await WinningBall.new(gameData.gamesTableId[gameName], gameName === 'bbp' && gameData.winnerOrders[gameName], gameName);
 }

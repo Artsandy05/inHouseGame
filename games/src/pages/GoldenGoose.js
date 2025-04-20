@@ -90,7 +90,7 @@ const GoldenGoose = () => {
       data: {
         user: {
           id: urlUserDetails?.id || localStorageUser?.userData?.data?.user?.id || 0,
-          name: urlUserDetails?.name || localStorageUser?.userData?.data?.user?.name || 'Guest',
+          name: urlUserDetails?.first_name || localStorageUser?.userData?.data?.user?.firstName || 'Guest',
           credits: urlUserDetails?.credits || localStorageUser?.userData?.data?.wallet?.balance || 0,
         },
         wallet: {

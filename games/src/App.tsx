@@ -10,6 +10,7 @@ import { PlayerStoreProvider } from './context/PlayerStoreContext';
 import Moderator from './pages/Moderator';
 import GoldenGoose from './pages/GoldenGoose';
 import AdminReports from './pages/admin/AdminReports';
+import KaraKrus from './pages/KaraKrus';
 
 const App = () => {
   return (
@@ -22,6 +23,7 @@ const App = () => {
           <Route path="/golden_goose" element={<GoldenGoose />} />
           <Route path="/moderator" element={<Moderator />} />
           <Route path="/admin/reports" element={<AdminReports />} />
+          <Route path="/karakrus" element={<KaraKrus />} />
         </Routes>
       </Router>
     </PlayerStoreProvider>

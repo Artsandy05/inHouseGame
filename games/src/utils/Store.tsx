@@ -24,7 +24,8 @@ type State = {
   socketState: string;
   connect: () => void;
   sendMessage: (message: string) => void;
-  
+  userInfo: any;
+  setUserInfo: (userInfo: any) => void;
   selectedIndex: number;
   setSelectedIndex: (index: number) => void;
   winner: number;
@@ -71,9 +72,14 @@ export const moderatorStore = create<State>((set) => ({
   setGameState: (g) => {
     set({ gameState: g });
   },
+  userInfo: null,
+  setUserInfo: (g) => {
+    set({ userInfo: g });
+  },
   socketState: "",
   connect: () => {
-    const url = getRequiredUrl();
+    const { userInfo } = moderatorStore.getState();
+    const url = getRequiredUrl(false, userInfo);
     if (!hasValue(url)) {
       throw `No valid url: ${url}`;
     }

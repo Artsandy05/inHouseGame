@@ -24,6 +24,27 @@ class Wallet extends Model {
     }
   }
 
+  static async findOrCreateByUserId(user_id: number, balance:number) {
+    try {
+      const [wallet, created] = await Wallet.findOrCreate({ 
+        where: { user_id },
+        defaults: {
+          user_id,
+          balance: balance
+        }
+      });
+      
+      if (created) {
+        console.log(`Created new wallet for user ${user_id}`);
+      }
+      
+      return wallet;
+    } catch (error) {
+      console.error("Error retrieving wallet:", error.message);
+      throw error; // It's better to throw the error so the caller can handle it
+    }
+  }
+
   static async findByUUID(uuid) {
     try {
       const user = await User.findOne({ where: { uuid: uuid } });

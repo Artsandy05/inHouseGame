@@ -43,14 +43,24 @@ const Moderator = () => {
   const [openLogoutDialog, setOpenLogoutDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  
+  const localStorageUser = JSON.parse(localStorage.getItem('user') || 'null');
+  const userInfo = localStorageUser.userData.data.user; 
+
   const {
     connect,
     gameState
   } = moderatorStore.getState();
+
   const {
     sendMessage,
+    setUserInfo,
   } = moderatorStore();
+
+  useEffect(() => {
+    if(userInfo){
+      setUserInfo(userInfo);
+    }
+  }, []);
 
   useEffect(() => {
     connect();

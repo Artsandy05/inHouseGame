@@ -55,6 +55,8 @@ type State = {
   triggerRefetchBalance: boolean;
   isHostGifted: boolean;
   userInfo: any;
+  juanChoice: any;
+  pedroChoice: any;
 };
 
 export const playerStore = create<State>((set) => ({
@@ -71,6 +73,14 @@ export const playerStore = create<State>((set) => ({
   userInfo: null,
   setUserInfo: (g) => {
     set({ userInfo: g });
+  },
+  juanChoice: false,
+  setJuancChoice: (g) => {
+    set({ juanChoice: g });
+  },
+  pedroChoice: false,
+  setPedroChoice: (g) => {
+    set({ pedroChoice: g });
   },
   eventData: null,
   setEventData: (g) => {
@@ -316,8 +326,13 @@ function open(set, socket) {
 
 async function update(set, eventData) {
   let meta = JSON.parse(eventData);
-  console.log(meta)
   
+  if ((hasValue(meta.juanChoice))) {
+    set({ juanChoice: meta.juanChoice });
+  }
+  if ((hasValue(meta.pedroChoice))) {
+    set({ pedroChoice: meta.pedroChoice });
+  }
   if ((hasValue(meta.host)) || (typeof meta === 'string' && meta.includes('host'))) {
     const host = typeof meta ==='string' ? JSON.parse(meta) : meta;
     set({ host: host.host.bbp });
@@ -469,6 +484,8 @@ function newGameState(set, meta) {
     set({ result: [] });
     set({ winner: null });
     set({ winnerIndex: -1 });
+    set({ juanChoice: false });
+    set({ pedroChoice: false });
     set({ winningBall: false });
     set({ selectedIndex: -1 });
     set({ selectedButton: null });

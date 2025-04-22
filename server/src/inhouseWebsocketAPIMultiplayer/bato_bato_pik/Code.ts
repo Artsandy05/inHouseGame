@@ -128,6 +128,8 @@ export class GameData {
   topPlayers = {bbp:[]};
   voidGame = {bbp:false};
   walkinPlayersId = {bbp:0};
+  juanChoice = false;
+  pedroChoice = false;
 
   constructor() {
     this.processedGames = new Set();
@@ -155,11 +157,19 @@ export class GameData {
     this.winners = {
       bbp: [],
     };
+    this.juanChoice = false;
+    this.pedroChoice = false;
   }
 
   setState(state, gameName) {
     this.prevState[gameName] = this.state[gameName];
     this.state[gameName]= state;
+  }
+  setJuanChoice(juanChoice) {
+    this.juanChoice = juanChoice;
+  }
+  setPedroChoice(pedroChoice) {
+    this.pedroChoice = pedroChoice;
   }
 
   setWalkinPlayers(data, game) {

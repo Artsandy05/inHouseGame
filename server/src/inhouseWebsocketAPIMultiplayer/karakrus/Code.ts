@@ -128,6 +128,7 @@ export class GameData {
   topPlayers = {karakrus:[]};
   voidGame = {karakrus:false};
   walkinPlayersId = {karakrus:0};
+  coinResult = false;
 
   constructor() {
     this.processedGames = new Set();
@@ -155,11 +156,17 @@ export class GameData {
     this.winners = {
       karakrus: [],
     };
+    
+    this.coinResult = false;
   }
 
   setState(state, gameName) {
     this.prevState[gameName] = this.state[gameName];
     this.state[gameName]= state;
+  }
+
+  setCoinResult(result) {
+    this.coinResult = result;
   }
 
   setWalkinPlayers(data, game) {

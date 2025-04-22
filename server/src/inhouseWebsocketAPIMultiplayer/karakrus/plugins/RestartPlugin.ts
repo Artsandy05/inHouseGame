@@ -27,6 +27,7 @@ function update(game: Game) {
           gameData.winners[gameName] = [];
           gameData.winnerOrders[gameName] = gameName === 'karakrus' && '';
           gameData.loseOrders[gameName] = [];
+          gameData.coinResult = false;
           gameData.playerSlots[gameName] = [];
           gameData.playerCurrentBalance[gameName] = [];
           gameData.moderatorsWinningBall[gameName] = [];

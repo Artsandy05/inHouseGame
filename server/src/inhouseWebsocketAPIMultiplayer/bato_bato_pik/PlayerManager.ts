@@ -33,9 +33,25 @@ export class PlayerManager implements Plugin {
 			gameData = g;
 		});
 
+    if(gameData.state.bbp === GameState.Closed) {
+      game.view(Player, Input, Output, UserData).each((entity, player, input, output, userData) => {
+        if(hasValue(output.msg) && typeof output.msg === 'string'){
+          let newOutPut = JSON.parse(output.msg);
+          newOutPut.juanChoice = gameData.juanChoice;
+          newOutPut.pedroChoice = gameData.pedroChoice;
+          output.msg = JSON.stringify(newOutPut);
+        }else{
+          output.insert("juanChoice", gameData.juanChoice);
+          output.insert("pedroChoice", gameData.pedroChoice);
+        }
+      });
+    }
+
     gameData.games.forEach(gameName => {
       game.view(gameName === 'bbp' ? BBPGameStateChanged : null, Output).each((entity, stateChanged, output) => {
         const convertedAllBets = {bbp:[]};
+
+        
 
         for (let key in convertedAllBets) {
           const slots = gameData.slotBets[key];

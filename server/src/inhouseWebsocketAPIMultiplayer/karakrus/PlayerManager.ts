@@ -32,7 +32,19 @@ export class PlayerManager implements Plugin {
 		game.view(GameData).each((entity, g) => {
 			gameData = g;
 		});
-
+    
+    if(gameData.state.karakrus === GameState.Closed) {
+      game.view(Player, Input, Output, UserData).each((entity, player, input, output, userData) => {
+        if(hasValue(output.msg) && typeof output.msg === 'string'){
+          let newOutPut = JSON.parse(output.msg);
+          newOutPut.coinResult = gameData.coinResult;
+          output.msg = JSON.stringify(newOutPut);
+        }else{
+          output.insert("coinResult", gameData.coinResult);
+        }
+      });
+    }
+    
     gameData.games.forEach(gameName => {
       game.view(gameName === 'karakrus' ? KaraKrusGameStateChanged : null, Output).each((entity, stateChanged, output) => {
         const convertedAllBets = {karakrus:[]};
@@ -105,6 +117,7 @@ export class PlayerManager implements Plugin {
 		});
 
 		game.view(Player, Input, Output, UserData).each((entity, player, input, output, userData) => {
+        
         if (input.msg !== undefined) {
             requestInit(game, entity, gameData, input.msg, output, player, userData);
             requestRollingState(gameData, input.msg, output);

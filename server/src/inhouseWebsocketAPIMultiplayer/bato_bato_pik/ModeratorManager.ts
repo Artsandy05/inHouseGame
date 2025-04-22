@@ -49,6 +49,7 @@ export class ModeratorManager implements Plugin {
 				requestOpen(gameData, input.msg, output);
 				requestWinnerDeclared(game, gameDataEntity, gameData, input.msg, output);
         requestRollingState(gameData, input.msg, output);
+        requestJuanAndPedroChoice(gameData, input.msg, output);
 			}
 		});
 
@@ -138,6 +139,13 @@ function requestIdle(gameData, msg, output) {
       state: gameData.state,
 		};
 	}
+}
+
+function requestJuanAndPedroChoice(gameData, msg, output) {
+  if(msg.result && msg.result.juanChoice && msg.result.pedroChoice){
+    gameData.setJuanChoice(msg.result.juanChoice);
+    gameData.setPedroChoice(msg.result.pedroChoice);
+  }
 }
 
 function requestNewGame(gameData, msg, output) {

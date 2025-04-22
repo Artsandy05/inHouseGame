@@ -55,6 +55,7 @@ type State = {
   triggerRefetchBalance: boolean;
   isHostGifted: boolean;
   userInfo: any;
+  coinResult: any;
 };
 
 export const playerStore = create<State>((set) => ({
@@ -71,6 +72,10 @@ export const playerStore = create<State>((set) => ({
   userInfo: null,
   setUserInfo: (g) => {
     set({ userInfo: g });
+  },
+  coinResult: false,
+  setCoinResult: (g) => {
+    set({ coinResult: g });
   },
   eventData: null,
   setEventData: (g) => {
@@ -316,12 +321,15 @@ function open(set, socket) {
 
 async function update(set, eventData) {
   let meta = JSON.parse(eventData);
-  console.log(meta)
+  console.log(meta);
+
+  if ((hasValue(meta.coinResult))) {
+    set({ coinResult: meta.coinResult });
+  }
   
   if ((hasValue(meta.host)) || (typeof meta === 'string' && meta.includes('host'))) {
     const host = typeof meta ==='string' ? JSON.parse(meta) : meta;
     set({ host: host.host.karakrus });
-    
   }
   if ((hasValue(meta.betOnGame)) || (typeof meta === 'string' && meta.includes('betOnGame'))) {
     const betOnGame = typeof meta ==='string' ? JSON.parse(meta) : meta;
@@ -472,6 +480,7 @@ function newGameState(set, meta) {
     set({ winningBall: false });
     set({ selectedIndex: -1 });
     set({ selectedButton: null });
+    set({ coinResult: false });
     set({ allBets: null });
     set({ bet: 0 });
     set({ odds: new Map<string, number>() });
@@ -485,17 +494,3 @@ function newGameState(set, meta) {
   }
 }
 
-function updateNotOnSchedule(meta, set) {
-  if (meta.state === 'Idle' || meta.state === 'NewGame') {
-    set({ gross: 0 });
-    set({ net: 0 });
-    set({ result: [] });
-    set({ winner: null });
-    set({ winnerIndex: -1 });
-    set({ selectedIndex: -1 });
-    set({ selectedButton: null });
-    set({ bet: 0 });
-    set({ odds: new Map<string, number>() });
-    set({ nets: new Map<string, number>() });
-  }
-}

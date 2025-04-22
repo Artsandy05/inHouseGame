@@ -40,11 +40,12 @@ const getRandomChoice = () => {
   const choices = ["rock", "paper", "scissors"];
   return choices[Math.floor(Math.random() * choices.length)];
 };
+
 const encryptor = createEncryptor(process.env.REACT_APP_DECRYPTION_KEY);
 const BatoBatoPik = () => {
-  const [juanChoice, setJuanChoice] = useState('');
-  const [pedroChoice, setPedroChoice] = useState('');
   const [roundResult, setRoundResult] = useState("");
+  const [juanChoiceFinal, setJuanChoiceFinal] = useState(null);
+  const [pedroChoiceFinal, setPedroChoiceFinal] = useState(null);
   const [isGameRunning, setIsGameRunning] = useState(false);
   const [juanBet, setJuanBet] = useState(0);
   const [pedroBet, setPedroBet] = useState(0);
@@ -53,7 +54,7 @@ const BatoBatoPik = () => {
   const [betType, setBetType] = useState("");
   const [betAmount, setBetAmount] = useState(0);
   
-  const { gameState, setPlayerInfo, sendMessage, countdown, slots,setSlots,odds, allBets, winningBall, setUserInfo, topPlayers } = playerStore();
+  const { gameState, setPlayerInfo, sendMessage, countdown, slots,setSlots,odds, allBets, winningBall, setUserInfo, topPlayers, juanChoice, pedroChoice } = playerStore();
   const { connect } = playerStore.getState();
   const [searchParams] = useSearchParams();
   const userDetailsParam = searchParams.get('data');
@@ -112,6 +113,16 @@ const BatoBatoPik = () => {
   }, []);
 
   useEffect(() => {
+    if(winningBall){
+      console.log(winningBall)
+    }
+  }, [winningBall]);
+  useEffect(() => {
+    console.log(juanChoiceFinal)
+    console.log(pedroChoiceFinal)
+  }, [juanChoiceFinal, pedroChoiceFinal]);
+
+  useEffect(() => {
     if(gameState === GameState.Closed){
       startGame();
     }
@@ -143,14 +154,25 @@ const BatoBatoPik = () => {
     }
     return "pedro";
   };
+
+  useEffect(() => {
+    if(juanChoiceFinal && pedroChoiceFinal){
+      sendMessage(
+        JSON.stringify({
+          cmd: GameState.WinnerDeclared,
+          game: "bbp",
+          winnerOrders: determineWinner(juanChoiceFinal, pedroChoiceFinal),
+          uuid: userInfo.userData.data.user.uuid,
+        })
+      );
+    }
+  }, [juanChoiceFinal, pedroChoiceFinal]);
   
   
   const startGame = () => {
     setIsGameRunning(true);
-    const juanChoice = getRandomChoice();
-    const pedroChoice = getRandomChoice();
-    setJuanChoice(null);
-    setPedroChoice(null);
+    setJuanChoiceFinal(null);
+    setPedroChoiceFinal(null);
 
     setJuanTilt(0);
     setPedroTilt(0);
@@ -163,25 +185,16 @@ const BatoBatoPik = () => {
         tiltCount++;
       } else {
         clearInterval(interval);
-        setJuanChoice(juanChoice);
-        setPedroChoice(pedroChoice);
-        //setRoundResult(determineWinner(juanChoice, pedroChoice));
-        sendMessage(
-          JSON.stringify({
-            cmd: GameState.WinnerDeclared,
-            game: "bbp",
-            winnerOrders: determineWinner(juanChoice, pedroChoice),
-            uuid: userInfo.userData.data.user.uuid,
-          })
-        );
+        setJuanChoiceFinal(juanChoice);
+        setPedroChoiceFinal(pedroChoice);
       }
     }, 250);
   };
 
   const nextRound = () => {
     setIsGameRunning(false);
-    setJuanChoice(null);
-    setPedroChoice(null);
+    setJuanChoiceFinal(null);
+    setPedroChoiceFinal(null);
     setRoundResult("");
     setJuanBet(0);
     setPedroBet(0);
@@ -713,7 +726,7 @@ const BatoBatoPik = () => {
           {/* Juan's Image */}
           <Box>
             <animated.img
-              src={juanChoice ? images[juanChoice].left : images.rock.left}
+              src={juanChoiceFinal ? images[juanChoiceFinal].left : images.rock.left}
               alt="Juan"
               style={{
                 ...juanSpring,
@@ -827,7 +840,7 @@ const BatoBatoPik = () => {
           {/* Pedro's Image */}
           <Box>
             <animated.img
-              src={pedroChoice ? images[pedroChoice].right : images.rock.right}
+              src={pedroChoiceFinal ? images[pedroChoiceFinal].right : images.rock.right}
               alt="Pedro"
               style={{
                 width: "150px",

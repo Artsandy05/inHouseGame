@@ -104,6 +104,11 @@ const Moderator = () => {
     socket: kkSocket
   } = karakrusModerator();
 
+  const getRandomChoice = () => {
+    const choices = ["rock", "paper", "scissors"];
+    return choices[Math.floor(Math.random() * choices.length)];
+  };
+
   useEffect(() => {
     if(userInfo){
       setUserInfoBatoBatoPik(userInfo);
@@ -156,6 +161,21 @@ const Moderator = () => {
       setTimeout(() => {
         newKKGame();
       }, 2000);
+    }
+  }, [karaKrusGameState]);
+
+  useEffect(() => {
+    if(batoBatoPikGameState === GameState.Closed){
+      const juanChoice = getRandomChoice();
+      const pedroChoice = getRandomChoice();
+      sendMessageBatoBatoPik(JSON.stringify({ game: "bbp", result: {juanChoice, pedroChoice}}));
+    }
+  }, [batoBatoPikGameState]);
+
+  useEffect(() => {
+    if(karaKrusGameState === GameState.Closed){
+      const newResult = Math.random() > 0.5 ? 'heads' : 'tails';
+      sendMessageKaraKrus(JSON.stringify({ game: "karakrus", result: newResult }));
     }
   }, [karaKrusGameState]);
 

@@ -29,6 +29,7 @@ export class ModeratorManager implements Plugin {
 
 
 		let curState = gameData.state;
+    let currCoinResult = gameData.coinResult;
     let currHost = gameData.host;
     let currentCountDownState = gameData.countdown;
     let previousHostId = gameData.host ? gameData.host : null;
@@ -41,7 +42,6 @@ export class ModeratorManager implements Plugin {
 			});
 
 			if (input.msg !== undefined) {
-
 				requestInit(gameData, input.msg, output);
         selectHost(gameData, input.msg, output);
 				requestIdle(gameData, input.msg, output);
@@ -49,6 +49,7 @@ export class ModeratorManager implements Plugin {
 				requestOpen(gameData, input.msg, output);
 				requestWinnerDeclared(game, gameDataEntity, gameData, input.msg, output);
         requestRollingState(gameData, input.msg, output);
+        requestCoinResult(gameData, input.msg, output);
 			}
 		});
 
@@ -151,6 +152,12 @@ function requestNewGame(gameData, msg, output) {
       state: gameData.state
     }
 	}
+}
+
+function requestCoinResult(gameData, msg, output) {
+  if(msg.result){
+    gameData.setCoinResult(msg.result);
+  }
 }
 
 async function getConfig(){

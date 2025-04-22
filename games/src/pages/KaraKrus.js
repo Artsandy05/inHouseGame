@@ -36,9 +36,10 @@ const KaraKrus = () => {
   const cameraRef = useRef(null);
   const rendererRef = useRef(null);
   const coinRef = useRef(null);
+  const handRef = useRef(null);
   const [coinFaceImg, setCoinFaceImg] = useState(null);
   const theme = useTheme();
-  const { gameState, setPlayerInfo, sendMessage, countdown, slots, setSlots, odds, allBets, winningBall, setUserInfo, topPlayers } = playerStore();
+  const { gameState, setPlayerInfo, sendMessage, countdown, slots, setSlots, odds, allBets, winningBall, setUserInfo, topPlayers, coinResult } = playerStore();
   const { connect } = playerStore.getState();
   const [searchParams] = useSearchParams();
   const userDetailsParam = searchParams.get('data');
@@ -112,10 +113,16 @@ const KaraKrus = () => {
   }, []);
 
   useEffect(() => {
-    if(gameState === GameState.Closed){
+    if(gameState === GameState.Closed && coinResult){
       tossCoin();
     }
-  }, [gameState]);
+  }, [gameState, coinResult]);
+
+  // useEffect(() => {
+  //   if(coinResult){
+  //     console.log(coinResult)
+  //   }
+  // }, [coinResult]);
 
   useEffect(() => {
     let timer;
@@ -334,6 +341,156 @@ const KaraKrus = () => {
     backdrop.position.y = 3;
     scene.add(backdrop);
 
+    const createHand = () => {
+      // Create main group
+      const handGroup = new THREE.Group();
+      
+      // Materials with more realistic properties
+      const skinMaterial = new THREE.MeshStandardMaterial({
+        color: 0xFFD8B1, // Skin color
+        roughness: 0.8,
+        metalness: 0.1,
+        flatShading: false
+      });
+      
+      // Forearm
+      const armGeometry = new THREE.CylinderGeometry(0.22, 0.25, 1.6, 12);
+      const arm = new THREE.Mesh(armGeometry, skinMaterial);
+      arm.position.set(-0.8, 0, 0);
+      arm.rotation.z = Math.PI / 2;
+      arm.castShadow = true;
+      handGroup.add(arm);
+      
+      // Wrist joint
+      const wristGeometry = new THREE.SphereGeometry(0.23, 12, 12);
+      const wrist = new THREE.Mesh(wristGeometry, skinMaterial);
+      wrist.position.set(-0.05, 0, 0);
+      wrist.scale.set(1, 0.9, 1.2);
+      wrist.castShadow = true;
+      handGroup.add(wrist);
+      
+      // Fist - main part (slightly larger and more rounded than a flat palm)
+      const fistGeometry = new THREE.BoxGeometry(0.65, 0.75, 0.6);
+      const fist = new THREE.Mesh(fistGeometry, skinMaterial);
+      fist.position.set(0.35, 0, 0);
+      
+      // Round the edges of the fist by applying a small scale transformation
+      const roundedFist = new THREE.Mesh(fistGeometry, skinMaterial);
+      roundedFist.position.set(0.35, 0, 0);
+      roundedFist.scale.set(1, 1, 0.95);
+      roundedFist.castShadow = true;
+      handGroup.add(roundedFist);
+      
+      // Knuckles (visible bumps)
+      const knucklePositions = [
+        {x: 0.6, y: 0.3, z: -0.25},  // Index
+        {x: 0.63, y: 0.1, z: -0.3},  // Middle
+        {x: 0.63, y: -0.1, z: -0.3}, // Ring
+        {x: 0.6, y: -0.3, z: -0.25}  // Pinky
+      ];
+      
+      for (let i = 0; i < 4; i++) {
+        const knuckleGeometry = new THREE.SphereGeometry(0.1 - (i * 0.01), 8, 8);
+        const knuckle = new THREE.Mesh(knuckleGeometry, skinMaterial);
+        const pos = knucklePositions[i];
+        knuckle.position.set(pos.x, pos.y, pos.z);
+        knuckle.castShadow = true;
+        handGroup.add(knuckle);
+      }
+      
+      // Curled fingers (visible top parts)
+      const fingerTipPositions = [
+        {x: 0.4, y: 0.3, z: 0.3},  // Index
+        {x: 0.45, y: 0.1, z: 0.32}, // Middle
+        {x: 0.45, y: -0.1, z: 0.32}, // Ring
+        {x: 0.4, y: -0.3, z: 0.3}  // Pinky
+      ];
+      
+      for (let i = 0; i < 4; i++) {
+        const fingerTipGeometry = new THREE.CylinderGeometry(
+          0.09 - (i * 0.015),  // Thinner for pinky
+          0.09 - (i * 0.015), 
+          0.2,
+          8
+        );
+        
+        const fingerTip = new THREE.Mesh(fingerTipGeometry, skinMaterial);
+        const pos = fingerTipPositions[i];
+        fingerTip.position.set(pos.x, pos.y, pos.z);
+        fingerTip.rotation.x = Math.PI / 2;
+        fingerTip.castShadow = true;
+        handGroup.add(fingerTip);
+      }
+      
+      // Subtle finger indentations on the side
+      const indentPositions = [
+        {x: 0.25, y: 0.3, z: 0},
+        {x: 0.25, y: 0.1, z: 0},
+        {x: 0.25, y: -0.1, z: 0},
+        {x: 0.25, y: -0.3, z: 0}
+      ];
+      
+      // Add subtle details for realism
+      for (let i = 0; i < 4; i++) {
+        const indentGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+        const indent = new THREE.Mesh(
+          indentGeometry, 
+          new THREE.MeshStandardMaterial({
+            color: 0xFFD8B1,
+            roughness: 0.9,
+            metalness: 0.05,
+            flatShading: false
+          })
+        );
+        
+        const pos = indentPositions[i];
+        indent.position.set(pos.x, pos.y, pos.z);
+        indent.scale.set(1, 1, 0.2); // Flatten to create an indent
+        handGroup.add(indent);
+      }
+      
+      // Thumb (tucked inside, only slightly visible at the top)
+      const thumbGeometry = new THREE.CylinderGeometry(0.1, 0.09, 0.15, 8);
+      const thumb = new THREE.Mesh(thumbGeometry, skinMaterial);
+      // Position thumb slightly visible at the top of the fist
+      thumb.position.set(0.3, 0, 0.32);
+      thumb.rotation.x = Math.PI / 2;
+      thumb.castShadow = true;
+      handGroup.add(thumb);
+      
+      // Position the hand properly for coin tossing
+      handGroup.position.set(10, 0.2, 0);
+      
+      // Add subtle veins for extra realism
+      const veinGeometry = new THREE.CylinderGeometry(0.02, 0.02, 1.2, 4);
+      const veinMaterial = new THREE.MeshStandardMaterial({
+        color: 0xE5C9A8,
+        roughness: 0.7,
+        metalness: 0.1
+      });
+      
+      const vein1 = new THREE.Mesh(veinGeometry, veinMaterial);
+      vein1.position.set(-0.6, 0.1, 0.2);
+      vein1.rotation.z = Math.PI / 2;
+      vein1.rotation.y = Math.PI / 12;
+      vein1.scale.set(1, 1, 0.3);
+      handGroup.add(vein1);
+      
+      const vein2 = new THREE.Mesh(veinGeometry, veinMaterial);
+      vein2.position.set(-0.5, -0.1, 0.2);
+      vein2.rotation.z = Math.PI / 2;
+      vein2.rotation.y = -Math.PI / 12;
+      vein2.scale.set(0.8, 1, 0.2);
+      handGroup.add(vein2);
+      
+      return handGroup;
+    };
+
+
+    const hand = createHand();
+    scene.add(hand);
+    handRef.current = hand;
+
     // Create improved coin with realistic gold color and distinct sides
     const coinRadius = 1.2; // Increased from 1 to 1.2 for slightly larger coin
     const coinThickness = 0.18; // Increased from 0.15 to 0.18
@@ -537,10 +694,13 @@ const KaraKrus = () => {
       coinRef.current.position.set(0, 0.7, 0);
       coinRef.current.rotation.set(0, 0, 0);
     }
+    if (handRef.current) {
+      handRef.current.position.set(10, 0.2, 0);
+    }
   };
 
   const tossCoin = () => {
-    if (gameState !== GameState.Closed || !coinRef.current) return;
+    if ((gameState !== GameState.Closed || !coinRef.current) && !coinResult) return;
     
     setBalance(prevBalance => prevBalance - betAmount);
     
@@ -551,11 +711,14 @@ const KaraKrus = () => {
     const rotationZ = Math.random() * 5;
     
     const jumpHeight = 3 + Math.random() * 2;
-    const animationDuration = 3000 + Math.random() * 1000;
-    
-    const newResult = Math.random() > 0.5 ? 'heads' : 'tails';
+    const animationDuration = 5000 + Math.random() * 1000;
     
     const startTime = Date.now();
+    
+    // Hand animation variables
+    const handApproachDuration = animationDuration * 0.3;
+    const handFlipDuration = animationDuration * 0.1;
+    const handRetreatDuration = animationDuration * 0.2;
     
     const animateCoinToss = () => {
       const currentTime = Date.now();
@@ -563,24 +726,44 @@ const KaraKrus = () => {
       const progress = elapsed / animationDuration;
       
       if (progress < 1) {
-        if (progress < 0.3) {
-          const upProgress = progress / 0.3;
-          coinRef.current.position.y = 0.7 + jumpHeight * upProgress;
-          coinRef.current.rotation.x = rotationX * upProgress * Math.PI * 2;
-          coinRef.current.rotation.y = rotationY * upProgress * Math.PI * 2;
-          coinRef.current.rotation.z = rotationZ * upProgress * Math.PI;
+        // Hand animation
+        if (elapsed < handApproachDuration) {
+          // Hand approaches the coin
+          const handProgress = elapsed / handApproachDuration;
+          handRef.current.position.x = 10 - handProgress * 10;
+          handRef.current.rotation.z = -handProgress * Math.PI / 4;
+        } else if (elapsed < handApproachDuration + handFlipDuration) {
+          // Hand flips the coin
+          const flipProgress = (elapsed - handApproachDuration) / handFlipDuration;
+          handRef.current.position.x = 0;
+          handRef.current.rotation.z = -Math.PI/4 + flipProgress * Math.PI/2;
           
-        } else if (progress < 0.6) {
-          const fallProgress = (progress - 0.3) / 0.3;
-          coinRef.current.position.y = 0.7 + jumpHeight * (1 - fallProgress);
-          coinRef.current.rotation.x = rotationX * progress * Math.PI * 2;
-          coinRef.current.rotation.y = rotationY * progress * Math.PI * 2;
-          coinRef.current.rotation.z = rotationZ * progress * Math.PI;
+          // Start coin flip animation (original)
+          if (progress < 0.3) {
+            const upProgress = progress / 0.3;
+            coinRef.current.position.y = 0.7 + jumpHeight * upProgress;
+            coinRef.current.rotation.x = rotationX * upProgress * Math.PI * 2;
+            coinRef.current.rotation.y = rotationY * upProgress * Math.PI * 2;
+            coinRef.current.rotation.z = rotationZ * upProgress * Math.PI;
+          }
+        } else if (elapsed < handApproachDuration + handFlipDuration + handRetreatDuration) {
+          // Hand retreats
+          const retreatProgress = (elapsed - handApproachDuration - handFlipDuration) / handRetreatDuration;
+          handRef.current.position.x = retreatProgress * 10;
+          handRef.current.rotation.z = Math.PI/4 - retreatProgress * Math.PI/4;
           
+          // Continue original coin flip animation
+          if (progress < 0.6) {
+            const fallProgress = (progress - 0.3) / 0.3;
+            coinRef.current.position.y = 0.7 + jumpHeight * (1 - fallProgress);
+            coinRef.current.rotation.x = rotationX * progress * Math.PI * 2;
+            coinRef.current.rotation.y = rotationY * progress * Math.PI * 2;
+            coinRef.current.rotation.z = rotationZ * progress * Math.PI;
+          }
         } else {
           const landProgress = (progress - 0.6) / 0.4;
           coinRef.current.position.y = 0.1 + (0.7 - 0.1) * (1 - landProgress);
-          const targetX = newResult === 'heads' 
+          const targetX = coinResult === 'heads' 
             ? Math.PI * 2 * Math.round(rotationX) 
             : Math.PI * (2 * Math.round(rotationX) + 1);
           const currentX = coinRef.current.rotation.x;
@@ -591,20 +774,19 @@ const KaraKrus = () => {
         
         requestAnimationFrame(animateCoinToss);
       } else {
+        // Animation complete
         coinRef.current.position.y = 0.1;
         
-        if (newResult === 'heads') {
+        if (coinResult === 'heads') {
           coinRef.current.rotation.set(0.05, 0, 0);
         } else {
           coinRef.current.rotation.set(Math.PI - 0.05, 0, 0);
         }
         
-        setResult(newResult);
+        setResult(coinResult);
+        setCoinFaceImg(window.coinImages[coinResult]);
         
-        setCoinFaceImg(window.coinImages[newResult]);
-        console.log(window.coinImages[newResult]);
-        
-        const won = selectedSide === newResult;
+        const won = selectedSide === coinResult;
         setIsWinner(won);
         
         if (won) {
@@ -616,7 +798,7 @@ const KaraKrus = () => {
           JSON.stringify({
             cmd: GameState.WinnerDeclared,
             game: "karakrus",
-            winnerOrders: newResult ,
+            winnerOrders: coinResult,
             uuid: userInfo.userData.data.user.uuid,
           })
         );
@@ -625,6 +807,8 @@ const KaraKrus = () => {
     
     animateCoinToss();
   };
+
+  
 
   const startNextRound = () => {
     setResult(null);
@@ -1585,7 +1769,7 @@ const KaraKrus = () => {
                 variant="h3"
                 sx={{
                   fontFamily: "'Cinzel Decorative', cursive",
-                  fontSize: { xs: "2.5rem", sm: "3.5rem" },
+                  fontSize: !winningBall.karakrus ? 20 : { xs: "2.5rem", sm: "3.5rem" },
                   color: "#ffeb3b",
                   textShadow: `
                     2px 2px 0 #c62828,
@@ -1602,7 +1786,9 @@ const KaraKrus = () => {
                   boxShadow: 'inset 0 0 10px rgba(255, 235, 59, 0.2)'
                 }}
               >
-                {winningBall.karakrus === 'heads' ? 'KARA WINS!' : 'KRUS WINS!'}
+                {winningBall.karakrus === 'heads' && 'KARA WINS!'}
+                {winningBall.karakrus === 'tails' && 'KRUS WINS!'}
+                {!winningBall.karakrus && 'CONGRATULATIONS WINNERS!'}
                 <Box sx={{
                   position: 'absolute',
                   top: -15,

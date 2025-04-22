@@ -1,25 +1,24 @@
 import { GameState, ModeratorCommands, arrayToMap, delay, jsonToMapArray, mapToArray } from "../../../../common/gameutils";
-import { Bet as BetData } from "../../../src/game/Bet";
-import { BetCalculator } from "../../../src/game/Bet/BetCalculator";
-import { GameDataManager } from "../../../src/game/Bet/GameDataManager";
-import { Odds } from "../../../src/game/Bet/Odds";
-import { OddsManager } from "../../../src/game/Bet/OddsManager";
-import { Prize } from "../../../src/game/Bet/Prize";
-import { PrizeManager } from "../../../src/game/Bet/PrizeManager";
-import { BetDbManager } from "../../../src/game/BetDbManager";
-import { Game, GameData, Input, Output } from "../../../src/game/Code";
-import { Moderator } from "../../../src/game/Moderator";
-import { ModeratorManager } from "../../../src/game/ModeratorManager";
-import { Player } from "../../../src/game/Player";
-import { PlayerManager } from "../../../src/game/PlayerManager";
-import { SocketManager } from "../../../src/game/SocketManager";
-import { UserData } from "../../../src/game/UserData";
-import { TestUtils, getTestData1 } from "../../../utils/tests/TestUtils";
+import { Bet as BetData } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/Bet";
+
 import { Socket } from "../../Common";
 import sequelize from "../../../config/database";
 import Bet from "../../../models/Bet";
 import Wallet from "../../../models/Wallet";
 import User from "../../../models/User";
+import { SocketManager } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/SocketManager";
+import { Game, GameData, Input, Output } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/Code";
+import { Odds } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/Bet/Odds";
+import { Moderator } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/Moderator";
+import { Prize } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/Bet/Prize";
+import { Player } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/Player";
+import { UserData } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/UserData";
+import { GameDataManager } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/Bet/GameDataManager";
+import { ModeratorManager } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/ModeratorManager";
+import { PlayerManager } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/PlayerManager";
+import { BetCalculator } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/Bet/BetCalculator";
+import { OddsManager } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/Bet/OddsManager";
+import { BetDbManager } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/BetDbManager";
 
 describe('BettingTests', () => {
 	const dbName = "ZodiacBetTest";

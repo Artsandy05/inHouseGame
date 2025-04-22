@@ -2,7 +2,7 @@ import fastifyCors from "@fastify/cors";
 import authRoutes from "./routes/auth";
 import protectedRoutes from "./routes/protected";
 import { options } from "./config/swagger-config";
-import { Main } from "./src/main";
+import { Main } from "./src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/batobatopikMain";
 import auditRoutes from "./routes/auditRoutes";
 import publicRoutes from "./routes/public";
 import { startCronJob } from './utils/cronjobs'; // Import the cron job logic

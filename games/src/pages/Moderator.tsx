@@ -1,16 +1,36 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Typography, Box, Paper, Avatar, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Slide, Fade, Zoom } from '@mui/material';
+import { 
+  Button, 
+  Typography, 
+  Box, 
+  Paper, 
+  Dialog, 
+  DialogActions, 
+  DialogContent, 
+  DialogContentText, 
+  DialogTitle, 
+  Slide, 
+  Fade, 
+  Zoom,
+  Grid,
+  Chip,
+  Divider,
+  Tooltip,
+  CircularProgress
+} from '@mui/material';
 import { GameState } from '../utils/gameutils';
-import moderatorStore from '../utils/Store';
+import batobatopikModerator from '../utils/batobatoPikModerator';
+import karakrusModerator from '../utils/karakrusModerator';
 import { useNavigate } from 'react-router-dom';
 import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
+import CasinoIcon from '@mui/icons-material/Casino';
 import { styled, keyframes } from '@mui/system';
 import { removeCookie } from '../utils/cookie';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import CancelIcon from '@mui/icons-material/Cancel';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
-
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
 // Custom animations
 const pulse = keyframes`
@@ -25,13 +45,13 @@ const floating = keyframes`
   100% { transform: translateY(0px); }
 `;
 
-const AnimatedButton = styled(Button)({
+const AnimatedButton = styled(Button)(({ theme }) => ({
   animation: `${pulse} 3s infinite ease-in-out`,
   '&:hover': {
     animation: 'none',
     transform: 'scale(1.05)'
   }
-});
+}));
 
 const GameIcon = styled(SportsEsportsIcon)({
   fontSize: '4rem',
@@ -39,66 +59,124 @@ const GameIcon = styled(SportsEsportsIcon)({
   color: '#d4af37'
 });
 
+const KaraKrusIcon = styled(CasinoIcon)({
+  fontSize: '4rem',
+  animation: `${floating} 4s infinite ease-in-out`,
+  color: '#800020'
+});
+
+const CountdownBadge = styled(Chip)(({ theme }) => ({
+  fontSize: '1.2rem',
+  fontWeight: 'bold',
+  padding: theme.spacing(1),
+  minWidth: 60,
+  '& .MuiChip-label': {
+    paddingLeft: theme.spacing(1),
+    paddingRight: theme.spacing(1)
+  }
+}));
+
 const Moderator = () => {
   const [openLogoutDialog, setOpenLogoutDialog] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingBBP, setIsLoadingBBP] = useState(false);
+  const [isLoadingKK, setIsLoadingKK] = useState(false);
   const navigate = useNavigate();
   const localStorageUser = JSON.parse(localStorage.getItem('user') || 'null');
   const userInfo = localStorageUser.userData.data.user; 
 
+  // Bato Bato Pik state
   const {
-    connect,
-    gameState
-  } = moderatorStore.getState();
+    connect: connectBatoBatoPik,
+    gameState: batoBatoPikGameState,
+    sendMessage: sendMessageBatoBatoPik,
+    setUserInfo: setUserInfoBatoBatoPik,
+    countdown: batoBatoPikCountdown,
+    socket: bbpSocket
+  } = batobatopikModerator();
 
+  // Kara Krus state
   const {
-    sendMessage,
-    setUserInfo,
-  } = moderatorStore();
+    connect: connectKaraKrus,
+    gameState: karaKrusGameState,
+    sendMessage: sendMessageKaraKrus,
+    setUserInfo: setUserInfoKaraKrus,
+    countdown: karaKrusCountdown,
+    socket: kkSocket
+  } = karakrusModerator();
 
   useEffect(() => {
     if(userInfo){
-      setUserInfo(userInfo);
+      setUserInfoBatoBatoPik(userInfo);
+      setUserInfoKaraKrus(userInfo);
     }
   }, []);
 
   useEffect(() => {
-    connect();
+    connectBatoBatoPik();
+    connectKaraKrus();
 
     return () => {
-      const { socket } = moderatorStore.getState();
-      if (socket) {
-        socket.close();
-      }
+      if (bbpSocket) bbpSocket.close();
+      if (kkSocket) kkSocket.close();
     };
   }, []);
   
+  // Bato Bato Pik game state effects
   useEffect(() => {
-    if(gameState === GameState.NewGame){
+    if(batoBatoPikGameState === GameState.NewGame){
       setTimeout(() => {
-        startGame();
+        startBBPGame();
       }, 2000);
     }
-    if(gameState === 'Void'){
+    if(batoBatoPikGameState === 'Void'){
       setTimeout(() => {
-        newGame();
+        newBBPGame();
       }, 1500);
     }
-    if(gameState === GameState.WinnerDeclared){
+    if(batoBatoPikGameState === GameState.WinnerDeclared){
       setTimeout(() => {
-        newGame();
+        newBBPGame();
       }, 2000);
     }
-  }, [gameState]);
+  }, [batoBatoPikGameState]);
 
-  const startGame = () => {
-    setIsLoading(true);
-    sendMessage(JSON.stringify({ game: "bbp", cmd: GameState.Open }));
-    setTimeout(() => setIsLoading(false), 1000);
+  // Kara Krus game state effects
+  useEffect(() => {
+    if(karaKrusGameState === GameState.NewGame){
+      setTimeout(() => {
+        startKKGame();
+      }, 2000);
+    }
+    if(karaKrusGameState === 'Void'){
+      setTimeout(() => {
+        newKKGame();
+      }, 1500);
+    }
+    if(karaKrusGameState === GameState.WinnerDeclared){
+      setTimeout(() => {
+        newKKGame();
+      }, 2000);
+    }
+  }, [karaKrusGameState]);
+
+  const startBBPGame = () => {
+    setIsLoadingBBP(true);
+    sendMessageBatoBatoPik(JSON.stringify({ game: "bbp", cmd: GameState.Open }));
+    setTimeout(() => setIsLoadingBBP(false), 1000);
   };
 
-  const newGame = () => {
-    sendMessage(JSON.stringify({ game: "bbp", cmd: GameState.NewGame }));
+  const newBBPGame = () => {
+    sendMessageBatoBatoPik(JSON.stringify({ game: "bbp", cmd: GameState.NewGame }));
+  };
+
+  const startKKGame = () => {
+    setIsLoadingKK(true);
+    sendMessageKaraKrus(JSON.stringify({ game: "karakrus", cmd: GameState.Open }));
+    setTimeout(() => setIsLoadingKK(false), 1000);
+  };
+
+  const newKKGame = () => {
+    sendMessageKaraKrus(JSON.stringify({ game: "karakrus", cmd: GameState.NewGame }));
   };
 
   const handleLogout = () => {
@@ -113,6 +191,21 @@ const Moderator = () => {
 
   const handleCloseLogoutDialog = () => {
     setOpenLogoutDialog(false);
+  };
+
+  const getGameStatusText = (gameState) => {
+    switch(gameState) {
+      case GameState.NewGame:
+        return 'Preparing new game...';
+      case 'Void':
+        return 'Resetting game session...';
+      case GameState.WinnerDeclared:
+        return 'Congratulations to the winner!';
+      case GameState.Open:
+        return 'Game in progress...';
+      default:
+        return 'Ready to start the next game';
+    }
   };
 
   return (
@@ -135,6 +228,16 @@ const Moderator = () => {
           right: 0,
           bottom: 0,
           background: 'radial-gradient(circle at 20% 30%, rgba(212, 175, 55, 0.1) 0%, transparent 40%)',
+          zIndex: 0
+        },
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'radial-gradient(circle at 80% 70%, rgba(128, 0, 32, 0.1) 0%, transparent 40%)',
           zIndex: 0
         }
       }}
@@ -174,7 +277,7 @@ const Moderator = () => {
             borderRadius: 3,
             backgroundColor: '#242b45',
             color: '#f0f0f0',
-            maxWidth: 500,
+            maxWidth: 800,
             width: '100%',
             textAlign: 'center',
             position: 'relative',
@@ -183,8 +286,9 @@ const Moderator = () => {
             boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
           }}
         >
-          <Box sx={{ mb: 3 }}>
+          <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center', gap: 4 }}>
             <GameIcon />
+            <KaraKrusIcon />
           </Box>
           
           <Typography 
@@ -192,7 +296,7 @@ const Moderator = () => {
             gutterBottom 
             sx={{ 
               fontWeight: 700,
-              background: 'linear-gradient(45deg, #d4af37 30%, #f0f0f0 90%)',
+              background: 'linear-gradient(45deg, #d4af37 30%, #800020 90%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               mb: 2
@@ -208,36 +312,128 @@ const Moderator = () => {
               color: '#c0c0c0'
             }}
           >
-            {gameState === GameState.NewGame ? 'Preparing new game...' : 
-             gameState === 'Void' ? 'Resetting game session...' : 
-             gameState === GameState.WinnerDeclared ? 'Congratulations to the winner!' : 
-             'Ready to start the next game'}
+            Manage both Bato Bato Pik and Kara Krus games
           </Typography>
           
-          <Box sx={{ mt: 4, mb: 4 }}>
-            <AnimatedButton
-              variant="contained"
-              size="large"
-              onClick={startGame}
-              disabled={isLoading}
-              sx={{
-                backgroundColor: '#800020',
-                color: '#f0f0f0',
-                px: 5,
-                py: 1.5,
-                fontSize: '1.1rem',
-                fontWeight: 600,
-                '&:hover': {
-                  backgroundColor: '#a03050'
-                },
-                '&:disabled': {
-                  backgroundColor: '#3a3a3a'
-                }
-              }}
-            >
-              {isLoading ? 'Starting...' : 'Start Game'}
-            </AnimatedButton>
-          </Box>
+          <Grid container spacing={2} sx={{ mt: 2 }}>
+            {/* Bato Bato Pik Section */}
+            <Grid item xs={12} md={6}>
+              <Paper 
+                sx={{ 
+                  p: 1, 
+                  borderRadius: 2, 
+                  backgroundColor: 'rgba(212, 175, 55, 0.05)',
+                  border: '1px solid rgba(212, 175, 55, 0.2)',
+                  height: '100%'
+                }}
+              >
+                <Typography variant="h6" sx={{ color: '#d4af37', mb: 2 }}>
+                  Bato Bato Pik
+                </Typography>
+                
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, mb: 3 }}>
+                  <AccessTimeIcon sx={{ color: '#d4af37' }} />
+                  <CountdownBadge
+                    label={batoBatoPikCountdown || '--'}
+                    color="primary"
+                    sx={{ backgroundColor: 'rgba(212, 175, 55, 0.2)', color: '#d4af37' }}
+                  />
+                </Box>
+                
+                <Typography variant="body2" sx={{ color: '#c0c0c0', mb: 3, minHeight: 24 }}>
+                  {getGameStatusText(batoBatoPikGameState)}
+                </Typography>
+                
+                <Tooltip title="Start a new Bato Bato Pik game session">
+                  <AnimatedButton
+                    variant="contained"
+                    size="large"
+                    onClick={startBBPGame}
+                    disabled={isLoadingBBP}
+                    sx={{
+                      backgroundColor: '#d4af37',
+                      color: '#1a2035',
+                      px: 4,
+                      py: 1.5,
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      '&:hover': {
+                        backgroundColor: '#e8c870'
+                      },
+                      '&:disabled': {
+                        backgroundColor: '#3a3a3a'
+                      }
+                    }}
+                  >
+                    {isLoadingBBP ? (
+                      <CircularProgress size={24} sx={{ color: '#1a2035' }} />
+                    ) : (
+                      'Start Bato Bato Pik'
+                    )}
+                  </AnimatedButton>
+                </Tooltip>
+              </Paper>
+            </Grid>
+            
+            {/* Kara Krus Section */}
+            <Grid item xs={12} md={6}>
+              <Paper 
+                sx={{ 
+                  p: 1, 
+                  borderRadius: 2, 
+                  backgroundColor: 'rgba(128, 0, 32, 0.05)',
+                  border: '1px solid rgba(128, 0, 32, 0.2)',
+                  height: '100%'
+                }}
+              >
+                <Typography variant="h6" sx={{ color: '#800020', mb: 2 }}>
+                  Kara Krus
+                </Typography>
+                
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, mb: 3 }}>
+                  <AccessTimeIcon sx={{ color: '#800020' }} />
+                  <CountdownBadge
+                    label={karaKrusCountdown || '--'}
+                    color="primary"
+                    sx={{ backgroundColor: 'rgba(128, 0, 32, 0.2)', color: '#800020' }}
+                  />
+                </Box>
+                
+                <Typography variant="body2" sx={{ color: '#c0c0c0', mb: 3, minHeight: 24 }}>
+                  {getGameStatusText(karaKrusGameState)}
+                </Typography>
+                
+                <Tooltip title="Start a new Kara Krus game session">
+                  <AnimatedButton
+                    variant="contained"
+                    size="large"
+                    onClick={startKKGame}
+                    disabled={isLoadingKK}
+                    sx={{
+                      backgroundColor: '#800020',
+                      color: '#f0f0f0',
+                      px: 4,
+                      py: 1.5,
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      '&:hover': {
+                        backgroundColor: '#a03050'
+                      },
+                      '&:disabled': {
+                        backgroundColor: '#3a3a3a'
+                      }
+                    }}
+                  >
+                    {isLoadingKK ? (
+                      <CircularProgress size={24} sx={{ color: '#f0f0f0' }} />
+                    ) : (
+                      'Start Kara Krus'
+                    )}
+                  </AnimatedButton>
+                </Tooltip>
+              </Paper>
+            </Grid>
+          </Grid>
           
           <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
             <Button

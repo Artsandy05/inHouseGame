@@ -100,7 +100,7 @@ const GoldenGoose = () => {
     }
   };
 
-  const url = getRequiredUrl(true, userInfo.userData.data.user);
+  const url = getRequiredUrl('golden-goose', userInfo.userData.data.user);
 
   usePreventZoom();
   if (!url) {

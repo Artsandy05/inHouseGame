@@ -1,10 +1,10 @@
 import { GameState, ModeratorCommands } from "../../../../common/gameutils";
-import { Game, GameData, Input, Output, Plugin } from "../../../src/game/Code";
-import { Moderator } from "../../../src/game/Moderator";
-import { ModeratorManager } from "../../../src/game/ModeratorManager";
-import { Player } from "../../../src/game/Player";
-import { PlayerManager } from "../../../src/game/PlayerManager";
-import { SocketManager } from "../../../src/game/SocketManager";
+import { Game, GameData, Input, Output, Plugin } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/Code";
+import { Moderator } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/Moderator";
+import { ModeratorManager } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/ModeratorManager";
+import { Player } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/Player";
+import { PlayerManager } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/PlayerManager";
+import { SocketManager } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/SocketManager";
 import { Socket2 } from "../../Common";
 
 describe('BasicSystemSetup', () => {

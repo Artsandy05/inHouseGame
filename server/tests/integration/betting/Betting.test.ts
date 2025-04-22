@@ -1,16 +1,16 @@
 import { GameState, ModeratorCommands, arrayToMap, delay, jsonToMapArray, mapToArray } from "../../../../common/gameutils";
-import { BetCalculator } from "../../../src/game/Bet/BetCalculator";
-import { GameDataManager } from "../../../src/game/Bet/GameDataManager";
-import { Odds } from "../../../src/game/Bet/Odds";
-import { OddsManager } from "../../../src/game/Bet/OddsManager";
-import { Prize } from "../../../src/game/Bet/Prize";
-import { PrizeManager } from "../../../src/game/Bet/PrizeManager";
-import { Game, GameData, Input, Output } from "../../../src/game/Code";
-import { Moderator } from "../../../src/game/Moderator";
-import { ModeratorManager } from "../../../src/game/ModeratorManager";
-import { Player } from "../../../src/game/Player";
-import { PlayerManager } from "../../../src/game/PlayerManager";
-import { SocketManager } from "../../../src/game/SocketManager";
+import { BetCalculator } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/Bet/BetCalculator";
+import { GameDataManager } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/Bet/GameDataManager";
+import { Odds } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/Bet/Odds";
+import { OddsManager } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/Bet/OddsManager";
+import { Prize } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/Bet/Prize";
+import { PrizeManager } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/Bet/PrizeManager";
+import { Game, GameData, Input, Output } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/Code";
+import { Moderator } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/Moderator";
+import { ModeratorManager } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/ModeratorManager";
+import { Player } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/Player";
+import { PlayerManager } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/PlayerManager";
+import { SocketManager } from "../../../src/inhouseWebsocketAPIMultiplayer/bato_bato_pik/SocketManager";
 import { TestUtils, getTestData1 } from "../../../utils/tests/TestUtils";
 import { Socket } from "../../Common";
 

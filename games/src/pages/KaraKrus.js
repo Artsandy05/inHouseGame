@@ -1,16 +1,34 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { Button, TextField, Box, Typography, Paper, Container, Chip, Dialog } from '@mui/material';
+import { Button, TextField, Box, Typography, Paper, Container, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Grid, Collapse, IconButton } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { Celebration, MoodBad } from '@mui/icons-material';
+import { Celebration, ChevronLeft, ChevronRight, KeyboardArrowDown, KeyboardArrowLeft, KeyboardArrowRight, KeyboardArrowUp, MoodBad } from '@mui/icons-material';
 import ReactConfetti from 'react-confetti';
-
+import { playerStore } from "../utils/karakrus";
+import { useSearchParams } from 'react-router-dom';
+import { GameState } from '../utils/gameutils';
+import createEncryptor from '../utils/createEncryptor';
+const encryptor = createEncryptor(process.env.REACT_APP_DECRYPTION_KEY);
 const KaraKrus = () => {
+  const [gameHistory, setGameHistory] = useState([
+    { result: 'H', timestamp: '10:30 AM', winningAmount: 120 },
+    { result: 'T', timestamp: '10:25 AM', winningAmount: 80 },
+    { result: 'H', timestamp: '10:20 AM', winningAmount: 200 },
+    { result: 'T', timestamp: '10:15 AM', winningAmount: 150 },
+    { result: 'H', timestamp: '10:10 AM', winningAmount: 100 },
+    { result: 'T', timestamp: '10:05 AM', winningAmount: 180 },
+    { result: 'H', timestamp: '10:00 AM', winningAmount: 90 },
+    { result: 'T', timestamp: '09:55 AM', winningAmount: 110 },
+    { result: 'H', timestamp: '09:50 AM', winningAmount: 130 },
+    { result: 'H', timestamp: '09:45 AM', winningAmount: 170 },
+  ]);
   const mountRef = useRef(null);
   const [balance, setBalance] = useState(1000);
-  const [bet, setBet] = useState(100);
+  const [openAnnouncement, setOpenAnnouncement] = useState(false);
+  const [betAmount, setBetAmount] = useState(0);
+  const [openBetDialog, setOpenBetDialog] = useState(false);
+  const [betType, setBetType] = useState(null);
   const [selectedSide, setSelectedSide] = useState(null);
-  const [gameState, setGameState] = useState('idle');
   const [result, setResult] = useState(null);
   const [isWinner, setIsWinner] = useState(false);
   const [animationId, setAnimationId] = useState(null);
@@ -20,6 +38,110 @@ const KaraKrus = () => {
   const coinRef = useRef(null);
   const [coinFaceImg, setCoinFaceImg] = useState(null);
   const theme = useTheme();
+  const { gameState, setPlayerInfo, sendMessage, countdown, slots, setSlots, odds, allBets, winningBall, setUserInfo, topPlayers } = playerStore();
+  const { connect } = playerStore.getState();
+  const [searchParams] = useSearchParams();
+  const userDetailsParam = searchParams.get('data');
+  let decrypted;
+
+  const [showBettingSection, setShowBettingSection] = useState(true);
+  const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
+  const [historyPage, setHistoryPage] = useState(0);
+  const historyItemsPerPage = 5;
+
+  const handleHistoryPage = (direction) => {
+    const maxPages = Math.ceil(gameHistory.length / historyItemsPerPage);
+    if (direction === 'next' && historyPage < maxPages - 1) {
+      setHistoryPage(prev => prev + 1);
+    } else if (direction === 'prev' && historyPage > 0) {
+      setHistoryPage(prev => prev - 1);
+    }
+  };
+  const displayedHistory = gameHistory.slice(
+    historyPage * historyItemsPerPage, 
+    (historyPage + 1) * historyItemsPerPage
+  );
+
+  if(userDetailsParam){
+    decrypted = encryptor.decryptParams(userDetailsParam);
+  }
+  
+  const urlUserDetails = decrypted 
+    ? decrypted
+    : null;
+    
+  const localStorageUser = JSON.parse(localStorage.getItem('user') || 'null');
+
+  const userInfo = {
+    userData: {
+      data: {
+        user: {
+          id: Number(urlUserDetails?.id) || localStorageUser?.userData?.data?.user?.id || 0,
+          firstName: urlUserDetails?.first_name || localStorageUser?.userData?.data?.user?.firstName || 'Guest',
+          lastName: urlUserDetails?.last_name || localStorageUser?.userData?.data?.user?.lastName || 'Guest',
+          balance: urlUserDetails?.credits || localStorageUser?.userData?.data?.wallet?.balance || 0,
+          mobile: urlUserDetails?.mobile || localStorageUser?.userData?.data?.user?.mobile || 'N/A',
+          uuid: urlUserDetails?.uuid || localStorageUser?.userData?.data?.user?.uuid || '0',
+          email: urlUserDetails?.email || localStorageUser?.userData?.data?.user?.email || 'test@gmail.com',
+          role: 'player',
+        },
+        wallet: {
+          balance: urlUserDetails?.credits || localStorageUser?.userData?.data?.wallet?.balance || 0
+        }
+      }
+    }
+  };
+
+  
+
+  useEffect(() => {
+    if(userInfo){
+      setUserInfo(userInfo.userData.data.user);
+    }
+  }, []);
+
+  useEffect(() => {
+    connect();
+
+    return () => {
+      const { socket } = playerStore.getState();
+      if (socket) {
+        socket.close();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if(gameState === GameState.Closed){
+      tossCoin();
+    }
+  }, [gameState]);
+
+  useEffect(() => {
+    let timer;
+  
+    if (gameState === GameState.WinnerDeclared) {
+      setOpenAnnouncement(true);
+    } else {
+      // Delay closing the announcement when gameState changes away from WinnerDeclared
+      timer = setTimeout(() => {
+        setOpenAnnouncement(false);
+      }, 2000);
+    }
+  
+    // Cleanup timeout if gameState changes before timeout finishes
+    return () => clearTimeout(timer);
+  }, [gameState]);
+  
+
+  
+  
+
+  useEffect(() => {
+    if(gameState === GameState.Open){
+      startNextRound();
+    }
+  }, [gameState]);
 
   // Initialize Three.js scene
   useEffect(() => {
@@ -410,42 +532,31 @@ const KaraKrus = () => {
     };
   }, []);
 
-  // Reset coin position
   const resetCoin = () => {
     if (coinRef.current) {
-      coinRef.current.position.set(0, 0.7, 0); // Changed from 0.5 to 0.7
+      coinRef.current.position.set(0, 0.7, 0);
       coinRef.current.rotation.set(0, 0, 0);
     }
   };
 
-  // Toss coin animation
   const tossCoin = () => {
-    if (gameState !== 'idle' || !coinRef.current) return;
+    if (gameState !== GameState.Closed || !coinRef.current) return;
     
-    // Deduct bet from balance
-    setBalance(prevBalance => prevBalance - bet);
+    setBalance(prevBalance => prevBalance - betAmount);
     
-    // Change game state
-    setGameState('tossing');
-    
-    // Reset coin position
     resetCoin();
     
-    // Random values for rotation and movement
     const rotationX = Math.random() * 10 + 10;
     const rotationY = Math.random() * 5;
     const rotationZ = Math.random() * 5;
     
-    const jumpHeight = 3 + Math.random() * 2; // Reduced max height slightly
+    const jumpHeight = 3 + Math.random() * 2;
     const animationDuration = 3000 + Math.random() * 1000;
     
-    // Determine result
     const newResult = Math.random() > 0.5 ? 'heads' : 'tails';
     
-    // Animation start time
     const startTime = Date.now();
     
-    // Animation function
     const animateCoinToss = () => {
       const currentTime = Date.now();
       const elapsed = currentTime - startTime;
@@ -454,21 +565,21 @@ const KaraKrus = () => {
       if (progress < 1) {
         if (progress < 0.3) {
           const upProgress = progress / 0.3;
-          coinRef.current.position.y = 0.7 + jumpHeight * upProgress; // Updated from 0.5 to 0.7
+          coinRef.current.position.y = 0.7 + jumpHeight * upProgress;
           coinRef.current.rotation.x = rotationX * upProgress * Math.PI * 2;
           coinRef.current.rotation.y = rotationY * upProgress * Math.PI * 2;
           coinRef.current.rotation.z = rotationZ * upProgress * Math.PI;
           
         } else if (progress < 0.6) {
           const fallProgress = (progress - 0.3) / 0.3;
-          coinRef.current.position.y = 0.7 + jumpHeight * (1 - fallProgress); // Updated from 0.5 to 0.7
+          coinRef.current.position.y = 0.7 + jumpHeight * (1 - fallProgress);
           coinRef.current.rotation.x = rotationX * progress * Math.PI * 2;
           coinRef.current.rotation.y = rotationY * progress * Math.PI * 2;
           coinRef.current.rotation.z = rotationZ * progress * Math.PI;
           
         } else {
           const landProgress = (progress - 0.6) / 0.4;
-          coinRef.current.position.y = 0.1 + (0.7 - 0.1) * (1 - landProgress); // Updated from 0.5 to 0.7
+          coinRef.current.position.y = 0.1 + (0.7 - 0.1) * (1 - landProgress);
           const targetX = newResult === 'heads' 
             ? Math.PI * 2 * Math.round(rotationX) 
             : Math.PI * (2 * Math.round(rotationX) + 1);
@@ -489,269 +600,1352 @@ const KaraKrus = () => {
         }
         
         setResult(newResult);
-        setGameState('result');
         
-        // Set the coin face image from our stored global images
         setCoinFaceImg(window.coinImages[newResult]);
+        console.log(window.coinImages[newResult]);
         
         const won = selectedSide === newResult;
         setIsWinner(won);
         
         if (won) {
-          setBalance(prevBalance => prevBalance + (bet * 2));
+          setBalance(prevBalance => prevBalance + (betAmount * 2));
         }
+
+        // Send winner message
+        sendMessage(
+          JSON.stringify({
+            cmd: GameState.WinnerDeclared,
+            game: "karakrus",
+            winnerOrders: newResult ,
+            uuid: userInfo.userData.data.user.uuid,
+          })
+        );
       }
     };
     
     animateCoinToss();
   };
 
-  // Start next round
   const startNextRound = () => {
-    setGameState('idle');
     setResult(null);
     setSelectedSide(null);
     setCoinFaceImg(null);
     resetCoin();
   };
 
-  // Handle bet change
-  const handleBetChange = (e) => {
-    const value = parseInt(e.target.value);
-    if (!isNaN(value) && value > 0 && value <= balance) {
-      setBet(value);
-    }
+  const handleBetClick = (type) => {
+    setBetType(type);
+    setSelectedSide(type);
+    setOpenBetDialog(true);
   };
 
-  // Helper function to capitalize first letter
+  const handlePlaceBet = () => {
+    if (betAmount > 0) {
+      if (parseFloat(betAmount) < 5) {
+        alert("Minimum bet amount is 5");
+        return;
+      }
+      if ((userInfo.userData.data.wallet.balance - parseFloat(betAmount)) < 0) {
+        alert("Insufficient Balance");
+        return;
+      }
+      const hasSlots = slots.has(betType);
+
+      if (hasSlots) {
+        let currentValue = slots.get(betType);
+        slots.set(betType, currentValue += parseFloat(betAmount));
+      } else {
+        slots.set(betType, parseFloat(betAmount));
+      }
+
+      setSlots(new Map(slots));
+      sendMessage(
+        JSON.stringify({game: 'karakrus', slots: Array.from(slots.entries())})
+      );
+    }
+    setOpenBetDialog(false);
+    setBetAmount(0);
+  };
+
+  
+
+  const handleClearBet = () => {
+    setBetAmount(0);
+  };
+
+  const handleDialogClose = () => {
+    setOpenBetDialog(false);
+  };
+
+  
+
+  
+
+  useEffect(() => {
+    if ((gameState !== GameState.Open || gameState !== GameState.LastCall)) {
+      setOpenBetDialog(false);
+    }
+  }, [gameState, setOpenBetDialog]);
+
+  const getOdds = (betType) => {
+    let str = "0.00";
+    if (odds.has(betType)) {
+      return odds.get(betType);
+    }
+    return Number(parseFloat(str).toFixed(2));
+  };
+
+  const formatWinnerAmount = (amount) => {
+    return parseFloat(amount).toFixed(2);
+  };
+
+  const quickBetAmounts = [5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000];
+
   const capitalize = (string) => {
     return string ? string.charAt(0).toUpperCase() + string.slice(1) : '';
   };
 
   return (
-    <Container maxWidth="xs"> {/* Changed to xs for mobile optimization */}
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        py: 2, // Reduced vertical padding for mobile
-        gap: 2  // Reduced gap for mobile
-      }}>
-        
-        
-        <Paper elevation={5} sx={{ p: 2, width: '100%', mb: 2, borderRadius: 2 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, flexDirection: 'column', gap: 2 }}>
+    <Box sx={{
+      background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+      minHeight: '100vh',
+      py: 3,
+      position: 'relative',
+      '&:before': {
+        content: '""',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05) 1px, transparent 1px)',
+        backgroundSize: '20px 20px',
+        zIndex: 0
+      }
+    }}>
+      <Container maxWidth="xs" sx={{ position: 'relative', zIndex: 1 }}>
+        {/* Game Header */}
+        <Box sx={{ 
+          textAlign: 'center', 
+          mb: 3,
+          position: 'relative',
+          '&:after': {
+            content: '""',
+            position: 'absolute',
+            bottom: -10,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: '100px',
+            height: '3px',
+            background: 'linear-gradient(90deg, transparent, #c62828, transparent)'
+          }
+        }}>
+          <Typography variant="h4" sx={{
+            fontFamily: "'Cinzel Decorative', cursive",
+            color: '#ffeb3b',
+            textShadow: '0 0 10px rgba(255, 235, 59, 0.5)',
+            letterSpacing: '2px',
+            position: 'relative',
+            display: 'inline-block',
+            '&:before, &:after': {
+              content: '""',
+              position: 'absolute',
+              top: '50%',
+              width: '30px',
+              height: '2px',
+              background: 'linear-gradient(90deg, #c62828, transparent)'
+            },
+            '&:before': {
+              left: '-40px'
+            },
+            '&:after': {
+              right: '-40px',
+              background: 'linear-gradient(90deg, transparent, #c62828)'
+            }
+          }}>
+            KARA-KRUS
+          </Typography>
+          
+          <Typography variant="body2" sx={{ 
+            color: 'rgba(255,255,255,0.7)',
+            letterSpacing: '1px',
+            mt: 1
+          }}>
+            Flip the coin and win big!
+          </Typography>
+        </Box>
+
+        {/* Balance and Status Bar */}
+        <Paper elevation={10} sx={{ 
+          p: 2, 
+          mb: 3, 
+          borderRadius: 3,
+          background: 'linear-gradient(135deg, rgba(40,0,0,0.7) 0%, rgba(80,0,0,0.7) 100%)',
+          border: '1px solid rgba(255, 235, 59, 0.2)',
+          boxShadow: '0 0 20px rgba(198, 40, 40, 0.3)',
+          position: 'relative',
+          overflow: 'hidden',
+          '&:before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '3px',
+            background: 'linear-gradient(90deg, #c62828, #ffeb3b, #c62828)'
+          }
+        }}>
+          {/* Balance - Centered */}
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'center',
+            alignItems: 'center',
+            mb: 2 
+          }}>
             <Chip 
-              label={`Balance: ₱${balance}`} 
-              color="primary" 
-              sx={{ fontSize: '1.2rem', py: 1.5, px: 1, alignSelf: 'center' }}
-            />
-            <TextField 
-              label="Bet Amount"
-              type="number"
-              value={bet}
-              onChange={handleBetChange}
-              inputProps={{ min: 1, max: balance }}
-              variant="outlined"
-              size="small"
-              sx={{ width: '100%' }}
-              disabled={gameState !== 'idle'}
+              label={`${userInfo.userData.data.user.firstName.toUpperCase()} - BALANCE: ₱${balance.toFixed(2)}`} 
+              sx={{ 
+                background: 'rgba(0,0,0,0.5)',
+                color: '#ffeb3b',
+                fontSize: '1rem',
+                py: 1.5,
+                px: 2.5,
+                fontWeight: 'bold',
+                border: '1px solid rgba(255, 235, 59, 0.3)',
+                boxShadow: '0 0 10px rgba(255, 235, 59, 0.1)'
+              }}
             />
           </Box>
-          
-          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mb: 2 }}>
-            <Button 
-              variant={selectedSide === 'heads' ? "contained" : "outlined"} 
-              onClick={() => gameState === 'idle' && setSelectedSide('heads')}
-              disabled={gameState !== 'idle'}
-              sx={{ width: '50%', py: 1 }}
-            >
-              Heads
-            </Button>
-            <Button 
-              variant={selectedSide === 'tails' ? "contained" : "outlined"} 
-              onClick={() => gameState === 'idle' && setSelectedSide('tails')}
-              disabled={gameState !== 'idle'}
-              sx={{ width: '50%', py: 1 }}
-            >
-              Tails
-            </Button>
+
+          {/* Game State and Countdown */}
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: (gameState !== GameState.Open || gameState !== GameState.LastCall) ? 'center' : 'space-between', 
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 1 
+          }}>
+            <Chip 
+              label={gameState === GameState.Open ? 'BETTING OPEN' : gameState === GameState.LastCall ? 'LAST CALL' : 'CLOSED'} 
+              color={gameState === GameState.Open ? 'success' : gameState === GameState.LastCall ? 'warning' : 'error'}
+              sx={{ 
+                fontWeight: 'bold',
+                fontSize: '0.9rem',
+                px: 2,
+                boxShadow: '0 0 10px rgba(0,0,0,0.3)',
+                
+              }}
+            />
+
+            {countdown > 0 && (
+              <Chip 
+                label={`${countdown}s`} 
+                sx={{ 
+                  background: 'rgba(255,0,0,0.3)',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: '1.2rem',
+                  minWidth: '50px',
+                  ml: 'auto' // Push to the far right
+                }}
+              />
+            )}
           </Box>
         </Paper>
-        
-        <Box 
-          ref={mountRef} 
-          sx={{ 
-            width: '100%', 
-            height: '320px', // Adjusted height for mobile
-            borderRadius: 2,
-            overflow: 'hidden',
-            boxShadow: 4
+
+
+        <Paper elevation={10} sx={{ 
+          mb: 3, 
+          borderRadius: 3,
+          background: 'linear-gradient(135deg, rgba(25,0,0,0.7) 0%, rgba(60,0,0,0.7) 100%)',
+          border: '1px solid rgba(255, 235, 59, 0.2)',
+          boxShadow: '0 0 20px rgba(198, 40, 40, 0.3)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          {/* Toggle Button */}
+          <Box sx={{ 
+            display: 'flex',
+            justifyContent: 'center',
+            position: 'relative',
+            py: 1,
+            borderBottom: showBettingSection ? '1px solid rgba(255, 235, 59, 0.2)' : 'none',
+            cursor: 'pointer',
+            background: 'rgba(0,0,0,0.3)',
+            transition: 'all 0.3s ease'
           }}
-        />
-        
-        
-          <Dialog 
-            open={gameState === 'result'}
-            fullWidth
-            maxWidth="sm"
-            PaperProps={{
-              sx: {
-                borderRadius: 3,
-                overflow: 'hidden',
-                background: isWinner 
-                  ? 'linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%)' 
-                  : 'linear-gradient(135deg, #F44336 0%, #C62828 100%)',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-                transform: 'scale(0.95)',
-                animation: 'scaleIn 0.3s ease-out forwards'
-              }
+          onClick={() => setShowBettingSection(!showBettingSection)}
+          >
+            <Typography variant="body1" sx={{ 
+              color: '#ffeb3b',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1
+            }}>
+              BETTING OPTIONS {showBettingSection ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
+            </Typography>
+          </Box>
+
+          {/* Animating Collapse Component */}
+          <Collapse in={showBettingSection} timeout="auto">
+            <Box sx={{ p: 2 }}>
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                gap: 2, 
+                position: 'relative',
+                zIndex: 1
+              }}>
+                <Button 
+                  onClick={() => handleBetClick('heads')}
+                  disabled={gameState !== GameState.Open && gameState !== GameState.LastCall}
+                  sx={{ 
+                    width: '50%', 
+                    py: 2,
+                    background: slots.has('heads') 
+                      ? 'linear-gradient(135deg, rgba(255,235,59,0.3) 0%, rgba(255,235,59,0.5) 100%)' 
+                      : 'rgba(0,0,0,0.3)',
+                    border: slots.has('heads') 
+                      ? '2px solid #ffeb3b' 
+                      : '1px solid rgba(255,255,255,0.1)',
+                    boxShadow: slots.has('heads') 
+                      ? '0 0 15px rgba(255, 235, 59, 0.5)' 
+                      : 'none',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    '&:hover': {
+                      background: slots.has('heads') 
+                        ? 'linear-gradient(135deg, rgba(255,235,59,0.4) 0%, rgba(255,235,59,0.6) 100%)' 
+                        : 'rgba(0,0,0,0.4)',
+                    },
+                    '&:before': slots.has('heads') ? {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: '3px',
+                      background: 'linear-gradient(90deg, #ffeb3b, #c62828, #ffeb3b)'
+                    } : {}
+                  }}
+                >
+                  <Box sx={{ 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    width: '100%'
+                  }}>
+                    <Typography variant="h6" sx={{
+                      color: slots.has('heads') ? '#ffeb3b' : 'white',
+                      fontWeight: 'bold',
+                      mb: 1,
+                      textShadow: slots.has('heads') ? '0 0 5px rgba(255, 235, 59, 0.8)' : 'none'
+                    }}>
+                      KARA
+                    </Typography>
+                    
+                    <Box sx={{
+                      width: '100%',
+                      background: 'rgba(0,0,0,0.5)',
+                      borderRadius: '8px',
+                      p: 1,
+                      mb: 1,
+                      border: '1px solid rgba(255,255,255,0.1)'
+                    }}>
+                      <Typography variant="caption" sx={{ 
+                        display: 'block', 
+                        color: 'rgba(255,255,255,0.8)',
+                        fontWeight: 'bold'
+                      }}>
+                        Odds: {getOdds('heads')}x
+                      </Typography>
+                      <Typography variant="caption" sx={{ 
+                        display: 'block', 
+                        color: slots.has('heads') ? '#ffeb3b' : 'rgba(255,255,255,0.8)',
+                        fontWeight: slots.has('heads') ? 'bold' : 'normal'
+                      }}>
+                        My bet: ₱{slots.get('heads') || '0.00'}
+                      </Typography>
+                      <Typography variant="caption" sx={{ 
+                        display: 'block', 
+                        color: 'rgba(255,255,255,0.8)'
+                      }}>
+                        All Bets: ₱{allBets?.has('heads') ? formatWinnerAmount(allBets.get('heads')) : '0.00'}
+                      </Typography>
+                    </Box>
+                    
+                    {slots.has('heads') && (
+                      <Box sx={{
+                        position: 'absolute',
+                        top: 0,
+                        right: 0,
+                        width: 'auto',
+                        height: '20px',
+                        background: '#ffeb3b',
+                        borderRadius: '20%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 0 5px rgba(255, 235, 59, 0.8)'
+                      }}>
+                        <Typography variant="caption" sx={{ 
+                          color: 'black',
+                          fontWeight: 'bold',
+                          fontSize: '0.6rem'
+                        }}>
+                          {slots.get('heads')}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </Button>
+                
+                <Button 
+                  onClick={() => handleBetClick('tails')}
+                  disabled={gameState !== GameState.Open && gameState !== GameState.LastCall}
+                  sx={{ 
+                    width: '50%', 
+                    py: 2,
+                    background: slots.has('tails') 
+                      ? 'linear-gradient(135deg, rgba(255,235,59,0.3) 0%, rgba(255,235,59,0.5) 100%)' 
+                      : 'rgba(0,0,0,0.3)',
+                    border: slots.has('tails') 
+                      ? '2px solid #ffeb3b' 
+                      : '1px solid rgba(255,255,255,0.1)',
+                    boxShadow: slots.has('tails') 
+                      ? '0 0 15px rgba(255, 235, 59, 0.5)' 
+                      : 'none',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    '&:hover': {
+                      background: slots.has('tails') 
+                        ? 'linear-gradient(135deg, rgba(255,235,59,0.4) 0%, rgba(255,235,59,0.6) 100%)' 
+                        : 'rgba(0,0,0,0.4)',
+                    },
+                    '&:before': slots.has('tails') ? {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: '3px',
+                      background: 'linear-gradient(90deg, #ffeb3b, #c62828, #ffeb3b)'
+                    } : {}
+                  }}
+                >
+                  <Box sx={{ 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    width: '100%'
+                  }}>
+                    <Typography variant="h6" sx={{
+                      color: slots.has('tails') ? '#ffeb3b' : 'white',
+                      fontWeight: 'bold',
+                      mb: 1,
+                      textShadow: slots.has('tails') ? '0 0 5px rgba(255, 235, 59, 0.8)' : 'none'
+                    }}>
+                      KRUS
+                    </Typography>
+                    
+                    <Box sx={{
+                      width: '100%',
+                      background: 'rgba(0,0,0,0.5)',
+                      borderRadius: '8px',
+                      p: 1,
+                      mb: 1,
+                      border: '1px solid rgba(255,255,255,0.1)'
+                    }}>
+                      <Typography variant="caption" sx={{ 
+                        display: 'block', 
+                        color: 'rgba(255,255,255,0.8)',
+                        fontWeight: 'bold'
+                      }}>
+                        Odds: {getOdds('tails')}x
+                      </Typography>
+                      <Typography variant="caption" sx={{ 
+                        display: 'block', 
+                        color: slots.has('tails') ? '#ffeb3b' : 'rgba(255,255,255,0.8)',
+                        fontWeight: slots.has('tails') ? 'bold' : 'normal'
+                      }}>
+                        My bet: ₱{slots.get('tails') || '0.00'}
+                      </Typography>
+                      <Typography variant="caption" sx={{ 
+                        display: 'block', 
+                        color: 'rgba(255,255,255,0.8)'
+                      }}>
+                        All Bets: ₱{allBets?.has('tails') ? formatWinnerAmount(allBets.get('tails')) : '0.00'}
+                      </Typography>
+                    </Box>
+                    
+                    {slots.has('tails') && (
+                      <Box sx={{
+                        position: 'absolute',
+                        top: 0,
+                        right: 0,
+                        width: 'auto',
+                        height: '20px',
+                        background: '#ffeb3b',
+                        borderRadius: '20%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 0 5px rgba(255, 235, 59, 0.8)'
+                      }}>
+                        <Typography variant="caption" sx={{ 
+                          color: 'black',
+                          fontWeight: 'bold',
+                          fontSize: '0.6rem'
+                        }}>
+                          {slots.get('tails')}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </Button>
+              </Box>
+            </Box>
+          </Collapse>
+        </Paper>
+
+        {/* 3D Coin Flip Scene */}
+        <Paper elevation={10} sx={{ 
+          mb: 3, 
+          borderRadius: 3,
+          overflow: 'hidden',
+          background: 'linear-gradient(135deg, rgba(25,0,0,0.7) 0%, rgba(60,0,0,0.7) 100%)',
+          border: '1px solid rgba(255, 235, 59, 0.2)',
+          boxShadow: '0 0 20px rgba(198, 40, 40, 0.3)',
+          position: 'relative'
+        }}>
+          <Box 
+            ref={mountRef} 
+            sx={{ 
+              width: '100%', 
+              height: '320px',
+              position: 'relative'
+            }}
+          />
+          
+          {/* Scene Border Effects */}
+          <Box sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            pointerEvents: 'none',
+            border: '2px solid transparent',
+            borderImage: 'linear-gradient(45deg, #ffeb3b, #c62828, #ffeb3b) 1',
+            boxShadow: 'inset 0 0 20px rgba(198, 40, 40, 0.5)'
+          }} />
+        </Paper>
+
+        {/* History Panel Toggle Button - Always visible on the right edge */}
+        <Box
+          sx={{
+            position: 'fixed',
+            right: historyPanelOpen ? '280px' : 0,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            zIndex: 100,
+            transition: 'right 0.4s ease',
+          }}
+        >
+          <Button
+            onClick={() => setHistoryPanelOpen(!historyPanelOpen)}
+            sx={{
+              minWidth: '36px',
+              height: '80px',
+              borderRadius: historyPanelOpen ? '8px 0 0 8px' : '4px 0 0 4px',
+              background: 'linear-gradient(135deg, #c62828 0%, #8e0000 100%)',
+              color: '#ffeb3b',
+              boxShadow: '-2px 0 15px rgba(0,0,0,0.5)',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #d32f2f 0%, #9a0007 100%)',
+              },
+              border: '1px solid rgba(255, 235, 59, 0.3)',
+              borderRight: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 0,
             }}
           >
-            <Box sx={{ p: 4, textAlign: 'center', color: 'white' }}>
-              <Typography 
-                variant="h6" 
+            {historyPanelOpen ? <ChevronRight /> : <ChevronLeft />}
+          </Button>
+        </Box>
+        
+        {/* Sliding History Panel */}
+        <Box
+          sx={{
+            position: 'fixed',
+            right: historyPanelOpen ? 0 : '-300px',
+            top: 0,
+            bottom: 0,
+            width: '280px', // Slightly narrower
+            background: 'linear-gradient(135deg, rgba(25,0,0,0.95) 0%, rgba(60,0,0,0.95) 100%)',
+            zIndex: 99,
+            transition: 'right 0.4s ease',
+            boxShadow: '-5px 0 20px rgba(0,0,0,0.7)',
+            borderLeft: '2px solid rgba(255, 235, 59, 0.3)', // Thinner border
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            '&::-webkit-scrollbar': {
+              width: '4px', // Thinner scrollbar
+            },
+            '&::-webkit-scrollbar-thumb': {
+              background: '#c62828',
+              borderRadius: '10px',
+            }
+          }}
+        >
+          {/* History Panel Header - Fixed with proper z-index */}
+          <Box sx={{
+            p: 1.5, // Reduced padding
+            borderBottom: '1px solid rgba(255, 235, 59, 0.3)', // Thinner border
+            background: 'rgba(0,0,0,0.7)', // More opaque for better contrast
+            position: 'sticky',
+            top: 0,
+            zIndex: 100, // Higher than content
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            backdropFilter: 'blur(5px)' // Blur effect for better readability
+          }}>
+            <Typography variant="subtitle1" sx={{ 
+              color: '#ffeb3b',
+              fontFamily: "'Cinzel Decorative', cursive",
+              textShadow: '0 0 5px rgba(255, 235, 59, 0.5)',
+              letterSpacing: '0.5px', // Reduced letter spacing
+              fontSize: '0.9rem', // Smaller font
+              fontWeight: 'bold'
+            }}>
+              GAME HISTORY
+            </Typography>
+            
+            <IconButton
+              onClick={() => setHistoryPanelOpen(false)}
+              sx={{
+                color: 'rgba(255,255,255,0.7)',
+                '&:hover': {
+                  color: '#ffeb3b',
+                  backgroundColor: 'rgba(255,255,255,0.1)'
+                },
+                padding: '4px',
+                fontSize: '1rem' // Smaller icon
+              }}
+            >
+              <ChevronRight fontSize="inherit" />
+            </IconButton>
+          </Box>
+          
+          {/* History Content */}
+          <Box sx={{ p: 1.5, flexGrow: 1 }}> {/* Reduced padding */}
+            {/* Pagination Controls */}
+            <Box sx={{ 
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              mb: 1.5 // Reduced margin
+            }}>
+              <IconButton 
+                onClick={() => handleHistoryPage('prev')} 
+                disabled={historyPage === 0}
                 sx={{ 
-                  fontWeight: 'bold',
-                  mb: 3,
-                  textShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: 2
-                }}
-              >
-                {isWinner ? (
-                  <>
-                    <Celebration fontSize="large" />
-                    You Won!
-                    <Celebration fontSize="large" />
-                  </>
-                ) : (
-                  <>
-                    <Celebration fontSize="large" />
-                    Your next round will be your luck!
-                    <Celebration fontSize="large" />
-                  </>
-                )}
-              </Typography>
-              
-              {/* Coin display */}
-              <Box sx={{
-                position: 'relative',
-                width: 180,
-                height: 180,
-                margin: '0 auto 20px',
-                perspective: '1000px'
-              }}>
-                <Box sx={{
-                  width: '100%',
-                  height: '100%',
-                  position: 'relative',
-                  transformStyle: 'preserve-3d',
-                  animation: 'flipIn 1s ease-out forwards',
-                  borderRadius: '50%',
-                  boxShadow: '0 0 20px rgba(255,215,0,0.8)',
-                  border: '4px solid gold'
-                }}>
-                  <Box sx={{
-                    position: 'absolute',
-                    width: '100%',
-                    height: '100%',
-                    backfaceVisibility: 'hidden',
-                    backgroundImage: `url(${coinFaceImg})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    borderRadius: '50%'
-                  }} />
-                </Box>
-              </Box>
-              
-              <Typography variant="h6" sx={{ mb: 1, fontWeight: 'medium' }}>
-                Result: <strong>{result?.toUpperCase() === 'HEADS' ? 'KARA' : 'KRUS'}</strong>
-              </Typography>
-              
-              <Typography variant="body2" sx={{ 
-                fontStyle: 'italic',
-                opacity: 0.8,
-                mb: 3
-              }}>
-                You chose: <strong>{capitalize(selectedSide) === "Heads" ? "KARA" : "KRUS"}</strong>
-              </Typography>
-              
-              <Button
-                variant="contained"
-                color={isWinner ? 'success' : 'error'}
-                size="large"
-                onClick={startNextRound}
-                sx={{
-                  px: 4,
-                  py: 1.5,
-                  borderRadius: 2,
-                  fontWeight: 'bold',
-                  textTransform: 'none',
-                  fontSize: '1.1rem',
-                  boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+                  color: historyPage === 0 ? 'rgba(255,255,255,0.3)' : '#ffeb3b',
                   '&:hover': {
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 6px 12px rgba(0,0,0,0.3)'
+                    backgroundColor: 'rgba(255,235,59,0.1)'
                   },
-                  transition: 'all 0.3s ease'
+                  padding: '4px',
+                  fontSize: '1rem' // Smaller icon
                 }}
               >
-                {isWinner ? 'Play Again' : 'Try Again'}
-              </Button>
+                <KeyboardArrowLeft fontSize="inherit" />
+              </IconButton>
+              
+              <Typography variant="caption" sx={{  // Smaller text
+                color: 'rgba(255,255,255,0.8)',
+                fontSize: '0.75rem'
+              }}>
+                Page {historyPage + 1} of {Math.ceil(gameHistory.length / historyItemsPerPage)}
+              </Typography>
+              
+              <IconButton 
+                onClick={() => handleHistoryPage('next')} 
+                disabled={historyPage >= Math.ceil(gameHistory.length / historyItemsPerPage) - 1}
+                sx={{ 
+                  color: historyPage >= Math.ceil(gameHistory.length / historyItemsPerPage) - 1 ? 'rgba(255,255,255,0.3)' : '#ffeb3b',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255,235,59,0.1)'
+                  },
+                  padding: '4px',
+                  fontSize: '1rem' // Smaller icon
+                }}
+              >
+                <KeyboardArrowRight fontSize="inherit" />
+              </IconButton>
             </Box>
             
-            {/* Add confetti for winner */}
-            {isWinner && (
+            {/* Game History List - Compact items */}
+            <Box sx={{ mb: 1.5 }}>
+              {displayedHistory.map((item, index) => (
+                <Box key={index} sx={{
+                  background: 'rgba(0,0,0,0.3)',
+                  borderRadius: '6px', // Smaller radius
+                  p: 1, // Reduced padding
+                  mb: 1, // Reduced margin
+                  display: 'flex',
+                  alignItems: 'center',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  '&:hover': {
+                    background: 'rgba(0,0,0,0.4)',
+                    boxShadow: '0 0 8px rgba(198, 40, 40, 0.3)' // Smaller shadow
+                  },
+                  '&:before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    bottom: 0,
+                    width: '2px', // Thinner indicator
+                    background: item.result === 'H' ? '#ffeb3b' : '#c62828'
+                  }
+                }}>
+                  {/* Result Circle - Smaller */}
+                  <Box sx={{
+                    width: '32px', // Smaller circle
+                    height: '32px',
+                    borderRadius: '50%',
+                    background: item.result === 'H'
+                      ? 'linear-gradient(135deg, #ffeb3b, #c62828)' 
+                      : 'linear-gradient(135deg, #c62828, #ffeb3b)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'black',
+                    fontWeight: 'bold',
+                    boxShadow: '0 0 8px rgba(0,0,0,0.5)', // Smaller shadow
+                    border: '1px solid rgba(255,255,255,0.3)', // Thinner border
+                    marginRight: 1.5 // Reduced margin
+                  }}>
+                    {item.result}
+                  </Box>
+                  
+                  {/* Result Details - Compact */}
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Typography variant="caption" sx={{  // Smaller text
+                      color: '#ffeb3b',
+                      fontWeight: 'bold',
+                      display: 'block',
+                      lineHeight: 1.2
+                    }}>
+                      {item.result === 'H' ? 'KARA' : 'KRUS'} WINS
+                    </Typography>
+                    
+                    <Typography variant="caption" sx={{ 
+                      color: 'rgba(255,255,255,0.7)',
+                      display: 'block',
+                      fontSize: '0.65rem', // Smaller text
+                      lineHeight: 1.2
+                    }}>
+                      {item.timestamp}
+                    </Typography>
+                  </Box>
+                  
+                  {/* Winning Amount Badge - Smaller */}
+                  <Box sx={{
+                    background: 'rgba(0,0,0,0.5)',
+                    borderRadius: '10px', // Smaller radius
+                    padding: '2px 6px', // Reduced padding
+                    border: '1px solid #c62828',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    minWidth: '50px' // Fixed width
+                  }}>
+                    <Typography variant="caption" sx={{  // Smaller text
+                      color: '#ffeb3b',
+                      fontWeight: 'bold',
+                      fontSize: '0.7rem'
+                    }}>
+                      ₱{item.winningAmount}
+                    </Typography>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+            
+            {/* Statistics Section - Compact */}
+            <Box sx={{ 
+              mt: 2, // Reduced margin
+              pt: 1.5, // Reduced padding
+              borderTop: '1px solid rgba(255,255,255,0.1)'
+            }}>
+              <Typography variant="caption" sx={{  // Smaller text
+                color: '#ffeb3b',
+                mb: 1, // Reduced margin
+                fontWeight: 'bold',
+                letterSpacing: '0.5px', // Reduced spacing
+                display: 'block',
+                fontSize: '0.75rem'
+              }}>
+                GAME STATS
+              </Typography>
+              
+              <Box sx={{
+                background: 'rgba(0,0,0,0.3)',
+                borderRadius: '6px', // Smaller radius
+                p: 1, // Reduced padding
+                border: '1px solid rgba(255,255,255,0.1)',
+              }}>
+                {/* Stat rows - Compact */}
+                <Box sx={{ 
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  mb: 0.5 // Reduced margin
+                }}>
+                  <Typography variant="caption" sx={{ 
+                    color: 'rgba(255,255,255,0.7)',
+                    fontSize: '0.7rem' // Smaller text
+                  }}>
+                    KARA (Heads):
+                  </Typography>
+                  <Typography variant="caption" sx={{ 
+                    color: '#ffeb3b',
+                    fontWeight: 'bold',
+                    fontSize: '0.7rem' // Smaller text
+                  }}>
+                    48%
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ 
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  mb: 0.5 // Reduced margin
+                }}>
+                  <Typography variant="caption" sx={{ 
+                    color: 'rgba(255,255,255,0.7)',
+                    fontSize: '0.7rem' // Smaller text
+                  }}>
+                    KRUS (Tails):
+                  </Typography>
+                  <Typography variant="caption" sx={{ 
+                    color: '#ffeb3b',
+                    fontWeight: 'bold',
+                    fontSize: '0.7rem' // Smaller text
+                  }}>
+                    52%
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ 
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  mb: 0.5 // Reduced margin
+                }}>
+                  <Typography variant="caption" sx={{ 
+                    color: 'rgba(255,255,255,0.7)',
+                    fontSize: '0.7rem' // Smaller text
+                  }}>
+                    Total Games:
+                  </Typography>
+                  <Typography variant="caption" sx={{ 
+                    color: '#ffeb3b',
+                    fontWeight: 'bold',
+                    fontSize: '0.7rem' // Smaller text
+                  }}>
+                    142
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ 
+                  display: 'flex',
+                  justifyContent: 'space-between'
+                }}>
+                  <Typography variant="caption" sx={{ 
+                    color: 'rgba(255,255,255,0.7)',
+                    fontSize: '0.7rem' // Smaller text
+                  }}>
+                    Biggest Win:
+                  </Typography>
+                  <Typography variant="caption" sx={{ 
+                    color: '#ffeb3b',
+                    fontWeight: 'bold',
+                    fontSize: '0.7rem' // Smaller text
+                  }}>
+                    ₱5,420
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+          </Box>
+          
+          {/* Footer - My Game History - Compact */}
+          <Box sx={{
+            p: 1.5, // Reduced padding
+            borderTop: '1px solid rgba(255, 235, 59, 0.3)', // Thinner border
+            background: 'rgba(0,0,0,0.7)', // More opaque
+            position: 'sticky',
+            bottom: 0,
+            backdropFilter: 'blur(5px)'
+          }}>
+            <Button 
+              fullWidth
+              variant="outlined"
+              size="small" // Smaller button
+              sx={{ 
+                color: '#ffeb3b',
+                borderColor: 'rgba(255, 235, 59, 0.3)',
+                '&:hover': {
+                  borderColor: '#ffeb3b',
+                  background: 'rgba(255, 235, 59, 0.1)'
+                },
+                fontWeight: 'bold',
+                fontSize: '0.75rem', // Smaller text
+                py: 0.5, // Reduced padding
+                minHeight: '32px' // Smaller height
+              }}
+            >
+              MY GAME HISTORY
+            </Button>
+          </Box>
+        </Box>
+
+        {/* Announcement Dialog (keep existing) */}
+        {openAnnouncement && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 60,
+              left: 0,
+              right: 0,
+              textAlign: 'center',
+              zIndex: 10,
+              padding: '0 16px',
+            }}
+          >
+            {/* Main Winner Banner - Kara Krus Style */}
+            <Box sx={{
+              background: 'linear-gradient(135deg, rgba(25,0,0,0.95) 0%, rgba(60,0,0,0.95) 100%)',
+              borderRadius: '12px',
+              padding: '20px',
+              marginBottom: '16px',
+              border: '3px solid #c62828',
+              boxShadow: `
+                0 0 15px rgba(198, 40, 40, 0.7),
+                0 0 25px rgba(198, 40, 40, 0.4),
+                inset 0 0 10px rgba(255, 255, 255, 0.1)`,
+              position: 'relative',
+              overflow: 'hidden',
+              '&:before': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '4px',
+                background: 'linear-gradient(90deg, #c62828, #ef5350, #c62828)',
+              },
+              '&:after': {
+                content: '""',
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '150px',
+                height: '150px',
+                backgroundImage: coinFaceImg ? `url(${coinFaceImg})` : (winningBall.karakrus === 'heads' ? 'url(/heads-icon.png)' : 'url(/tails-icon.png)'),
+                backgroundSize: 'contain',
+                backgroundRepeat: 'no-repeat',
+                opacity: 0.1,
+                zIndex: 0
+              }
+            }}>
+              {/* Cross decoration */}
+              <Box sx={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: `
+                  linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
+                  linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px)`,
+                backgroundSize: '20px 20px',
+                zIndex: 0
+              }} />
+              
+              <Typography
+                variant="h3"
+                sx={{
+                  fontFamily: "'Cinzel Decorative', cursive",
+                  fontSize: { xs: "2.5rem", sm: "3.5rem" },
+                  color: "#ffeb3b",
+                  textShadow: `
+                    2px 2px 0 #c62828,
+                    4px 4px 0 rgba(0, 0, 0, 0.5)`,
+                  letterSpacing: '2px',
+                  lineHeight: 1.2,
+                  padding: '12px 24px',
+                  background: 'rgba(0,0,0,0.3)',
+                  borderRadius: '8px',
+                  display: 'inline-block',
+                  position: 'relative',
+                  zIndex: 1,
+                  border: '2px solid rgba(255, 235, 59, 0.3)',
+                  boxShadow: 'inset 0 0 10px rgba(255, 235, 59, 0.2)'
+                }}
+              >
+                {winningBall.karakrus === 'heads' ? 'KARA WINS!' : 'KRUS WINS!'}
+                <Box sx={{
+                  position: 'absolute',
+                  top: -15,
+                  right: -15,
+                  width: '50px',
+                  height: '50px',
+                  backgroundImage: coinFaceImg ? `url(${coinFaceImg})` : (winningBall.karakrus === 'heads' ? 'url(/heads-coin.png)' : 'url(/tails-coin.png)'),
+                  backgroundSize: 'contain',
+                  backgroundRepeat: 'no-repeat',
+                  filter: 'drop-shadow(0 0 5px gold)',
+                  animation: 'float 3s ease-in-out infinite',
+                  '@keyframes float': {
+                    '0%, 100%': { transform: 'translateY(0) rotate(0deg)' },
+                    '50%': { transform: 'translateY(-10px) rotate(10deg)' },
+                  }
+                }} />
+              </Typography>
+              
+              {/* Coin flip animation */}
+              <Box sx={{
+                position: 'absolute',
+                bottom: -20,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '100px',
+                height: '100px',
+                backgroundImage: 'url(/spinning-coin.gif)',
+                backgroundSize: 'contain',
+                backgroundRepeat: 'no-repeat',
+                opacity: 0.6,
+                zIndex: 0
+              }} />
+            </Box>
+
+            {/* Top Players Section */}
+            {topPlayers?.length > 0 && (
+              <Box sx={{
+                background: 'linear-gradient(135deg, rgba(40,0,0,0.9) 0%, rgba(80,0,0,0.9) 100%)',
+                borderRadius: '12px',
+                padding: '16px',
+                border: '2px solid rgba(255, 235, 59, 0.3)',
+                boxShadow: '0 0 15px rgba(198, 40, 40, 0.5)',
+                maxWidth: '400px',
+                margin: '0 auto',
+                backdropFilter: 'blur(5px)',
+                position: 'relative',
+                overflow: 'hidden',
+                '&:before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: '3px',
+                  background: 'linear-gradient(90deg, #c62828, #ffeb3b, #c62828)'
+                }
+              }}>
+                <Typography variant="h5" sx={{ 
+                  color: '#ffeb3b', 
+                  fontFamily: "'Cinzel', serif",
+                  fontSize: { xs: "1.5rem", sm: "1.8rem" },
+                  marginBottom: '12px',
+                  letterSpacing: '1px',
+                  textShadow: '2px 2px 3px rgba(0,0,0,0.8)',
+                  position: 'relative',
+                  display: 'inline-block',
+                  padding: '0 10px',
+                  '&:before, &:after': {
+                    content: '""',
+                    position: 'absolute',
+                    top: '50%',
+                    width: '30px',
+                    height: '2px',
+                    background: 'linear-gradient(90deg, #c62828, transparent)'
+                  },
+                  '&:before': {
+                    left: '-30px'
+                  },
+                  '&:after': {
+                    right: '-30px',
+                    background: 'linear-gradient(90deg, transparent, #c62828)'
+                  }
+                }}>
+                  TOP WINNERS
+                </Typography>
+                
+                <Box sx={{
+                  maxHeight: '200px',
+                  overflowY: 'auto',
+                  '&::-webkit-scrollbar': {
+                    width: '5px',
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    background: '#c62828',
+                    borderRadius: '10px',
+                  }
+                }}>
+                  {topPlayers.map((player, index) => {
+                    const isCurrentUser = player.uuid === userInfo.userData.data.user.uuid;
+                    return (
+                      <Box key={player.uuid} sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '10px 8px',
+                        marginBottom: '8px',
+                        borderRadius: '8px',
+                        background: isCurrentUser 
+                          ? 'linear-gradient(90deg, rgba(255,235,59,0.2) 0%, rgba(255,235,59,0.3) 100%)' 
+                          : 'rgba(0,0,0,0.3)',
+                        border: isCurrentUser ? '1px solid #ffeb3b' : '1px solid rgba(255,255,255,0.1)',
+                        boxShadow: isCurrentUser ? '0 0 10px rgba(255,235,59,0.3)' : 'none',
+                        position: 'relative'
+                      }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Box sx={{
+                            width: '24px',
+                            height: '24px',
+                            background: isCurrentUser ? '#ffeb3b' : '#c62828',
+                            borderRadius: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginRight: '10px',
+                            color: isCurrentUser ? '#000' : '#fff',
+                            fontWeight: 'bold',
+                            fontSize: '0.8rem',
+                            boxShadow: '0 0 5px rgba(0,0,0,0.3)',
+                            transform: 'rotate(45deg)',
+                            '& > span': {
+                              transform: 'rotate(-45deg)',
+                              display: 'inline-block'
+                            }
+                          }}>
+                            <span>{index + 1}</span>
+                          </Box>
+                          <Typography sx={{ 
+                            color: isCurrentUser ? '#ffeb3b' : '#fff',
+                            fontWeight: isCurrentUser ? 'bold' : 'normal',
+                            fontFamily: "'Roboto Condensed', sans-serif",
+                            fontSize: { xs: "1.1rem", sm: "1.3rem" },
+                            letterSpacing: '0.5px',
+                          }}>
+                            {player.name} {isCurrentUser && <span style={{ color: '#c62828', fontSize: '0.8rem' }}>(YOU)</span>}
+                          </Typography>
+                        </Box>
+                        
+                        <Box sx={{
+                          background: 'rgba(0,0,0,0.5)',
+                          borderRadius: '12px',
+                          padding: '4px 10px',
+                          border: `1px solid ${isCurrentUser ? '#ffeb3b' : '#c62828'}`,
+                          boxShadow: '0 0 5px rgba(0,0,0,0.3)',
+                          minWidth: '80px',
+                          textAlign: 'center'
+                        }}>
+                          <Typography sx={{ 
+                            color: isCurrentUser ? '#ffeb3b' : '#fff',
+                            fontWeight: 'bold',
+                            fontFamily: "'Roboto Condensed', sans-serif",
+                            fontSize: { xs: "1.1rem", sm: "1.3rem" },
+                          }}>
+                            +{player.prize.toFixed(2)}
+                          </Typography>
+                        </Box>
+                        {
+                          <ReactConfetti
+                            width={window.innerWidth}
+                            height={window.innerHeight}
+                            recycle={false}
+                            numberOfPieces={300}
+                          />
+                        }
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </Box>
+            )}
+            {topPlayers?.some(player => player.uuid === userInfo.userData.data.user.uuid) && (
               <ReactConfetti
                 width={window.innerWidth}
                 height={window.innerHeight}
                 recycle={false}
-                numberOfPieces={300}
+                numberOfPieces={500}
+                gravity={0.2}
+                initialVelocityY={15}
+                style={{ position: 'fixed', top: 0, left: 0, zIndex: 1000 }}
               />
             )}
-          </Dialog>
-        
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2, width: '100%' }}>
-          {gameState === 'idle' && (
-            <Button 
-              variant="contained" 
-              color="primary" 
-              size="large"
-              onClick={tossCoin}
-              disabled={!selectedSide || bet <= 0 || bet > balance}
-              sx={{ 
-                width: '100%',
-                py: 1.5,
-                fontSize: '1.1rem',
-                boxShadow: 3
-              }}
-            >
-              Toss Coin
-            </Button>
-          )}
+          </Box>
+        )}
+
+        {/* Bet Amount Dialog (keep existing but style it) */}
+        <Dialog 
+          open={openBetDialog} 
+          onClose={handleDialogClose}
+          PaperProps={{
+            sx: {
+              background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
+              border: '1px solid rgba(255, 235, 59, 0.2)',
+              boxShadow: '0 0 30px rgba(198, 40, 40, 0.5)',
+              borderRadius: '12px',
+              overflow: 'hidden',
+              '&:before': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '3px',
+                background: 'linear-gradient(90deg, #c62828, #ffeb3b, #c62828)'
+              }
+            }
+          }}
+        >
+          <DialogTitle sx={{ 
+            color: '#ffeb3b',
+            background: 'rgba(0,0,0,0.3)',
+            borderBottom: '1px solid rgba(255, 235, 59, 0.2)',
+            textAlign: 'center',
+            fontWeight: 'bold',
+            letterSpacing: '1px'
+          }}>
+            PLACE BET FOR {betType === 'heads' ? 'KARA' : 'KRUS'}
+          </DialogTitle>
           
-          {gameState === 'result' && (
-            <Button 
-              variant="contained" 
-              color="secondary" 
-              size="large"
-              onClick={startNextRound}
+          <DialogContent sx={{ py: 3 }}>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="Bet Amount"
+              type="number"
+              fullWidth
+              variant="outlined"
+              value={betAmount}
+              onChange={(e) => setBetAmount(e.target.value)}
               sx={{ 
-                width: '100%',
-                py: 1.5,
-                fontSize: '1.1rem',
-                boxShadow: 3
+                mb: 3,
+                '& .MuiOutlinedInput-root': {
+                  color: 'white',
+                  '& fieldset': {
+                    borderColor: 'rgba(255, 235, 59, 0.3)',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: 'rgba(255, 235, 59, 0.5)',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#ffeb3b',
+                  },
+                },
+                '& .MuiInputLabel-root': {
+                  color: 'rgba(255, 235, 59, 0.7)',
+                },
+                '& .MuiInputLabel-root.Mui-focused': {
+                  color: '#ffeb3b',
+                },
+              }}
+            />
+            
+            <Typography variant="subtitle1" sx={{ 
+              color: '#ffeb3b',
+              mb: 2,
+              textAlign: 'center',
+              fontWeight: 'bold'
+            }}>
+              QUICK BET AMOUNTS
+            </Typography>
+            
+            <Grid container spacing={1}>
+              {quickBetAmounts.map((amount) => (
+                <Grid item xs={4} key={amount}>
+                  <Button
+                    variant="outlined"
+                    fullWidth
+                    onClick={() => setBetAmount(amount)}
+                    sx={{ 
+                      py: 1,
+                      color: '#ffeb3b',
+                      borderColor: 'rgba(255, 235, 59, 0.3)',
+                      '&:hover': {
+                        borderColor: '#ffeb3b',
+                        background: 'rgba(255, 235, 59, 0.1)'
+                      }
+                    }}
+                  >
+                    ₱{amount}
+                  </Button>
+                </Grid>
+              ))}
+            </Grid>
+          </DialogContent>
+          
+          <DialogActions sx={{
+            background: 'rgba(0,0,0,0.3)',
+            borderTop: '1px solid rgba(255, 235, 59, 0.2)',
+            padding: '16px'
+          }}>
+            <Button 
+              onClick={handleClearBet}
+              sx={{
+                color: 'rgba(255,255,255,0.7)',
+                '&:hover': {
+                  color: '#ffeb3b'
+                }
               }}
             >
-              Next Round
+              Clear
             </Button>
-          )}
-        </Box>
-      </Box>
-    </Container>
+            <Button 
+              onClick={handleDialogClose}
+              sx={{
+                color: 'rgba(255,255,255,0.7)',
+                '&:hover': {
+                  color: '#ffeb3b'
+                }
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handlePlaceBet} 
+              variant="contained" 
+              disabled={!betAmount || betAmount < 5}
+              sx={{
+                background: 'linear-gradient(135deg, rgba(255,235,59,0.8) 0%, rgba(255,235,59,0.6) 100%)',
+                color: 'black',
+                fontWeight: 'bold',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, rgba(255,235,59,0.9) 0%, rgba(255,235,59,0.7) 100%)',
+                },
+                '&:disabled': {
+                  background: 'rgba(255,255,255,0.1)',
+                  color: 'rgba(255,255,255,0.3)'
+                }
+              }}
+            >
+              Place Bet
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Container>
+    </Box>
   );
 };
 

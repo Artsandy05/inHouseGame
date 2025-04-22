@@ -11,6 +11,8 @@ import Moderator from './pages/Moderator';
 import GoldenGoose from './pages/GoldenGoose';
 import AdminReports from './pages/admin/AdminReports';
 import KaraKrus from './pages/KaraKrus';
+import BulagPipiBingi from './pages/BulagPipiBingi';
+import PigeonRace from './pages/PigeonRace';
 
 const App = () => {
   return (
@@ -24,6 +26,8 @@ const App = () => {
           <Route path="/moderator" element={<Moderator />} />
           <Route path="/admin/reports" element={<AdminReports />} />
           <Route path="/karakrus" element={<KaraKrus />} />
+          <Route path="/bulag_pipi_bingi" element={<BulagPipiBingi />} />
+          <Route path="/pigeon_race" element={<PigeonRace />} />
         </Routes>
       </Router>
     </PlayerStoreProvider>

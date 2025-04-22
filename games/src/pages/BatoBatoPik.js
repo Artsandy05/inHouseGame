@@ -2,9 +2,9 @@ import React, { useEffect, useState } from "react";
 import { Button, Typography, Box, Container, TextField, Dialog, IconButton, DialogContent, DialogTitle, InputAdornment } from "@mui/material";
 import { useSpring, animated } from "@react-spring/web";
 import CloseIcon from '@mui/icons-material/Close';
-import { playerStore } from "../utils/playerStore";
+import { playerStore } from "../utils/batobatoPik";
 import { getRequiredUrl } from "../services/common";
-import moderatorStore from "../utils/Store";
+import moderatorStore from "../utils/batobatoPikModerator";
 import { formatTruncatedMoney, formatWinnerAmount, GameState, mapToArray } from "../utils/gameutils";
 import { usePlayerStore } from "../context/PlayerStoreContext";
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
@@ -262,7 +262,7 @@ const BatoBatoPik = () => {
     return Number(parseFloat(str).toFixed(2));
   };
 
-  console.log(topPlayers)
+  
 
   // Dynamically set the dialog colors based on the bet type
   const getDialogTheme = (type) => {

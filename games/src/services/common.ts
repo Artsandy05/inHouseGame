@@ -9,9 +9,9 @@ const encryptor = createEncryptor(process.env.REACT_APP_DECRYPTION_KEY);
 /**
  * Will return either with uuid(for testing) or with token when returning url
  */
-export function getRequiredUrl(liveChatUrl: boolean = false, userInfo = false) {
+export function getRequiredUrl(gameName: string = '', userInfo = false) {
 
-  const url = getWsUrl(liveChatUrl,userInfo);
+  const url = getWsUrl(gameName, userInfo);
   return url;
 }
 
@@ -21,14 +21,14 @@ export function isLoginValid() {
   return (getCookie('token') !== null || hasValue(uuid))
 }
 
-function getWsUrl(liveChatUrl = false, userInfo) {
+function getWsUrl(gameName = '', userInfo) {
 
   const wsBaseUrl = process.env.REACT_APP_WS_BASE_URL || 'ws://localhost:8001/api';
   const encryptedUserInfo = encryptor.encryptParams(userInfo);
 
-  let url = liveChatUrl
-    ? `${wsBaseUrl}/livechat?userInfo=${encryptedUserInfo}`
-    : `${wsBaseUrl}/websocket?userInfo=${encryptedUserInfo}`;
+  let url = `${wsBaseUrl}/${gameName}?userInfo=${encryptedUserInfo}`;
+  
+  
 
   // Determine the game based on the pathname
   let game = null;

@@ -2261,7 +2261,7 @@ const KaraKrus = () => {
               All bets will be refunded to players. Please wait for the next round to place new bets.
             </Typography>
             
-            <Box sx={{
+            {/* <Box sx={{
               background: 'rgba(0,0,0,0.5)',
               borderRadius: '8px',
               padding: '15px',
@@ -2283,7 +2283,7 @@ const KaraKrus = () => {
               }}>
                 {voidMessage?.game || 'KARA-KRUS'}
               </Typography>
-            </Box>
+            </Box> */}
           </DialogContent>
           
           <DialogActions sx={{

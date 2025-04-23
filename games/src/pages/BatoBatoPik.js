@@ -55,6 +55,7 @@ const BatoBatoPik = () => {
   const [betType, setBetType] = useState("");
   const [betAmount, setBetAmount] = useState(0);
   const [isAnimationEnd, setIsAnimationEnd] = useState(false);
+  const [announcementDialogOpen, setAnnouncementDialogOpen] = useState(false);
   const [voidMessageDialogOpen, setVoidMessageDialogOpen] = useState(false);
   
   const { gameState, setPlayerInfo, sendMessage, countdown, slots,setSlots,odds, allBets, winningBall, setUserInfo, topPlayers, juanChoice, pedroChoice, voidMessage } = playerStore();
@@ -98,6 +99,20 @@ const BatoBatoPik = () => {
       setUserInfo(userInfo.userData.data.user);
     }
   }, []);
+
+  useEffect(() => {
+    let timer;
+  
+    if (gameState === GameState.WinnerDeclared) {
+      setAnnouncementDialogOpen(true);
+    } else {
+      timer = setTimeout(() => {
+        setAnnouncementDialogOpen(false);
+      }, 2000);
+    }
+  
+    return () => clearTimeout(timer);
+  }, [gameState]);
   
 
   // Spring animation for tilting Juan's and Pedro's images
@@ -450,11 +465,11 @@ const BatoBatoPik = () => {
       }}
     />
       {/* Winner Announcement - Enhanced with animation and better styling */}
-      {gameState === GameState.WinnerDeclared && (
+      {announcementDialogOpen && (
         <Box
           sx={{
             position: 'absolute',
-            top: 60,
+            top: '40%',
             left: 0,
             right: 0,
             textAlign: 'center',
@@ -674,409 +689,325 @@ const BatoBatoPik = () => {
         </Box>
       )}
 
-      {/* User Info Panel - Enhanced with card-like design */}
-      <Box sx={{ 
-        position: "absolute", 
-        top: 20, 
-        left: 20,
-        background: 'rgba(0,0,0,0.7)',
-        padding: '10px 10px',
+      {/* Mobile-optimized User Info Panel */}
+      <Box sx={{
+        position: "fixed",
+        top: 10,
+        left: 10,
+        right: 10,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        background: 'rgba(0,0,0,0.85)',
+        padding: '8px 12px',
         borderRadius: '12px',
-        borderLeft: '4px solid #4CAF50',
-        boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
+        border: '1px solid #4CAF50',
+        boxShadow: '0 2px 10px rgba(76, 175, 80, 0.3)',
         backdropFilter: 'blur(5px)',
-        zIndex: 1,
-        height: 60
+        zIndex: 98,
+        maxWidth: 'calc(100% - 20px)'
       }}>
-        <Typography variant="h6" sx={{ 
-          fontSize: "1.2rem",
-          fontWeight: 'bold',
-          color: "#4CAF50",
-          marginBottom: '4px'
+        {/* User Info - Left Side */}
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          overflow: 'hidden',
+          flex: 1,
+          mr: 1
         }}>
-          {userInfo?.userData?.data?.user?.firstName}
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <AccountBalanceWalletIcon sx={{ color: '#FFD700', marginRight: '8px' }} />
-          <Typography sx={{ 
-            fontSize: "1rem",
-            color: "#fff",
-            fontWeight: '500'
-          }}>
-            {`${formatTruncatedMoney(userInfo?.userData?.data?.wallet?.balance.toLocaleString())}`}
-          </Typography>
-        </Box>
-      </Box>
-
-      {/* Game Status Panel - Enhanced with dynamic color based on state */}
-      <Box sx={{ 
-        position: "absolute", 
-        top: 20, 
-        right: 20,
-        background: 'rgba(0,0,0,0.7)',
-        padding: '12px 20px',
-        borderRadius: '12px',
-        borderLeft: '4px solid',
-        borderLeftColor: gameState === 'Open' ? '#4CAF50' : 
-                        gameState === 'LastCall' ? '#FFC107' : 
-                        gameState === 'Closed' ? '#F44336' : '#9E9E9E',
-        boxShadow: '0 4px 8px rgba(0,0,0,0.3)',
-        backdropFilter: 'blur(5px)',
-        zIndex: 1,
-        height: 60
-      }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
-          <AccessTimeIcon sx={{ 
-            color: gameState === 'Open' ? '#4CAF50' : 
-                  gameState === 'LastCall' ? '#FFC107' : 
-                  gameState === 'Closed' ? '#F44336' : '#9E9E9E',
-            marginRight: '8px' 
+          <AccountBalanceWalletIcon sx={{ 
+            color: '#4CAF50', 
+            fontSize: '1rem',
+            minWidth: '20px',
+            mr: 1
           }} />
-          <Typography variant="h6" sx={{ 
-            fontSize: "1.2rem",
-            fontWeight: 'bold',
-            color: gameState === 'Open' ? '#4CAF50' : 
-                  gameState === 'LastCall' ? '#FFC107' : 
-                  gameState === 'Closed' ? '#F44336' : '#9E9E9E'
-          }}>
-            {["Open", "LastCall", "Closed"].includes(gameState) ? gameState.toUpperCase() : ""}
+          <Typography 
+            variant="body2"
+            sx={{
+              fontWeight: 'bold',
+              color: "#fff",
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              fontSize: '0.8rem'
+            }}
+          >
+            {userInfo?.userData?.data?.user?.firstName}
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <TimerIcon sx={{ color: '#03A9F4', marginRight: '8px' }} />
+
+        {/* Balance - Right Side */}
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          background: 'rgba(0,0,0,0.4)',
+          borderRadius: '8px',
+          padding: '2px 8px',
+          border: '1px solid rgba(255,215,0,0.3)',
+          minWidth: 'fit-content'
+        }}>
           <Typography sx={{ 
-            fontSize: "1rem",
-            color: "#fff",
-            fontWeight: '500'
+            fontSize: "0.75rem",
+            color: "#FFD700",
+            fontWeight: '700',
+            fontFamily: "'Roboto', sans-serif",
+            whiteSpace: 'nowrap'
           }}>
-            {countdown} SECONDS
+            {formatTruncatedMoney(userInfo?.userData?.data?.wallet?.balance)}
           </Typography>
         </Box>
       </Box>
-      <Box display="flex" justifyContent="center" alignItems="center" flexDirection="column" height={"100vh"} zIndex={1}>
-        <Box display="flex" justifyContent="space-around" alignItems="center" marginTop="50px">
-          {/* Juan's Image */}
-          <Box>
-            <animated.img
-              src={juanChoiceFinal ? images[juanChoiceFinal].left : images.rock.left}
-              alt="Juan"
-              style={{
-                ...juanSpring,
-                width: "150px",
-                height: "150px",
-                position: "relative",
-                bottom: "0",
-              }}
-            />
-            <Typography variant="h6" sx={{ fontFamily: "rock salt", fontSize: "1.5rem", color: "lightgreen" }}>
-              Juan
+
+      {/* Mobile-optimized Game Status Panel with Progress Bar */}
+      <Box sx={{
+        position: "fixed",
+        top: 60, // Below user info
+        left: 10,
+        right: 10,
+        background: 'rgba(0,0,0,0.85)',
+        padding: '8px 10px',
+        borderRadius: '8px',
+        border: '1px solid',
+        borderColor: gameState === 'Open' ? '#4CAF50' : 
+                    gameState === 'LastCall' ? '#FFC107' : 
+                    gameState === 'Closed' ? '#F44336' : '#9E9E9E',
+        boxShadow: theme => `0 2px 8px ${gameState === 'Open' ? 'rgba(76, 175, 80, 0.3)' : 
+                              gameState === 'LastCall' ? 'rgba(255, 193, 7, 0.3)' : 
+                              gameState === 'Closed' ? 'rgba(244, 67, 54, 0.3)' : 'rgba(158, 158, 158, 0.3)'}`,
+        backdropFilter: 'blur(5px)',
+        zIndex: 99,
+        maxWidth: 'calc(100% - 20px)'
+      }}>
+        {/* Top Row - Status and Timer */}
+        <Box sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: '4px'
+        }}>
+          {/* Status Indicator */}
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Box sx={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              background: gameState === 'Open' ? '#4CAF50' : 
+                          gameState === 'LastCall' ? '#FFC107' : 
+                          gameState === 'Closed' ? '#F44336' : '#9E9E9E',
+              mr: 1,
+              animation: 'pulse 1.5s infinite',
+              '@keyframes pulse': {
+                '0%, 100%': { opacity: 1 },
+                '50%': { opacity: 0.5 }
+              }
+            }} />
+            <Typography sx={{ 
+              fontSize: "0.75rem",
+              fontWeight: 'bold',
+              color: gameState === 'Open' ? '#4CAF50' : 
+                    gameState === 'LastCall' ? '#FFC107' : 
+                    gameState === 'Closed' ? '#F44336' : '#9E9E9E',
+              textTransform: 'uppercase'
+            }}>
+              {gameState || 'Waiting'}
             </Typography>
-            <Button
-              variant="contained"
-              color="success"
-              onClick={() => handleBetClick("juan")}
-              disabled={!(["Open", "LastCall"].includes(gameState))}
-              sx={{
-                padding: "12px 16px",
-                fontSize: "1rem",
-                marginTop: 0.5,
-                borderRadius: "14px",
-                marginLeft: 4,
-                transition: "all 0.3s ease",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "linear-gradient(135deg, #006400 0%, #228B22 50%, #32CD32 100%)",
-                boxShadow: "0 4px 8px rgba(0, 100, 0, 0.3)",
-                fontFamily: "'Paytone One', sans-serif",
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-                minWidth: "140px",
-                "&:hover": {
-                  background: "linear-gradient(135deg, #228B22 0%, #32CD32 50%, #66b266 100%)",
-                  transform: "translateY(-3px)",
-                  boxShadow: "0 6px 12px rgba(0, 100, 0, 0.4)"
-                },
-                ...(countdown === 0 && {
-                  background: "#333",
-                  color: "#666",
-                  cursor: "not-allowed",
-                  "&:hover": {
-                    background: "#333",
-                    transform: "none",
-                    boxShadow: "0 4px 8px rgba(0, 100, 0, 0.3)"
-                  },
-                }),
-              }}
-            >
-              {/* Main button label with icon */}
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <CasinoIcon sx={{ fontSize: "1.2rem" }} /> {/* Changed to Casino icon for betting feel */}
-                <Typography sx={{ 
-                  fontFamily: "'Bangers', cursive",
-                  fontSize: "1.2rem",
-                  letterSpacing: "1px",
-                  textShadow: "1px 1px 2px rgba(0,0,0,0.3)"
-                }}>
-                  JUAN
-                </Typography>
-              </Box>
-
-              {/* Bet information sections */}
-              <Box sx={{ width: "100%", mt: 1, textAlign: "center" }}>
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <SavingsIcon sx={{ fontSize: "0.9rem", color: "#00ff9a" }} /> {/* Single coin icon */}
-                  <Typography sx={{ 
-                    fontSize: "0.8rem", 
-                    color: "#00ff9a",
-                    fontFamily: "'Orbitron', sans-serif",
-                    fontWeight: "bold"
-                  }}>
-                    My bet: <span style={{fontSize:15}}>₱</span>{slots.get('juan') ? `${slots.get('juan')}` : 0}
-                  </Typography>
-                </Box>
-                
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 0.5 }}>
-                  <StackedBarChartIcon sx={{ fontSize: "0.9rem", color: "cyan", transform: "rotate(90deg)" }} /> {/* Pile of coins representation */}
-                  <Typography sx={{ 
-                    fontSize: "0.8rem", 
-                    color: "cyan",
-                    fontFamily: "'Orbitron', sans-serif",
-                    fontWeight: "bold"
-                  }}>
-                    Bets: <span style={{fontSize:15}}>₱</span>{allBets?.has('juan') ? `${formatWinnerAmount(allBets.get('juan'))}` : 0}
-                  </Typography>
-                </Box>
-                
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 0.5 }}>
-                  <ShowChartIcon sx={{ fontSize: "0.9rem", color: "yellow" }} /> {/* Trending icon for odds */}
-                  <Typography sx={{ 
-                    fontSize: "0.8rem", 
-                    color: "yellow",
-                    fontFamily: "'Orbitron', sans-serif",
-                    fontWeight: "bold",
-                    textShadow: "0 0 4px rgba(255,255,0,0.5)"
-                  }}>
-                    Odds: {getOdds('juan') ? `x${parseFloat(getOdds('juan')).toFixed(2)}` : 'x0'}
-                  </Typography>
-                </Box>
-              </Box>
-            </Button>
-
           </Box>
-
-          {/* VS Image */}
-          <img src={images.vs} alt="vs" style={{ width: "60px", height: "60px", position:'relative', top: -50 }} />
-
-          {/* Pedro's Image */}
-          <Box>
-            <animated.img
-              src={pedroChoiceFinal ? images[pedroChoiceFinal].right : images.rock.right}
-              alt="Pedro"
-              style={{
-                width: "150px",
-                height: "150px",
-                position: "relative",
-                bottom: "0",
-                ...pedroSpring,
-              }}
-            />
-            <Typography variant="h6" sx={{ fontFamily: "rock salt", fontSize: "1.5rem", color: "lightcoral", position: "relative", left:-15 }}>
-              Pedro
+          
+          {/* Countdown Timer */}
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <AccessTimeIcon sx={{ 
+              color: '#03A9F4', 
+              fontSize: '0.8rem',
+              mr: '4px'
+            }} />
+            <Typography sx={{ 
+              fontSize: "0.75rem",
+              color: "#fff",
+              fontWeight: '700',
+              fontFamily: "'Roboto', sans-serif"
+            }}>
+              {countdown}s
             </Typography>
-            <Button
-              variant="contained"
-              color="error"
-              onClick={() => handleBetClick("pedro")}
-              disabled={!(["Open", "LastCall"].includes(gameState))}
-              sx={{
-                padding: "12px 16px",
-                fontSize: "1rem",
-                borderRadius: "14px",
-                marginTop: 0.5,
-                marginLeft: -1,
-                transition: "all 0.3s ease",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "linear-gradient(135deg, #8B0000 0%, #A52A2A 50%, #D2691E 100%)",
-                boxShadow: "0 4px 8px rgba(139, 0, 0, 0.3)",
-                fontFamily: "'Paytone One', sans-serif",
-                textTransform: "uppercase",
-                letterSpacing: "0.5px",
-                minWidth: "140px",
-                "&:hover": {
-                  background: "linear-gradient(135deg, #A52A2A 0%, #DC143C 50%, #FF4500 100%)",
-                  transform: "translateY(-3px)",
-                  boxShadow: "0 6px 12px rgba(139, 0, 0, 0.4)"
-                },
-                ...(countdown === 0 && {
-                  background: "#333",
-                  color: "#666",
-                  cursor: "not-allowed",
-                  "&:hover": {
-                    background: "#333",
-                    transform: "none",
-                    boxShadow: "0 4px 8px rgba(139, 0, 0, 0.3)"
-                  },
-                }),
-              }}
-            >
-              {/* Main button label with icon */}
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <CasinoIcon sx={{ fontSize: "1.2rem" }} />
-                <Typography sx={{ 
-                  fontFamily: "'Bangers', cursive",
-                  fontSize: "1.2rem",
-                  letterSpacing: "1px",
-                  textShadow: "1px 1px 2px rgba(0,0,0,0.3)"
-                }}>
-                  PEDRO
-                </Typography>
-              </Box>
-
-              {/* Bet information sections */}
-              <Box sx={{ width: "100%", mt: 1, textAlign: "center" }}>
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <SavingsIcon sx={{ fontSize: "0.9rem", color: "#00ff9a" }} />
-                  <Typography sx={{ 
-                    fontSize: "0.8rem", 
-                    color: "#00ff9a",
-                    fontFamily: "'Orbitron', sans-serif",
-                    fontWeight: "bold"
-                  }}>
-                    My bet: <span style={{fontSize:15}}>₱</span>{slots.get('pedro') ? `${slots.get('pedro')}` : 0}
-                  </Typography>
-                </Box>
-                
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 0.5 }}>
-                  <StackedBarChartIcon sx={{ fontSize: "0.9rem", color: "cyan", transform: "rotate(90deg)" }} />
-                  <Typography sx={{ 
-                    fontSize: "0.8rem", 
-                    color: "cyan",
-                    fontFamily: "'Orbitron', sans-serif",
-                    fontWeight: "bold"
-                  }}>
-                    Bets: <span style={{fontSize:15}}>₱</span>{allBets?.has('pedro') ? `${formatWinnerAmount(allBets.get('pedro'))}` : 0}
-                  </Typography>
-                </Box>
-                
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 0.5 }}>
-                  <ShowChartIcon sx={{ fontSize: "0.9rem", color: "yellow" }} />
-                  <Typography sx={{ 
-                    fontSize: "0.8rem", 
-                    color: "yellow",
-                    fontFamily: "'Orbitron', sans-serif",
-                    fontWeight: "bold",
-                    textShadow: "0 0 4px rgba(255,255,0,0.5)"
-                  }}>
-                    Odds: {getOdds('pedro') ? `x${parseFloat(getOdds('pedro')).toFixed(2)}` : 'x0'}
-                  </Typography>
-                </Box>
-              </Box>
-            </Button>
-
           </Box>
         </Box>
 
-        {/* Centered Tie Bet */}
-        <Typography variant="h6" sx={{ fontFamily: "rock salt", fontSize: "1.5rem", color: "lightblue" }}>
-              Tie
-            </Typography>
-        <Box marginTop={-2} textAlign="center">
-        <Button
-          variant="contained"
-          color="info"
-          onClick={() => handleBetClick("tie")}
-          disabled={!(["Open", "LastCall"].includes(gameState))}
+        {/* Progress Bar - Mobile Optimized */}
+        <Box sx={{
+          width: '100%',
+          height: '4px',
+          background: 'rgba(255,255,255,0.1)',
+          borderRadius: '2px',
+          overflow: 'hidden'
+        }}>
+          <Box sx={{
+            width: `${(countdown/30)*100}%`,
+            height: '100%',
+            background: gameState === 'Open' ? 'linear-gradient(90deg, #4CAF50, #8BC34A)' : 
+                        gameState === 'LastCall' ? 'linear-gradient(90deg, #FFC107, #FF9800)' : 
+                        gameState === 'Closed' ? 'linear-gradient(90deg, #F44336, #E91E63)' : 'linear-gradient(90deg, #9E9E9E, #607D8B)',
+            transition: 'width 1s linear',
+            boxShadow: `0 0 4px ${gameState === 'Open' ? 'rgba(76, 175, 80, 0.7)' : 
+                        gameState === 'LastCall' ? 'rgba(255, 193, 7, 0.7)' : 
+                        gameState === 'Closed' ? 'rgba(244, 67, 54, 0.7)' : 'rgba(158, 158, 158, 0.7)'}`
+          }} />
+        </Box>
+      </Box>
+
+      <Box 
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "50vh",
+          position:'relative',
+          top:50,
+          padding: 2,
+          boxSizing: "border-box",
+          width: "100%",
+          maxWidth: "100vw",
+          overflowX: "hidden"
+        }}
+      >
+        {/* Main VS Battle Area */}
+        <Box 
           sx={{
-            padding: "12px 16px",
-            fontSize: "1rem",
-            marginTop: "20px",
-            borderRadius: "14px",
-            transition: "all 0.3s ease",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            justifyContent: "center",
-            background: "linear-gradient(135deg, #4682B4 0%, #5F9EA0 50%, #00BFFF 100%)",
-            boxShadow: "0 4px 8px rgba(70, 130, 180, 0.3)",
-            fontFamily: "'Paytone One', sans-serif",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-            minWidth: "140px",
-            "&:hover": {
-              background: "linear-gradient(135deg, #5F9EA0 0%, #00BFFF 50%, #4682B4 100%)",
-              transform: "translateY(-3px)",
-              boxShadow: "0 6px 12px rgba(70, 130, 180, 0.4)"
-            },
-            ...(countdown === 0 && {
-              background: "#333",
-              color: "#666",
-              cursor: "not-allowed",
-              "&:hover": {
-                background: "#333",
-                transform: "none",
-                boxShadow: "0 4px 8px rgba(70, 130, 180, 0.3)"
-              },
-            }),
+            width: "100%",
+            marginBottom: 2
           }}
         >
-          {/* Main button label with icon */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <BalanceIcon sx={{ fontSize: "1.2rem" }} /> {/* Changed to Balance icon for tie */}
-            <Typography sx={{ 
-              fontFamily: "'Bangers', cursive",
-              fontSize: "1.2rem",
-              letterSpacing: "1px",
-              textShadow: "1px 1px 2px rgba(0,0,0,0.3)"
-            }}>
-              TIE
-            </Typography>
-          </Box>
+          {/* Character Battle Row */}
+          <Box 
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              width: "100%",
+              maxWidth: "400px",
+              position: "relative",
+              marginBottom: 1
+            }}
+          >
+            {/* Juan Section */}
+            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
+              <animated.img
+                src={juanChoiceFinal ? images[juanChoiceFinal].left : images.rock.left}
+                alt="Juan"
+                style={{
+                  ...juanSpring,
+                  width: "100px",
+                  height: "100px",
+                  maxWidth: "100%",
+                  objectFit: "contain"
+                }}
+              />
+              <Typography 
+                sx={{ 
+                  fontFamily: "rock salt", 
+                  fontSize: "1.2rem", 
+                  color: "lightgreen",
+                  marginTop: 1,
+                  textAlign: "center"
+                }}
+              >
+                JUAN
+              </Typography>
+            </Box>
 
-          {/* Bet information sections */}
-          <Box sx={{ width: "100%", mt: 1, textAlign: "center" }}>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <SavingsIcon sx={{ fontSize: "0.9rem", color: "#00ff9a" }} />
-              <Typography sx={{ 
-                fontSize: "0.8rem", 
-                color: "#00ff9a",
-                fontFamily: "'Orbitron', sans-serif",
-                fontWeight: "bold"
-              }}>
-                My bet: <span style={{fontSize:15}}>₱</span>{slots.get('tie') ? `${slots.get('tie')}` : 0}
-              </Typography>
+            {/* VS Badge */}
+            <Box 
+              sx={{ 
+                position: "absolute", 
+                left: "50%", 
+                top: "50%", 
+                transform: "translate(-50%, -50%)",
+                zIndex: 2
+              }}
+            >
+              <img 
+                src={images.vs} 
+                alt="vs" 
+                style={{ 
+                  width: "40px", 
+                  height: "40px",
+                  filter: "drop-shadow(0 0 4px rgba(0,0,0,0.5))"
+                }} 
+              />
             </Box>
-            
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 0.5 }}>
-              <StackedBarChartIcon sx={{ fontSize: "0.9rem", color: "cyan", transform: "rotate(90deg)" }} />
-              <Typography sx={{ 
-                fontSize: "0.8rem", 
-                color: "cyan",
-                fontFamily: "'Orbitron', sans-serif",
-                fontWeight: "bold"
-              }}>
-                Bets: <span style={{fontSize:15}}>₱</span>{allBets?.has('tie') ? `${formatWinnerAmount(allBets.get('tie'))}` : 0}
-              </Typography>
-            </Box>
-            
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 0.5 }}>
-              <ShowChartIcon sx={{ fontSize: "0.9rem", color: "yellow" }} />
-              <Typography sx={{ 
-                fontSize: "0.8rem", 
-                color: "yellow",
-                fontFamily: "'Orbitron', sans-serif",
-                fontWeight: "bold",
-                textShadow: "0 0 4px rgba(255,255,0,0.5)"
-              }}>
-                Odds: {getOdds('tie') ? `x${parseFloat(getOdds('tie')).toFixed(2)}` : 'x0'}
+
+            {/* Pedro Section */}
+            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1 }}>
+              <animated.img
+                src={pedroChoiceFinal ? images[pedroChoiceFinal].right : images.rock.right}
+                alt="Pedro"
+                style={{
+                  ...pedroSpring,
+                  width: "100px",
+                  height: "100px",
+                  maxWidth: "100%",
+                  objectFit: "contain"
+                }}
+              />
+              <Typography 
+                sx={{ 
+                  fontFamily: "rock salt", 
+                  fontSize: "1.2rem", 
+                  color: "lightcoral",
+                  marginTop: 1,
+                  textAlign: "center"
+                }}
+              >
+                PEDRO
               </Typography>
             </Box>
           </Box>
-        </Button>
+        </Box>
+
+        {/* Betting Buttons */}
+        <Box 
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            width: "100%",
+            maxWidth: "400px",
+            gap: 2
+          }}
+        >
+          {/* Juan Bet Button */}
+          <BetButton
+            team="juan"
+            disabled={!(["Open", "LastCall"].includes(gameState))}
+            onClick={() => handleBetClick("juan")}
+            myBet={slots.get('juan') || 0}
+            totalBets={allBets?.has('juan') ? formatWinnerAmount(allBets.get('juan')) : 0}
+            odds={getOdds('juan') ? parseFloat(getOdds('juan')).toFixed(2) : 0}
+            color="success"
+          />
+
+          {/* Pedro Bet Button */}
+          <BetButton
+            team="pedro"
+            disabled={!(["Open", "LastCall"].includes(gameState))}
+            onClick={() => handleBetClick("pedro")}
+            myBet={slots.get('pedro') || 0}
+            totalBets={allBets?.has('pedro') ? formatWinnerAmount(allBets.get('pedro')) : 0}
+            odds={getOdds('pedro') ? parseFloat(getOdds('pedro')).toFixed(2) : 0}
+            color="error"
+          />
+
+          {/* Tie Bet Button */}
+          <BetButton
+            team="tie"
+            disabled={!(["Open", "LastCall"].includes(gameState))}
+            onClick={() => handleBetClick("tie")}
+            myBet={slots.get('tie') || 0}
+            totalBets={allBets?.has('tie') ? formatWinnerAmount(allBets.get('tie')) : 0}
+            odds={getOdds('tie') ? parseFloat(getOdds('tie')).toFixed(2) : 0}
+            color="info"
+          />
         </Box>
       </Box>
 
@@ -1454,6 +1385,140 @@ const BatoBatoPik = () => {
     </Container>
   );
 };
+
+const BetButton = ({ team, disabled, onClick, myBet, totalBets, odds, color }) => {
+  const teamConfig = {
+    juan: {
+      name: "JUAN",
+      icon: <CasinoIcon sx={{ fontSize: "1.2rem" }} />,
+      gradient: "linear-gradient(135deg, #006400 0%, #228B22 50%, #32CD32 100%)",
+      hoverGradient: "linear-gradient(135deg, #228B22 0%, #32CD32 50%, #66b266 100%)"
+    },
+    pedro: {
+      name: "PEDRO",
+      icon: <CasinoIcon sx={{ fontSize: "1.2rem" }} />,
+      gradient: "linear-gradient(135deg, #8B0000 0%, #A52A2A 50%, #D2691E 100%)",
+      hoverGradient: "linear-gradient(135deg, #A52A2A 0%, #DC143C 50%, #FF4500 100%)"
+    },
+    tie: {
+      name: "TIE",
+      icon: <BalanceIcon sx={{ fontSize: "1.2rem" }} />,
+      gradient: "linear-gradient(135deg, #4682B4 0%, #5F9EA0 50%, #00BFFF 100%)",
+      hoverGradient: "linear-gradient(135deg, #5F9EA0 0%, #00BFFF 50%, #4682B4 100%)"
+    }
+  };
+
+  const config = teamConfig[team] || teamConfig.tie;
+
+  return (
+    <Button
+      variant="contained"
+      disabled={disabled}
+      onClick={onClick}
+      sx={{
+        padding: "12px 16px",
+        borderRadius: "12px",
+        transition: "all 0.3s ease",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        background: config.gradient,
+        boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
+        fontFamily: "'Paytone One', sans-serif",
+        textTransform: "uppercase",
+        letterSpacing: "0.5px",
+        width: "100%",
+        "&:hover": {
+          background: config.hoverGradient,
+          transform: "translateY(-3px)",
+          boxShadow: "0 6px 12px rgba(0,0,0,0.3)"
+        },
+        "&:disabled": {
+          background: "#333",
+          color: "#666",
+          cursor: "not-allowed",
+          "&:hover": {
+            background: "#333",
+            transform: "none",
+            boxShadow: "0 4px 8px rgba(0,0,0,0.2)"
+          },
+        },
+      }}
+    >
+      {/* Main button label */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        {config.icon}
+        <Typography sx={{ 
+          fontFamily: "'Bangers', cursive",
+          fontSize: "1.2rem",
+          letterSpacing: "1px",
+          textShadow: "1px 1px 2px rgba(0,0,0,0.3)"
+        }}>
+          {config.name}
+        </Typography>
+      </Box>
+
+      {/* Bet information grid */}
+      <Box 
+        sx={{ 
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          width: "100%",
+          marginTop: 1,
+          gap: 1
+        }}
+      >
+        <InfoItem 
+          icon={<SavingsIcon sx={{ fontSize: "0.9rem", color: "#00ff9a" }} />}
+          label="My bet"
+          value={`₱${myBet}`}
+          color="#00ff9a"
+        />
+        
+        <InfoItem 
+          icon={<StackedBarChartIcon sx={{ fontSize: "0.9rem", color: "cyan" }} />}
+          label="Total"
+          value={`₱${totalBets}`}
+          color="cyan"
+        />
+        
+        <InfoItem 
+          icon={<ShowChartIcon sx={{ fontSize: "0.9rem", color: "yellow" }} />}
+          label="Odds"
+          value={`x${odds}`}
+          color="yellow"
+        />
+      </Box>
+    </Button>
+  );
+};
+
+// Reusable InfoItem Component
+const InfoItem = ({ icon, label, value, color }) => (
+  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+      {icon}
+      <Typography sx={{ 
+        fontSize: "0.7rem", 
+        color,
+        fontFamily: "'Orbitron', sans-serif",
+      }}>
+        {label}
+      </Typography>
+    </Box>
+    <Typography sx={{ 
+      fontSize: "0.9rem", 
+      color,
+      fontFamily: "'Orbitron', sans-serif",
+      fontWeight: "bold",
+      textShadow: color === "yellow" ? "0 0 4px rgba(255,255,0,0.5)" : "none"
+    }}>
+      {value}
+    </Typography>
+  </Box>
+);
+
 
 export function VoidMessageDialog() {
   return (

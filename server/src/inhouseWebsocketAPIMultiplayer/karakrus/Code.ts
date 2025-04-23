@@ -129,6 +129,7 @@ export class GameData {
   voidGame = {karakrus:false};
   walkinPlayersId = {karakrus:0};
   coinResult = false;
+  animationDuration = false;
 
   constructor() {
     this.processedGames = new Set();
@@ -158,6 +159,7 @@ export class GameData {
     };
     
     this.coinResult = false;
+    this.animationDuration = false;
   }
 
   setState(state, gameName) {
@@ -167,6 +169,9 @@ export class GameData {
 
   setCoinResult(result) {
     this.coinResult = result;
+  }
+  setAnimationDuration(animationDuration) {
+    this.animationDuration = animationDuration;
   }
 
   setWalkinPlayers(data, game) {

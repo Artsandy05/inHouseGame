@@ -155,8 +155,9 @@ function requestNewGame(gameData, msg, output) {
 }
 
 function requestCoinResult(gameData, msg, output) {
-  if(msg.result){
+  if(msg.result && msg.animationDuration){
     gameData.setCoinResult(msg.result);
+    gameData.setAnimationDuration(msg.animationDuration);
   }
 }
 

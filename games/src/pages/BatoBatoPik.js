@@ -54,8 +54,9 @@ const BatoBatoPik = () => {
   const [betType, setBetType] = useState("");
   const [betAmount, setBetAmount] = useState(0);
   const [isAnimationEnd, setIsAnimationEnd] = useState(false);
+  const [voidMessageDialogOpen, setVoidMessageDialogOpen] = useState(false);
   
-  const { gameState, setPlayerInfo, sendMessage, countdown, slots,setSlots,odds, allBets, winningBall, setUserInfo, topPlayers, juanChoice, pedroChoice } = playerStore();
+  const { gameState, setPlayerInfo, sendMessage, countdown, slots,setSlots,odds, allBets, winningBall, setUserInfo, topPlayers, juanChoice, pedroChoice, voidMessage } = playerStore();
   const { connect } = playerStore.getState();
   const [searchParams] = useSearchParams();
   const userDetailsParam = searchParams.get('data');
@@ -118,6 +119,27 @@ const BatoBatoPik = () => {
       console.log(winningBall)
     }
   }, [winningBall]);
+
+  useEffect(() => {
+    if(voidMessage){
+      console.log(voidMessage);
+    }
+  }, [voidMessage]);
+
+  useEffect(() => {
+    let timer;
+  
+    if (voidMessage?.message === "Void Game!") {
+      setVoidMessageDialogOpen(true);
+    } else {
+      timer = setTimeout(() => {
+        setVoidMessageDialogOpen(false);
+      }, 3000);
+    }
+  
+    // Cleanup timeout if gameState changes before timeout finishes
+    return () => clearTimeout(timer);
+  }, [voidMessage]);
 
   useEffect(() => {
     console.log(juanChoice)
@@ -1269,6 +1291,160 @@ const BatoBatoPik = () => {
               Place Bet
             </Button>
           </Box>
+        </DialogContent>
+      </Dialog>
+
+      {/* Void Game Dialog - Pure inline styles */}
+      <Dialog
+        open={voidMessageDialogOpen}
+        onClose={() => setVoidMessageDialogOpen(false)}
+        PaperProps={{
+          sx: {
+            background: 'linear-gradient(135deg, #8B0000 0%, #B22222 50%, #8B0000 100%)',
+            borderRadius: "16px",
+            color: "#fff",
+            width: "400px",
+            maxWidth: "90vw",
+            boxShadow: "0 10px 30px rgba(139, 0, 0, 0.7)",
+            border: "3px solid #FFD700",
+            overflow: "hidden",
+            position: "relative",
+            textAlign: "center",
+          },
+        }}
+      >
+        {/* Close Button */}
+        <IconButton
+          onClick={() => setVoidMessageDialogOpen(false)}
+          sx={{
+            position: "absolute",
+            top: 8,
+            right: 8,
+            color: "#FFD700",
+            backgroundColor: "rgba(0,0,0,0.3)",
+            '&:hover': {
+              backgroundColor: "rgba(0,0,0,0.5)"
+            }
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
+
+        <DialogContent sx={{ 
+          padding: "40px 24px 24px",
+          position: "relative",
+        }}>
+          {/* Warning Icon - Pure CSS */}
+          <Box sx={{
+            width: 80,
+            height: 80,
+            margin: "0 auto 20px",
+            background: "rgba(255, 215, 0, 0.2)",
+            borderRadius: "50%",
+            border: "3px solid #FFD700",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            position: "relative",
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: -5,
+              left: -5,
+              right: -5,
+              bottom: -5,
+              borderRadius: '50%',
+              border: '2px dashed #FFD700',
+              animation: 'spin 10s linear infinite',
+            },
+            '@keyframes spin': {
+              '0%': { transform: 'rotate(0deg)' },
+              '100%': { transform: 'rotate(360deg)' },
+            }
+          }}>
+            <Typography variant="h2" sx={{ 
+              color: "#FFD700", 
+              fontSize: "3rem",
+              lineHeight: 1,
+              marginTop: "8px",
+              fontWeight: "bold"
+            }}>!</Typography>
+          </Box>
+
+          {/* Main Message */}
+          <Typography variant="h4" sx={{ 
+            fontFamily: "'Roboto', sans-serif",
+            fontSize: "2rem",
+            color: "#FFD700",
+            textShadow: "2px 2px 4px rgba(0,0,0,0.5)",
+            letterSpacing: "1px",
+            marginBottom: "16px",
+            fontWeight: "bold",
+            textTransform: "uppercase"
+          }}>
+            GAME VOIDED!
+          </Typography>
+
+          <Typography variant="body1" sx={{ 
+            fontSize: "1rem",
+            marginBottom: "24px",
+            color: "rgba(255,255,255,0.9)",
+            lineHeight: 1.5
+          }}>
+            The current round has been declared void. All bets will be automatically returned to your account.
+          </Typography>
+
+          {/* Animated Dots for visual interest */}
+          <Box sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '8px',
+            marginBottom: '24px',
+            '& span': {
+              display: 'inline-block',
+              width: '12px',
+              height: '12px',
+              borderRadius: '50%',
+              background: '#FFD700',
+              animation: 'bounce 1.4s infinite ease-in-out',
+            },
+            '& span:nth-of-type(1)': { animationDelay: '0s' },
+            '& span:nth-of-type(2)': { animationDelay: '0.2s' },
+            '& span:nth-of-type(3)': { animationDelay: '0.4s' },
+            '@keyframes bounce': {
+              '0%, 80%, 100%': { transform: 'scale(0)' },
+              '40%': { transform: 'scale(1)' },
+            }
+          }}>
+            <span></span>
+            <span></span>
+            <span></span>
+          </Box>
+
+          {/* Confirmation Button */}
+          <Button
+            variant="contained"
+            onClick={() => setVoidMessageDialogOpen(false)}
+            sx={{
+              background: "linear-gradient(135deg, #FFD700 0%, #FFA500 100%)",
+              color: "#8B0000",
+              padding: "12px 32px",
+              borderRadius: "50px",
+              fontWeight: "bold",
+              fontSize: "1rem",
+              textTransform: "uppercase",
+              letterSpacing: "1px",
+              boxShadow: "0 4px 15px rgba(255, 215, 0, 0.5)",
+              transition: "all 0.3s ease",
+              '&:hover': {
+                transform: "translateY(-3px)",
+                boxShadow: "0 7px 20px rgba(255, 215, 0, 0.7)",
+                background: "linear-gradient(135deg, #FFA500 0%, #FFD700 100%)"
+              }
+            }}
+          >
+            Understood
+          </Button>
         </DialogContent>
       </Dialog>
 

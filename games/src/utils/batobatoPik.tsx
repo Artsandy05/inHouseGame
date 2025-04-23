@@ -353,12 +353,8 @@ async function update(set, eventData) {
     set({ gameId: meta.gameId.bbp });
   }
 
-  
-
-  if (meta.voidGameMessage) {
-    const voidGameMessage = typeof meta ==='string' ? JSON.parse(meta) : meta;
+  if (hasValue(meta.voidGameMessage)) {
     set({ voidMessage: meta.voidGameMessage });
-    set({ voidMessage: voidGameMessage.voidGameMessage });
   }
 
   if (typeof meta === 'string' && meta.includes('winningBall')) {
@@ -490,6 +486,7 @@ function newGameState(set, meta) {
     set({ pedroChoice: false });
     set({ winningBall: false });
     set({ selectedIndex: -1 });
+    set({ voidMessage: false });
     set({ selectedButton: null });
     set({ allBets: null });
     set({ bet: 0 });

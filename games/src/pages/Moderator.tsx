@@ -175,7 +175,8 @@ const Moderator = () => {
   useEffect(() => {
     if(karaKrusGameState === GameState.Closed){
       const newResult = Math.random() > 0.5 ? 'heads' : 'tails';
-      sendMessageKaraKrus(JSON.stringify({ game: "karakrus", result: newResult }));
+      const animationDuration = 5000 + Math.random() * 1000;
+      sendMessageKaraKrus(JSON.stringify({ game: "karakrus", result: newResult, animationDuration }));
     }
   }, [karaKrusGameState]);
 

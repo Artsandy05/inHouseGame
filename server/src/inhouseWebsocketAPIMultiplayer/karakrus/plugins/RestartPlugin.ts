@@ -28,6 +28,7 @@ function update(game: Game) {
           gameData.winnerOrders[gameName] = gameName === 'karakrus' && '';
           gameData.loseOrders[gameName] = [];
           gameData.coinResult = false;
+          gameData.animationDuration = false;
           gameData.playerSlots[gameName] = [];
           gameData.playerCurrentBalance[gameName] = [];
           gameData.moderatorsWinningBall[gameName] = [];

@@ -56,6 +56,7 @@ type State = {
   isHostGifted: boolean;
   userInfo: any;
   coinResult: any;
+  animationDuration: any;
 };
 
 export const playerStore = create<State>((set) => ({
@@ -76,6 +77,10 @@ export const playerStore = create<State>((set) => ({
   coinResult: false,
   setCoinResult: (g) => {
     set({ coinResult: g });
+  },
+  animationDuration: false,
+  setAnimationDuration: (g) => {
+    set({ animationDuration: g });
   },
   eventData: null,
   setEventData: (g) => {
@@ -321,10 +326,14 @@ function open(set, socket) {
 
 async function update(set, eventData) {
   let meta = JSON.parse(eventData);
-  console.log(meta);
+  //console.log(meta.voidGameMessage);
 
   if ((hasValue(meta.coinResult))) {
     set({ coinResult: meta.coinResult });
+  }
+
+  if ((hasValue(meta.animationDuration))) {
+    set({ animationDuration: meta.animationDuration });
   }
   
   if ((hasValue(meta.host)) || (typeof meta === 'string' && meta.includes('host'))) {
@@ -346,10 +355,8 @@ async function update(set, eventData) {
 
   
 
-  if (meta.voidGameMessage) {
-    const voidGameMessage = typeof meta ==='string' ? JSON.parse(meta) : meta;
+  if (hasValue(meta.voidGameMessage)) {
     set({ voidMessage: meta.voidGameMessage });
-    set({ voidMessage: voidGameMessage.voidGameMessage });
   }
 
   if (typeof meta === 'string' && meta.includes('winningBall')) {
@@ -480,6 +487,7 @@ function newGameState(set, meta) {
     set({ winningBall: false });
     set({ selectedIndex: -1 });
     set({ selectedButton: null });
+    set({ voidMessage: false });
     set({ coinResult: false });
     set({ allBets: null });
     set({ bet: 0 });

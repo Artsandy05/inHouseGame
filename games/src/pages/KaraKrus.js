@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { Button, TextField, Box, Typography, Paper, Container, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Grid, Collapse, IconButton } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { Celebration, ChevronLeft, ChevronRight, KeyboardArrowDown, KeyboardArrowLeft, KeyboardArrowRight, KeyboardArrowUp, MoodBad } from '@mui/icons-material';
+import { Celebration, ChevronLeft, ChevronRight, Close, KeyboardArrowDown, KeyboardArrowLeft, KeyboardArrowRight, KeyboardArrowUp, MoodBad } from '@mui/icons-material';
 import ReactConfetti from 'react-confetti';
 import { playerStore } from "../utils/karakrus";
 import { useSearchParams } from 'react-router-dom';
@@ -39,7 +39,7 @@ const KaraKrus = () => {
   const handRef = useRef(null);
   const [coinFaceImg, setCoinFaceImg] = useState(null);
   const theme = useTheme();
-  const { gameState, setPlayerInfo, sendMessage, countdown, slots, setSlots, odds, allBets, winningBall, setUserInfo, topPlayers, coinResult } = playerStore();
+  const { gameState, setPlayerInfo, sendMessage, countdown, slots, setSlots, odds, allBets, winningBall, setUserInfo, topPlayers, coinResult, animationDuration, voidMessage, setVoidMessage } = playerStore();
   const { connect } = playerStore.getState();
   const [searchParams] = useSearchParams();
   const userDetailsParam = searchParams.get('data');
@@ -48,6 +48,7 @@ const KaraKrus = () => {
   const [showBettingSection, setShowBettingSection] = useState(true);
   const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
   const [historyPage, setHistoryPage] = useState(0);
+  const [voidMessageDialogOpen, setVoidMessageDialogOpen] = useState(false);
   const historyItemsPerPage = 5;
 
   const handleHistoryPage = (direction) => {
@@ -102,6 +103,23 @@ const KaraKrus = () => {
   }, []);
 
   useEffect(() => {
+    let timer;
+  
+    if (voidMessage?.message === "Void Game!") {
+      setVoidMessageDialogOpen(true);
+    } else {
+      timer = setTimeout(() => {
+        setVoidMessageDialogOpen(false);
+      }, 3000);
+    }
+  
+    // Cleanup timeout if gameState changes before timeout finishes
+    return () => clearTimeout(timer);
+  }, [voidMessage]);
+
+  
+
+  useEffect(() => {
     connect();
 
     return () => {
@@ -113,10 +131,10 @@ const KaraKrus = () => {
   }, []);
 
   useEffect(() => {
-    if(gameState === GameState.Closed && coinResult){
+    if(gameState === GameState.Closed && coinResult && animationDuration){
       tossCoin();
     }
-  }, [gameState, coinResult]);
+  }, [gameState, coinResult, animationDuration]);
 
   // useEffect(() => {
   //   if(coinResult){
@@ -711,7 +729,6 @@ const KaraKrus = () => {
     const rotationZ = Math.random() * 5;
     
     const jumpHeight = 3 + Math.random() * 2;
-    const animationDuration = 5000 + Math.random() * 1000;
     
     const startTime = Date.now();
     
@@ -2127,6 +2144,172 @@ const KaraKrus = () => {
               }}
             >
               Place Bet
+            </Button>
+          </DialogActions>
+        </Dialog>
+        {/* Void Game Dialog */}
+        <Dialog
+          open={voidMessageDialogOpen}
+          onClose={() => setVoidMessageDialogOpen(false)}
+          PaperProps={{
+            sx: {
+              background: 'linear-gradient(135deg, rgba(40,0,0,0.95) 0%, rgba(80,0,0,0.95) 100%)',
+              border: '2px solid #c62828',
+              borderRadius: '12px',
+              boxShadow: '0 0 30px rgba(198, 40, 40, 0.7)',
+              overflow: 'hidden',
+              maxWidth: '400px',
+              width: '90%',
+              position: 'relative',
+              '&:before': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '4px',
+                background: 'linear-gradient(90deg, #c62828, #ef5350, #c62828)',
+              },
+              '&:after': {
+                content: '""',
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '150px',
+                height: '150px',
+                backgroundImage: 'radial-gradient(circle, rgba(255,0,0,0.2) 0%, transparent 70%)',
+                zIndex: 0
+              }
+            }
+          }}
+        >
+          {/* Cross decoration */}
+          <Box sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: `
+              linear-gradient(to right, rgba(255,0,0,0.1) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(255,0,0,0.1) 1px, transparent 1px)`,
+            backgroundSize: '20px 20px',
+            zIndex: 0
+          }} />
+          
+          <DialogTitle sx={{ 
+            position: 'relative',
+            zIndex: 1,
+            textAlign: 'center',
+            color: '#ffeb3b',
+            fontFamily: "'Cinzel Decorative', cursive",
+            fontSize: '1.8rem',
+            letterSpacing: '2px',
+            textShadow: '0 0 10px rgba(255, 235, 59, 0.5)',
+            padding: '20px',
+            borderBottom: '1px solid rgba(255, 235, 59, 0.2)',
+            background: 'rgba(0,0,0,0.3)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center'
+          }}>
+            <Box sx={{
+              width: '60px',
+              height: '60px',
+              background: '#c62828',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '15px',
+              boxShadow: '0 0 20px rgba(198, 40, 40, 0.8)',
+              border: '2px solid #ffeb3b',
+              animation: 'pulse 2s infinite',
+              '@keyframes pulse': {
+                '0%': { transform: 'scale(1)' },
+                '50%': { transform: 'scale(1.1)' },
+                '100%': { transform: 'scale(1)' }
+              }
+            }}>
+              <Close sx={{ 
+                fontSize: '2.5rem',
+                color: '#ffeb3b'
+              }} />
+            </Box>
+            GAME VOIDED
+          </DialogTitle>
+          
+          <DialogContent sx={{
+            position: 'relative',
+            zIndex: 1,
+            padding: '20px',
+            textAlign: 'center'
+          }}>
+            <Typography variant="h6" sx={{
+              color: 'rgba(255,255,255,0.9)',
+              marginBottom: '15px',
+              fontWeight: 'bold'
+            }}>
+              This round has been declared void
+            </Typography>
+            
+            <Typography variant="body1" sx={{
+              color: 'rgba(255,255,255,0.7)',
+              marginBottom: '20px'
+            }}>
+              All bets will be refunded to players. Please wait for the next round to place new bets.
+            </Typography>
+            
+            <Box sx={{
+              background: 'rgba(0,0,0,0.5)',
+              borderRadius: '8px',
+              padding: '15px',
+              border: '1px solid rgba(255, 235, 59, 0.2)',
+              marginTop: '20px'
+            }}>
+              <Typography variant="caption" sx={{
+                display: 'block',
+                color: '#ffeb3b',
+                fontWeight: 'bold',
+                marginBottom: '5px'
+              }}>
+                Game:
+              </Typography>
+              <Typography variant="body2" sx={{
+                color: 'white',
+                textTransform: 'uppercase',
+                letterSpacing: '1px'
+              }}>
+                {voidMessage?.game || 'KARA-KRUS'}
+              </Typography>
+            </Box>
+          </DialogContent>
+          
+          <DialogActions sx={{
+            position: 'relative',
+            zIndex: 1,
+            padding: '15px 20px',
+            background: 'rgba(0,0,0,0.3)',
+            borderTop: '1px solid rgba(255, 235, 59, 0.2)',
+            justifyContent: 'center'
+          }}>
+            <Button 
+              onClick={() => setVoidMessageDialogOpen(false)}
+              variant="contained"
+              sx={{
+                background: 'linear-gradient(135deg, #c62828 0%, #8e0000 100%)',
+                color: '#ffeb3b',
+                fontWeight: 'bold',
+                padding: '10px 30px',
+                borderRadius: '30px',
+                boxShadow: '0 0 15px rgba(198, 40, 40, 0.5)',
+                '&:hover': {
+                  background: 'linear-gradient(135deg, #d32f2f 0%, #9a0007 100%)',
+                }
+              }}
+            >
+              UNDERSTOOD
             </Button>
           </DialogActions>
         </Dialog>

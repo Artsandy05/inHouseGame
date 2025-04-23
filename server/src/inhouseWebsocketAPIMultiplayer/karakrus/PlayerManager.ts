@@ -38,9 +38,11 @@ export class PlayerManager implements Plugin {
         if(hasValue(output.msg) && typeof output.msg === 'string'){
           let newOutPut = JSON.parse(output.msg);
           newOutPut.coinResult = gameData.coinResult;
+          newOutPut.animationDuration = gameData.animationDuration;
           output.msg = JSON.stringify(newOutPut);
         }else{
           output.insert("coinResult", gameData.coinResult);
+          output.insert("animationDuration", gameData.animationDuration);
         }
       });
     }

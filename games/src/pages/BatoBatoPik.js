@@ -17,6 +17,7 @@ import ShowChartIcon from '@mui/icons-material/ShowChart';
 import BalanceIcon from '@mui/icons-material/Balance';
 import createEncryptor from "../utils/createEncryptor";
 import { useSearchParams } from "react-router-dom";
+import GameHistoryPanel from "../components/BatoBatoPikGameHistory";
 
 
 // Image assets
@@ -1449,7 +1450,7 @@ const BatoBatoPik = () => {
       </Dialog>
 
       {/* Fixed Position Buttons at Bottom */}
-      
+      <GameHistoryPanel />
     </Container>
   );
 };

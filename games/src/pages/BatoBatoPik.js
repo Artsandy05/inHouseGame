@@ -53,6 +53,7 @@ const BatoBatoPik = () => {
   const [openBetDialog, setOpenBetDialog] = useState(false);
   const [betType, setBetType] = useState("");
   const [betAmount, setBetAmount] = useState(0);
+  const [isAnimationEnd, setIsAnimationEnd] = useState(false);
   
   const { gameState, setPlayerInfo, sendMessage, countdown, slots,setSlots,odds, allBets, winningBall, setUserInfo, topPlayers, juanChoice, pedroChoice } = playerStore();
   const { connect } = playerStore.getState();
@@ -117,10 +118,11 @@ const BatoBatoPik = () => {
       console.log(winningBall)
     }
   }, [winningBall]);
+
   useEffect(() => {
-    console.log(juanChoiceFinal)
-    console.log(pedroChoiceFinal)
-  }, [juanChoiceFinal, pedroChoiceFinal]);
+    console.log(juanChoice)
+    console.log(pedroChoice)
+  }, [juanChoice, pedroChoice]);
 
   useEffect(() => {
     if(gameState === GameState.Closed){
@@ -136,7 +138,6 @@ const BatoBatoPik = () => {
   
 
   useEffect(() => {
-    // Check if gameState is not "Open"
     if (countdown === 0 ) {
       setOpenBetDialog(false);
     }
@@ -154,6 +155,15 @@ const BatoBatoPik = () => {
     }
     return "pedro";
   };
+  
+
+  useEffect(() => {
+    if(juanChoice && pedroChoice && isAnimationEnd){
+      setJuanChoiceFinal(juanChoice);
+      setPedroChoiceFinal(pedroChoice);
+      setIsAnimationEnd(false);
+    }
+  }, [juanChoice, pedroChoice, isAnimationEnd]);
 
   useEffect(() => {
     if(juanChoiceFinal && pedroChoiceFinal){
@@ -185,8 +195,7 @@ const BatoBatoPik = () => {
         tiltCount++;
       } else {
         clearInterval(interval);
-        setJuanChoiceFinal(juanChoice);
-        setPedroChoiceFinal(pedroChoice);
+        setIsAnimationEnd(true);
       }
     }, 250);
   };

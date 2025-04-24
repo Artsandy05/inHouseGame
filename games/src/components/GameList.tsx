@@ -141,6 +141,8 @@ const GameList: React.FC = () => {
     }
   }, [navigate]);
 
+  console.log(userData)
+
   const handleLogout = () => {
     localStorage.removeItem('user');
     removeCookie('token');
@@ -242,7 +244,7 @@ const GameList: React.FC = () => {
       >
         <Box sx={{ p: 2 }}>
           <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-            {userData?.username || 'Player'}
+            {userData?.userData.data.user.firstName || 'Player'}
           </Typography>
           
           <List>
@@ -429,7 +431,7 @@ const GameList: React.FC = () => {
               mb: 1
             }}
           >
-            Welcome back, {userData?.firstName || 'Player'}!
+            Welcome back, {userData?.userData.data.user.firstName || 'Player'}!
           </Typography>
           <Typography 
             variant="subtitle1" 

@@ -55,6 +55,19 @@ const AnimatedCard = styled(Card)({
   }
 });
 
+const ThumbnailOverlay = styled('div')({
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.7) 100%)',
+  display: 'flex',
+  alignItems: 'flex-end',
+  padding: '16px',
+  boxSizing: 'border-box'
+});
+
 const GameList: React.FC = () => {
   const [games] = useState([
     {
@@ -65,7 +78,8 @@ const GameList: React.FC = () => {
       isStreaming: true,
       description: 'Classic Filipino rock-paper-scissors with modern multiplayer',
       popularity: 4,
-      playersOnline: 128
+      playersOnline: 128,
+      thumbnail: '/assets/batobatopik.jpg',
     },
     {
       id: 2,
@@ -75,17 +89,41 @@ const GameList: React.FC = () => {
       isStreaming: false,
       description: 'Scratch-and-win with golden eggs containing instant prizes',
       popularity: 5,
-      playersOnline: 342
+      playersOnline: 342,
+      thumbnail: '/assets/goldGooseThumbnail.png',
     },
     {
       id: 3,
-      name: 'TRES_LETRA_KARERA',
-      label: 'Tres Letra Racing',
+      name: 'karakrus',
+      label: 'Kara Krus',
       isActive: true,
       isStreaming: true,
-      description: 'Fast-paced 3-letter word racing challenge',
+      description: 'Coin Flip Game Multiplayer',
       popularity: 3,
-      playersOnline: 87
+      playersOnline: 87,
+      thumbnail: '/assets/karakrus.jpg',
+    },
+    {
+      id: 4,
+      name: 'bulag_pipi_bingi',
+      label: 'Bulag Pipi Bingi',
+      isActive: true,
+      isStreaming: true,
+      description: 'Dice game multiplayer',
+      popularity: 3,
+      playersOnline: 108,
+      thumbnail: '/assets/bulag_pipi_bingi.jpg',
+    },
+    {
+      id: 5,
+      name: 'pigeon_race',
+      label: 'Pigeon Dash',
+      isActive: true,
+      isStreaming: true,
+      description: 'Pigeon Race Multiplayer',
+      popularity: 3,
+      playersOnline: 1012,
+      thumbnail: '/assets/pigeondash.jpg',
     }
   ]);
 
@@ -141,7 +179,6 @@ const GameList: React.FC = () => {
         left: '52%',
         transform: 'translateX(-50%)'
       }}>
-        {/* Keep the header as is */}
         <Slide in={true} direction="down" timeout={500}>
           <Box sx={{ display: 'flex', alignItems: 'center', width:'100%' }}>
             <SportsEsports sx={{ 
@@ -392,7 +429,7 @@ const GameList: React.FC = () => {
               mb: 1
             }}
           >
-            Welcome back, {userData?.username || 'Player'}!
+            Welcome back, {userData?.firstName || 'Player'}!
           </Typography>
           <Typography 
             variant="subtitle1" 
@@ -424,6 +461,41 @@ const GameList: React.FC = () => {
                     animation: `${pulse} 8s infinite ${index * 0.5}s`
                   }}
                 >
+                  {/* Game Thumbnail */}
+                  <Box sx={{
+                    position: 'relative',
+                    height: '180px',
+                    width: '100%',
+                    overflow: 'hidden'
+                  }}>
+                    <Box
+                      component="img"
+                      src={game.thumbnail}
+                      alt={game.label}
+                      sx={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        transition: 'transform 0.5s ease',
+                        '&:hover': {
+                          transform: 'scale(1.05)'
+                        }
+                      }}
+                    />
+                    <ThumbnailOverlay>
+                      <Typography 
+                        variant="h5" 
+                        sx={{
+                          color: '#fff',
+                          fontWeight: 700,
+                          textShadow: '0 2px 4px rgba(0,0,0,0.5)'
+                        }}
+                      >
+                        {game.label}
+                      </Typography>
+                    </ThumbnailOverlay>
+                  </Box>
+
                   <Box sx={{
                     position: 'absolute',
                     top: 0,
@@ -437,51 +509,36 @@ const GameList: React.FC = () => {
                     <Box sx={{ 
                       display: 'flex', 
                       alignItems: 'center', 
-                      mb: 3,
+                      mb: 2,
                       position: 'relative'
                     }}>
-                      <Avatar
-                        sx={{
-                          bgcolor: alpha(theme.primary, 0.1),
-                          width: 64,
-                          height: 64,
-                          mr: 2,
-                          border: `2px solid ${alpha(theme.primary, 0.3)}`
-                        }}
-                      >
-                        {game.name === 'bato_bato_pik' ? 
-                          <Gesture sx={{ fontSize: 32, color: theme.primary }} /> :
-                        game.name === 'golden_goose' ? 
-                          <EggAlt sx={{ fontSize: 32, color: theme.accent }} /> :
-                          <DirectionsRun sx={{ fontSize: 32, color: theme.primary }} />}
-                      </Avatar>
-                      <Box>
-                        <Typography 
-                          variant="h5" 
-                          component="div"
-                          sx={{ 
-                            fontWeight: 700,
-                            color: theme.textPrimary
-                          }}
-                        >
-                          {game.label}
-                        </Typography>
-                        <Box sx={{ display: 'flex', mt: 1, alignItems: 'center' }}>
-                          {[...Array(5)].map((_, i) => (
-                            <EmojiEvents 
-                              key={i} 
-                              sx={{ 
-                                fontSize: '1rem',
-                                color: i < game.popularity ? theme.accent : '#4a4e5c',
-                                mr: 0.5
-                              }} 
-                            />
-                          ))}
+                      <Box sx={{ width: '100%' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            {[...Array(5)].map((_, i) => (
+                              <EmojiEvents 
+                                key={i} 
+                                sx={{ 
+                                  fontSize: '1rem',
+                                  color: i < game.popularity ? theme.accent : '#4a4e5c',
+                                  mr: 0.5
+                                }} 
+                              />
+                            ))}
+                          </Box>
                           <Typography variant="caption" sx={{ 
                             color: theme.textSecondary, 
-                            ml: 1,
-                            fontSize: '0.7rem'
+                            fontSize: '0.75rem',
+                            display: 'flex',
+                            alignItems: 'center'
                           }}>
+                            <Box component="span" sx={{ 
+                              width: '8px',
+                              height: '8px',
+                              borderRadius: '50%',
+                              bgcolor: '#00c853',
+                              mr: 0.5
+                            }} />
                             {game.playersOnline} online
                           </Typography>
                         </Box>
@@ -503,6 +560,7 @@ const GameList: React.FC = () => {
                           color: game.isActive ? '#00c853' : '#ff1744',
                           fontWeight: 600
                         }}
+                        size="small"
                       />
                       {game.isStreaming && (
                         <Chip
@@ -513,6 +571,7 @@ const GameList: React.FC = () => {
                             color: '#2196f3',
                             fontWeight: 600
                           }}
+                          size="small"
                         />
                       )}
                     </Box>
@@ -524,7 +583,8 @@ const GameList: React.FC = () => {
                         fontFamily: '"Roboto", sans-serif',
                         fontSize: '0.9rem',
                         color: theme.textSecondary,
-                        lineHeight: 1.6
+                        lineHeight: 1.6,
+                        minHeight: '60px'
                       }}
                     >
                       {game.description}

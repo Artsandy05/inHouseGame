@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Button, Typography, Box, Container, TextField, Dialog, IconButton, DialogContent, DialogTitle, InputAdornment } from "@mui/material";
+import { Button, Typography, Box, Container, TextField, Dialog, IconButton, DialogContent, DialogTitle, InputAdornment, DialogActions } from "@mui/material";
 import { useSpring, animated } from "@react-spring/web";
 import CloseIcon from '@mui/icons-material/Close';
 import { playerStore } from "../utils/batobatoPik";
@@ -16,8 +16,9 @@ import StackedBarChartIcon from '@mui/icons-material/StackedBarChart';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import BalanceIcon from '@mui/icons-material/Balance';
 import createEncryptor from "../utils/createEncryptor";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import GameHistoryPanel from "../components/BatoBatoPikGameHistory";
+import { ArrowBack, ArrowBackIosNew, HelpOutline } from "@mui/icons-material";
 
 
 // Image assets
@@ -57,11 +58,13 @@ const BatoBatoPik = () => {
   const [isAnimationEnd, setIsAnimationEnd] = useState(false);
   const [announcementDialogOpen, setAnnouncementDialogOpen] = useState(false);
   const [voidMessageDialogOpen, setVoidMessageDialogOpen] = useState(false);
+  const [openMechanicsDialog, setOpenMechanicsDialog] = React.useState(false);
   
   const { gameState, setPlayerInfo, sendMessage, countdown, slots,setSlots,odds, allBets, winningBall, setUserInfo, topPlayers, juanChoice, pedroChoice, voidMessage } = playerStore();
   const { connect } = playerStore.getState();
   const [searchParams] = useSearchParams();
   const userDetailsParam = searchParams.get('data');
+  const navigate = useNavigate();
   let decrypted;
 
   if(userDetailsParam){
@@ -527,9 +530,10 @@ const BatoBatoPik = () => {
                 zIndex: 1
               }}
             >
-              {winningBall.bbp === 'juan' ? 'JUAN WINS!' : 
-              winningBall.bbp === 'pedro' ? 'PEDRO WINS!' : 
-              'ITS A TIE!'}
+              {!winningBall.bbp ? 'CONGRATULATIONS WINNERS!' : 
+                winningBall.bbp === 'juan' ? 'JUAN WINS!' : 
+                winningBall.bbp === 'pedro' ? 'PEDRO WINS!' : 
+                'ITS A TIE!'}
               <Box sx={{
                 position: 'absolute',
                 top: -10,
@@ -707,19 +711,35 @@ const BatoBatoPik = () => {
         zIndex: 98,
         maxWidth: 'calc(100% - 20px)'
       }}>
-        {/* User Info - Left Side */}
+        {/* User Info - Left Side with Back Button */}
         <Box sx={{
           display: 'flex',
           alignItems: 'center',
           overflow: 'hidden',
           flex: 1,
-          mr: 1
+          mr: 1,
+          gap: '8px'
         }}>
+          {/* Back Button */}
+          <IconButton
+            onClick={() => navigate(-1)}
+            sx={{
+              color: '#4CAF50',
+              padding: '4px',
+              marginRight: '4px',
+              '&:hover': {
+                backgroundColor: 'rgba(76, 175, 80, 0.2)',
+                transform: 'scale(1.1)'
+              }
+            }}
+          >
+            <ArrowBackIosNew sx={{ fontSize: '0.9rem' }} />
+          </IconButton>
+
           <AccountBalanceWalletIcon sx={{ 
             color: '#4CAF50', 
             fontSize: '1rem',
-            minWidth: '20px',
-            mr: 1
+            minWidth: '20px'
           }} />
           <Typography 
             variant="body2"
@@ -729,7 +749,8 @@ const BatoBatoPik = () => {
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              fontSize: '0.8rem'
+              fontSize: '0.8rem',
+              marginLeft: '4px'
             }}
           >
             {userInfo?.userData?.data?.user?.firstName}
@@ -852,6 +873,29 @@ const BatoBatoPik = () => {
           }} />
         </Box>
       </Box>
+
+      <Button
+        onClick={() => setOpenMechanicsDialog(true)}
+        sx={{
+          position: 'fixed',
+          bottom: 80,
+          right: 16,
+          backgroundColor: 'rgba(0,0,0,0.7)',
+          color: '#FFD700',
+          borderRadius: '50%',
+          minWidth: '40px',
+          height: '40px',
+          padding: 0,
+          boxShadow: '0 2px 10px rgba(0,0,0,0.5)',
+          '&:hover': {
+            backgroundColor: 'rgba(0,0,0,0.9)',
+            transform: 'scale(1.1)'
+          },
+          zIndex: 100
+        }}
+      >
+        <HelpOutline />
+      </Button>
 
       <Box 
         sx={{
@@ -1224,6 +1268,123 @@ const BatoBatoPik = () => {
             </Button>
           </Box>
         </DialogContent>
+      </Dialog>
+
+      {/* Add this dialog component near your other dialogs */}
+      <Dialog
+        open={openMechanicsDialog}
+        onClose={() => setOpenMechanicsDialog(false)}
+        PaperProps={{
+          sx: {
+            background: 'linear-gradient(135deg, rgba(30,30,30,0.95) 0%, rgba(50,50,50,0.95) 100%)',
+            borderRadius: '16px',
+            color: '#fff',
+            maxWidth: '500px',
+            width: '90vw',
+            border: '2px solid #FFD700',
+            boxShadow: '0 0 20px rgba(255, 215, 0, 0.3)',
+            overflow: 'hidden'
+          }
+        }}
+      >
+        <DialogTitle sx={{
+          background: 'linear-gradient(90deg, rgba(255,215,0,0.2) 0%, rgba(255,215,0,0.4) 100%)',
+          textAlign: 'center',
+          fontFamily: "'Bangers', cursive",
+          fontSize: '2rem',
+          letterSpacing: '2px',
+          color: '#FFD700',
+          padding: '16px',
+          position: 'relative',
+          '&::after': {
+            content: '""',
+            position: 'absolute',
+            bottom: 0,
+            left: '25%',
+            width: '50%',
+            height: '3px',
+            background: 'linear-gradient(90deg, transparent, #FFD700, transparent)'
+          }
+        }}>
+          GAME MECHANICS
+        </DialogTitle>
+        
+        <DialogContent sx={{ padding: '20px' }}>
+          <Box sx={{
+            '& p': {
+              marginBottom: '16px',
+              lineHeight: '1.6',
+              fontSize: '0.95rem'
+            },
+            '& strong': {
+              color: '#FFD700',
+              fontWeight: 'bold'
+            },
+            '& ul': {
+              paddingLeft: '20px',
+              marginBottom: '16px'
+            },
+            '& li': {
+              marginBottom: '8px',
+              position: 'relative',
+              '&::before': {
+                content: '"•"',
+                color: '#FFD700',
+                fontWeight: 'bold',
+                display: 'inline-block',
+                width: '1em',
+                marginLeft: '-1em'
+              }
+            }
+          }}>
+            <p>
+              <strong>BATO BATO PIK</strong> is a multiplayer game where players bet on the outcome of a match between Juan and Pedro.
+            </p>
+            
+            <ul>
+              <li><strong>Game Flow:</strong> Each round has a 30-second countdown timer</li>
+              <li><strong>OPEN:</strong> Players can place bets when the game is OPEN</li>
+              <li><strong>LAST CALL:</strong> When timer reaches 10 seconds, betting will soon close</li>
+              <li><strong>CLOSED:</strong> No more bets accepted, waiting for results</li>
+            </ul>
+            
+            <p>
+              <strong>Betting Rules:</strong>
+            </p>
+            <ul>
+              <li>Bet on either <strong>Juan</strong>, <strong>Pedro</strong>, or <strong>Tie</strong></li>
+              <li><strong>Odds</strong> represent your potential payout multiplier</li>
+              <li><strong>Winner takes all</strong> - winning bets share the total pot based on their stake</li>
+              <li>Game will be <strong>voided</strong> if any odds/multiplier falls below 1</li>
+            </ul>
+            
+            <p>
+              <strong>Payouts:</strong> Your winnings = (your bet amount) × (odds for your selection)
+            </p>
+            
+            <p>
+              Check the <strong>Game History</strong> panel to review previous round results and statistics.
+            </p>
+          </Box>
+        </DialogContent>
+        
+        <DialogActions sx={{ justifyContent: 'center', padding: '0 20px 20px' }}>
+          <Button
+            onClick={() => setOpenMechanicsDialog(false)}
+            sx={{
+              background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+              color: '#000',
+              fontWeight: 'bold',
+              padding: '8px 24px',
+              borderRadius: '20px',
+              '&:hover': {
+                background: 'linear-gradient(135deg, #FFA500 0%, #FFD700 100%)'
+              }
+            }}
+          >
+            GOT IT!
+          </Button>
+        </DialogActions>
       </Dialog>
 
       {/* Void Game Dialog - Pure inline styles */}

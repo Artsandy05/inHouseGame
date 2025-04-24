@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { Button, TextField, Box, Typography, Paper, Container, Chip, Dialog, DialogTitle, DialogContent, DialogActions, Grid, Collapse, IconButton } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { Celebration, ChevronLeft, ChevronRight, Close, KeyboardArrowDown, KeyboardArrowLeft, KeyboardArrowRight, KeyboardArrowUp, MoodBad } from '@mui/icons-material';
+import { ArrowBack, Celebration, ChevronLeft, ChevronRight, Close, HelpOutline, KeyboardArrowDown, KeyboardArrowLeft, KeyboardArrowRight, KeyboardArrowUp, MoodBad, MoreVert } from '@mui/icons-material';
 import ReactConfetti from 'react-confetti';
 import { playerStore } from "../utils/karakrus";
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { GameState } from '../utils/gameutils';
 import createEncryptor from '../utils/createEncryptor';
 const encryptor = createEncryptor(process.env.REACT_APP_DECRYPTION_KEY);
@@ -43,12 +43,15 @@ const KaraKrus = () => {
   const { connect } = playerStore.getState();
   const [searchParams] = useSearchParams();
   const userDetailsParam = searchParams.get('data');
+  const [showControls, setShowControls] = useState(false);
   let decrypted;
 
   const [showBettingSection, setShowBettingSection] = useState(true);
   const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
   const [historyPage, setHistoryPage] = useState(0);
   const [voidMessageDialogOpen, setVoidMessageDialogOpen] = useState(false);
+  const [showMechanics, setShowMechanics] = useState(false);
+  const navigate = useNavigate();
   const historyItemsPerPage = 5;
 
   const handleHistoryPage = (direction) => {
@@ -925,6 +928,7 @@ const KaraKrus = () => {
       }
     }}>
       <Container maxWidth="xs" sx={{ position: 'relative', zIndex: 1 }}>
+        
         {/* Game Header */}
         <Box sx={{ 
           textAlign: 'center', 
@@ -996,6 +1000,68 @@ const KaraKrus = () => {
             background: 'linear-gradient(90deg, #c62828, #ffeb3b, #c62828)'
           }
         }}>
+          {/* Toggle button for controls */}
+          <Box 
+            onClick={() => setShowControls(!showControls)}
+            sx={{
+              height: '2px',
+              background: 'rgba(255, 235, 59, 0.3)',
+              borderRadius: 2,
+              mx: '30%',
+              mb: showControls ? 1 : 1,
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                background: 'rgba(255, 235, 59, 0.6)'
+              }
+            }}
+          />
+
+          {/* Slide-down controls section */}
+          <Collapse in={showControls}>
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              mb: 1,
+              py: 1
+            }}>
+              <Button 
+                onClick={() => window.history.back()} 
+                startIcon={<ArrowBack />}
+                sx={{
+                  color: '#ffeb3b',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 235, 59, 0.1)'
+                  }
+                }}
+              >
+                Back
+              </Button>
+              
+              <Button 
+                onClick={() => setShowMechanics(true)}
+                variant="outlined"
+                size="small"
+                sx={{
+                  color: '#ffeb3b',
+                  borderColor: 'rgba(255, 235, 59, 0.3)',
+                  '&:hover': {
+                    borderColor: '#ffeb3b',
+                    backgroundColor: 'rgba(255, 235, 59, 0.1)'
+                  },
+                  fontSize: '0.75rem',
+                  py: 0.5,
+                  px: 1.5,
+                  borderRadius: '20px'
+                }}
+                startIcon={<HelpOutline fontSize="small" />}
+              >
+                How to Play
+              </Button>
+            </Box>
+          </Collapse>
+
           {/* Balance - Centered */}
           <Box sx={{ 
             display: 'flex', 
@@ -1034,7 +1100,6 @@ const KaraKrus = () => {
                 fontSize: '0.9rem',
                 px: 2,
                 boxShadow: '0 0 10px rgba(0,0,0,0.3)',
-                
               }}
             />
 
@@ -1047,7 +1112,7 @@ const KaraKrus = () => {
                   fontWeight: 'bold',
                   fontSize: '1.2rem',
                   minWidth: '50px',
-                  ml: 'auto' // Push to the far right
+                  ml: 'auto'
                 }}
               />
             )}
@@ -2310,6 +2375,137 @@ const KaraKrus = () => {
               }}
             >
               UNDERSTOOD
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        <Dialog
+          open={showMechanics}
+          onClose={() => setShowMechanics(false)}
+          PaperProps={{
+            sx: {
+              background: 'linear-gradient(135deg, rgba(25,0,0,0.95) 0%, rgba(60,0,0,0.95) 100%)',
+              border: '2px solid rgba(255, 235, 59, 0.3)',
+              borderRadius: '12px',
+              boxShadow: '0 0 30px rgba(198, 40, 40, 0.7)',
+              maxWidth: '500px',
+              width: '90%',
+              '&:before': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '4px',
+                background: 'linear-gradient(90deg, #c62828, #ffeb3b, #c62828)'
+              }
+            }
+          }}
+        >
+          <DialogTitle sx={{ 
+            color: '#ffeb3b',
+            textAlign: 'center',
+            fontFamily: "'Cinzel Decorative', cursive",
+            letterSpacing: '1px',
+            borderBottom: '1px solid rgba(255, 235, 59, 0.2)',
+            background: 'rgba(0,0,0,0.3)',
+            py: 2
+          }}>
+            GAME MECHANICS
+          </DialogTitle>
+          
+          <DialogContent sx={{ py: 2, px: 3 }}>
+            <Box sx={{ 
+              color: 'rgba(255,255,255,0.9)',
+              '& > div': {
+                display: 'flex',
+                mb: 2,
+                alignItems: 'flex-start',
+                '&:before': {
+                  content: '"•"',
+                  color: '#ffeb3b',
+                  fontSize: '1.8rem',
+                  lineHeight: '0.8',
+                  mr: 1.5,
+                  mt: -0.5
+                }
+              }
+            }}>
+              <div>
+                <Box>
+                  <Typography component="span" sx={{ fontWeight: 'bold', color: '#ffeb3b' }}>Coin Flip Game:</Typography> 
+                  <span> Bet on either KARA (heads) or KRUS (tails)</span>
+                </Box>
+              </div>
+              
+              <div>
+                <Box>
+                  <Typography component="span" sx={{ fontWeight: 'bold', color: '#ffeb3b' }}>Betting Rules:</Typography> 
+                  <span> Minimum bet is ₱5.00. Winner takes all.</span>
+                </Box>
+              </div>
+              
+              <div>
+                <Box>
+                  <Typography component="span" sx={{ fontWeight: 'bold', color: '#ffeb3b' }}>Game Phases:</Typography> 
+                  <Box component="ul" sx={{ pl: 2, mt: 0.5, listStyleType: 'none' }}>
+                    <li>- <Box component="span" sx={{ color: '#4caf50' }}>OPEN (30s):</Box> Place your bets</li>
+                    <li>- <Box component="span" sx={{ color: '#ff9800' }}>LAST CALL (10s):</Box> Final betting period</li>
+                    <li>- <Box component="span" sx={{ color: '#f44336' }}>CLOSED:</Box> No more bets accepted</li>
+                  </Box>
+                </Box>
+              </div>
+              
+              <div>
+                <Box>
+                  <Typography component="span" sx={{ fontWeight: 'bold', color: '#ffeb3b' }}>Payouts:</Typography> 
+                  <span> Your winnings = (bet amount) × (current odds)</span>
+                </Box>
+              </div>
+              
+              <div>
+                <Box>
+                  <Typography component="span" sx={{ fontWeight: 'bold', color: '#ffeb3b' }}>Odds Calculation:</Typography> 
+                  <span> Changes based on total bets on each side</span>
+                </Box>
+              </div>
+              
+              <div>
+                <Box>
+                  <Typography component="span" sx={{ fontWeight: 'bold', color: '#ffeb3b' }}>Void Game:</Typography> 
+                  <span> If odds go below 1x, game will be <strong style={{color: '#f44336',fontWeight:'bold'}}>VOIDED</strong></span>
+                </Box>
+              </div>
+              
+              <div>
+                <Box>
+                  <Typography component="span" sx={{ fontWeight: 'bold', color: '#ffeb3b' }}>Results:</Typography> 
+                  <span> Check History tab for past game outcomes</span>
+                </Box>
+              </div>
+            </Box>
+          </DialogContent>
+          
+          <DialogActions sx={{ 
+            borderTop: '1px solid rgba(255, 235, 59, 0.2)',
+            background: 'rgba(0,0,0,0.3)',
+            justifyContent: 'center',
+            py: 1.5
+          }}>
+            <Button 
+              onClick={() => setShowMechanics(false)}
+              variant="contained"
+              sx={{
+                background: 'linear-gradient(135deg, rgba(255,235,59,0.8) 0%, rgba(255,235,59,0.6) 100%)',
+                color: 'black',
+                fontWeight: 'bold',
+                px: 4,
+                '&:hover': {
+                  background: 'linear-gradient(135deg, rgba(255,235,59,0.9) 0%, rgba(255,235,59,0.7) 100%)'
+                }
+              }}
+            >
+              GOT IT!
             </Button>
           </DialogActions>
         </Dialog>

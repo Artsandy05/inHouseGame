@@ -721,7 +721,6 @@ const KaraKrus = () => {
   };
 
   const tossCoin = () => {
-    if ((gameState !== GameState.Closed || !coinRef.current) && !coinResult) return;
     
     setBalance(prevBalance => prevBalance - betAmount);
     

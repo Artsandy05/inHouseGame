@@ -326,7 +326,7 @@ function open(set, socket) {
 
 async function update(set, eventData) {
   let meta = JSON.parse(eventData);
-  //console.log(meta.voidGameMessage);
+  console.log(meta);
 
   if ((hasValue(meta.coinResult))) {
     set({ coinResult: meta.coinResult });

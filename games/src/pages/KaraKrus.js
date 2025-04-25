@@ -719,6 +719,7 @@ const KaraKrus = () => {
       handRef.current.position.set(10, 0.2, 0);
     }
   };
+  console.log("HEY");
 
   const tossCoin = () => {
     

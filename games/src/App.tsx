@@ -13,6 +13,7 @@ import AdminReports from './pages/admin/AdminReports';
 import KaraKrus from './pages/KaraKrus';
 import BulagPipiBingi from './pages/BulagPipiBingi';
 import PigeonRace from './pages/PigeonRace';
+import HorseRacingGame from './pages/HorseRace';
 
 const App = () => {
   return (
@@ -28,6 +29,7 @@ const App = () => {
           <Route path="/karakrus" element={<KaraKrus />} />
           <Route path="/bulag_pipi_bingi" element={<BulagPipiBingi />} />
           <Route path="/pigeon_race" element={<PigeonRace />} />
+          <Route path="/horse_race" element={<HorseRacingGame />} />
         </Routes>
       </Router>
     </PlayerStoreProvider>

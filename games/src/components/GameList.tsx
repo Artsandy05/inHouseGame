@@ -124,6 +124,17 @@ const GameList: React.FC = () => {
       popularity: 3,
       playersOnline: 1012,
       thumbnail: '/assets/pigeondash.jpg',
+    },
+    {
+      id: 5,
+      name: 'horse_race',
+      label: 'Horse Race',
+      isActive: true,
+      isStreaming: true,
+      description: 'Horse Race',
+      popularity: 3,
+      playersOnline: 1012,
+      thumbnail: '/assets/horse_race_thumbnail.png',
     }
   ]);
 

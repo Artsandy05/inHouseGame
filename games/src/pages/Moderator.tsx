@@ -192,7 +192,7 @@ const Moderator = () => {
     if(batoBatoPikGameState === GameState.NewGame){
       setTimeout(() => {
         startBBPGame();
-      }, 4000);
+      }, 2000);
     }
     if(batoBatoPikGameState === 'Void'){
       setTimeout(() => {
@@ -202,7 +202,7 @@ const Moderator = () => {
     if(batoBatoPikGameState === GameState.WinnerDeclared){
       setTimeout(() => {
         newBBPGame();
-      }, 2000);
+      }, 4000);
     }
   }, [batoBatoPikGameState]);
 
@@ -211,7 +211,7 @@ const Moderator = () => {
     if(karaKrusGameState === GameState.NewGame){
       setTimeout(() => {
         startKKGame();
-      }, 4000);
+      }, 2000);
     }
     if(karaKrusGameState === 'Void'){
       setTimeout(() => {
@@ -221,7 +221,7 @@ const Moderator = () => {
     if(karaKrusGameState === GameState.WinnerDeclared){
       setTimeout(() => {
         newKKGame();
-      }, 2000);
+      }, 4000);
     }
   }, [karaKrusGameState]);
 
@@ -281,7 +281,7 @@ const Moderator = () => {
             uuid: userInfo.uuid,
           })
         );
-        }, 6000);
+        }, 5000);
     }
   }, [batoBatoPikGameState]);
 
@@ -299,7 +299,7 @@ const Moderator = () => {
             uuid: userInfo.uuid,
           })
         );
-        }, 6000);
+        }, 5000);
     }
   }, [karaKrusGameState]);
 

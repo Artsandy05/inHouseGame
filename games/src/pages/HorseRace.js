@@ -996,7 +996,7 @@ const HorseRacingGame = () => {
           bottom: betDialogOpen ? 0 : '-100%',
           left: 0,
           right: 0,
-          height: '85%',
+          height: '100vh',
           backgroundColor: 'rgba(30, 10, 5, 0.98)',
           backgroundImage: 'linear-gradient(to bottom, rgba(80, 20, 10, 1), rgba(30, 10, 5, 1))',
           borderTop: '4px solid #FFD700',
@@ -1019,11 +1019,11 @@ const HorseRacingGame = () => {
           }
         }}
       >
-        {/* Improved Close Button - Larger and more visible */}
+        {/* Close Button */}
         <Box 
           onClick={closeBetDialog}
           sx={{
-            height: '40px',
+            height: '36px',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
@@ -1044,7 +1044,7 @@ const HorseRacingGame = () => {
             className="close-icon"
             sx={{
               color: '#FFD700',
-              fontSize: '24px',
+              fontSize: '20px',
               transition: 'all 0.2s ease',
               display: 'flex',
               flexDirection: 'column',
@@ -1054,7 +1054,7 @@ const HorseRacingGame = () => {
             ▼
             <Typography sx={{
               color: 'inherit',
-              fontSize: '0.7rem',
+              fontSize: '0.65rem',
               fontWeight: 'bold',
               mt: '-4px'
             }}>
@@ -1063,110 +1063,114 @@ const HorseRacingGame = () => {
           </Box>
         </Box>
         
-        {/* Countdown Timer - Fixed at top */}
-        <Box sx={{
-          padding: '8px 16px',
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          borderBottom: '1px solid #FFD700',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          position: 'relative',
-        }}>
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            <Box sx={{
-              backgroundColor: gameState === GameState.LastCall ? '#FF5722' : 
-                              gameState === GameState.Open ? '#4CAF50' : '#F44336',
-              width: '10px',
-              height: '10px',
-              borderRadius: '50%',
-              boxShadow: '0 0 6px currentColor',
-              flexShrink: 0
-            }} />
-            
-            <Typography sx={{
-              color: '#FFF',
-              fontWeight: 'bold',
-              fontSize: '0.85rem',
-            }}>
-              STATUS: <span style={{ color: '#FFD700' }}>{gameState}</span>
-            </Typography>
-          </Box>
-          
-          <Box sx={{
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            border: '1px solid #FFD700',
-            borderRadius: '6px',
-            padding: '4px 10px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}>
-            <Box component="span" sx={{
-              color: countdown <= 10 ? '#F44336' : countdown <= 30 ? '#FF9800' : '#4CAF50',
-              animation: countdown <= 10 ? 'pulse 1s infinite' : 'none',
-              '@keyframes pulse': {
-                '0%': { opacity: 1 },
-                '50%': { opacity: 0.5 },
-                '100%': { opacity: 1 },
-              }
-            }}>
-              ⏱️
-            </Box>
-            <Typography sx={{
-              fontFamily: 'monospace',
-              fontWeight: 'bold',
-              fontSize: '0.9rem',
-              color: countdown <= 10 ? '#F44336' : countdown <= 30 ? '#FF9800' : '#4CAF50',
-            }}>
-              {formatTime(countdown)}
-            </Typography>
-          </Box>
-        </Box>
-        
-        {/* Main content area */}
+        {/* Main content area - now with two columns */}
         <Box sx={{ 
           flex: 1,
           display: 'flex',
-          flexDirection: 'column',
           overflow: 'hidden'
         }}>
-          {/* Title Area */}
-          <Box sx={{
-            padding: '12px',
-            borderBottom: '2px solid #FFD700',
-            backgroundColor: 'rgba(0, 0, 0, 0.4)',
-            textAlign: 'center',
-          }}>
-            <Typography sx={{ 
-              color: '#FFD700',
-              fontSize: '1.3rem',
-              fontWeight: 'bold',
-              textShadow: '1px 1px 3px rgba(0, 0, 0, 0.8)',
-              textTransform: 'uppercase'
-            }}>
-              {isBettingAllowed ? 'Place Your Bets' : 'Betting Closed'}
-            </Typography>
-          </Box>
-          
-          {/* Content with scroll */}
-          <Box sx={{
+          {/* Left Column - Horses */}
+          <Box sx={{ 
             flex: 1,
-            overflowY: 'auto',
-            padding: '12px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '12px'
+            overflow: 'hidden',
+            borderRight: '1px solid rgba(255,215,0,0.2)',
+            padding: '8px'
           }}>
+            {/* Game Status moved to first column */}
+            <Box sx={{
+              padding: '6px 12px',
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              borderBottom: '1px solid #FFD700',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              mb: '8px'
+            }}>
+              <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <Box sx={{
+                  backgroundColor: gameState === GameState.LastCall ? '#FF5722' : 
+                                  gameState === GameState.Open ? '#4CAF50' : '#F44336',
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  boxShadow: '0 0 6px currentColor',
+                  flexShrink: 0
+                }} />
+                
+                <Typography sx={{
+                  color: '#FFF',
+                  fontWeight: 'bold',
+                  fontSize: '0.8rem',
+                  textTransform: 'uppercase',
+                }}>
+                  STATUS: <span style={{ color: '#FFD700' }}>{gameState}</span>
+                </Typography>
+              </Box>
+              
+              <Box sx={{
+                backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                border: '1px solid #FFD700',
+                borderRadius: '6px',
+                padding: '3px 8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}>
+                <Box component="span" sx={{
+                  color: countdown <= 10 ? '#F44336' : countdown <= 30 ? '#FF9800' : '#4CAF50',
+                  animation: countdown <= 10 ? 'pulse 1s infinite' : 'none',
+                  '@keyframes pulse': {
+                    '0%': { opacity: 1 },
+                    '50%': { opacity: 0.5 },
+                    '100%': { opacity: 1 },
+                  }
+                }}>
+                  ⏱️
+                </Box>
+                <Typography sx={{
+                  fontFamily: 'monospace',
+                  fontWeight: 'bold',
+                  fontSize: '0.85rem',
+                  color: countdown <= 10 ? '#F44336' : countdown <= 30 ? '#FF9800' : '#4CAF50',
+                }}>
+                  {formatTime(countdown)}
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Title Area */}
+            <Box sx={{
+              padding: '8px',
+              borderBottom: '1px solid #FFD700',
+              backgroundColor: 'rgba(0, 0, 0, 0.4)',
+              textAlign: 'center',
+              mb: '8px'
+            }}>
+              <Typography sx={{ 
+                color: '#FFD700',
+                fontSize: '1rem',
+                fontWeight: 'bold',
+                textShadow: '1px 1px 3px rgba(0, 0, 0, 0.8)',
+                textTransform: 'uppercase'
+              }}>
+                {isBettingAllowed ? 'Place Your Bets' : 'Betting Closed'}
+              </Typography>
+            </Box>
+            
             {/* Horses Grid */}
             <Box sx={{ 
+              flex: 1,
               display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
-              gap: '12px',
+              gridTemplateColumns: '1fr 1fr',
+              gridTemplateRows: '1fr 1fr',
+              gap: '8px',
+              overflow: 'hidden'
             }}>
               {horses.slice(0, 4).map((horse) => (
                 <Box
@@ -1175,7 +1179,7 @@ const HorseRacingGame = () => {
                   sx={{
                     backgroundColor: horse.color,
                     backgroundImage: 'linear-gradient(rgba(255,255,255,0.1), rgba(0,0,0,0.2))',
-                    borderRadius: '10px',
+                    borderRadius: '8px',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
@@ -1184,84 +1188,83 @@ const HorseRacingGame = () => {
                       : '1px solid rgba(255,255,255,0.2)',
                     boxShadow: slots.has(horse.id)
                       ? '0 0 10px rgba(255, 215, 0, 0.4)'
-                      : '0 4px 8px rgba(0, 0, 0, 0.2)',
+                      : '0 2px 4px rgba(0, 0, 0, 0.2)',
                     position: 'relative',
                     overflow: 'hidden',
                     cursor: isBettingAllowed && selectedChip ? 'pointer' : 'default',
                     opacity: isBettingAllowed ? 1 : 0.7,
-                    p: 2,
+                    p: '10px',
                     transition: 'all 0.2s ease',
                     '&:hover': isBettingAllowed && selectedChip ? {
                       transform: 'translateY(-2px)',
-                      boxShadow: '0 6px 12px rgba(0,0,0,0.3)'
+                      boxShadow: '0 4px 8px rgba(0,0,0,0.3)'
                     } : {}
                   }}
                 >
-                  {/* Horse Name and Odds in one row */}
+                  {/* Horse Name and Odds */}
                   <Box sx={{ 
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'flex-start',
-                    mb: 1
+                    mb: '4px'
                   }}>
                     <Typography sx={{ 
                       color: '#FFF',
                       fontWeight: 'bold',
-                      fontSize: '1rem',
+                      fontSize: '0.9rem',
                       textShadow: '1px 1px 2px rgba(0, 0, 0, 0.8)',
                       maxWidth: '70%'
                     }}>
                       {horse.name}
                     </Typography>
                     
-                    {/* Odds Display */}
                     <Box sx={{
                       backgroundColor: 'rgba(0,0,0,0.6)',
                       color: '#FFD700',
                       fontWeight: 'bold',
-                      fontSize: '0.9rem',
+                      fontSize: '0.8rem',
                       borderRadius: '4px',
-                      padding: '3px 6px',
+                      padding: '2px 4px',
                       border: '1px solid #FFD700',
                     }}>
                       x{getOdds(horse.id)}
                     </Box>
                   </Box>
                   
-                  {/* Total bets for this horse */}
+                  {/* Total bets */}
                   <Box sx={{
                     backgroundColor: 'rgba(0,0,0,0.4)',
-                    borderRadius: '5px',
-                    padding: '4px 8px',
-                    marginBottom: 1,
+                    borderRadius: '4px',
+                    padding: '3px 6px',
+                    marginBottom: '4px',
                     border: '1px dashed rgba(255,215,0,0.2)',
                   }}>
                     <Typography sx={{
                       color: '#FFF',
-                      fontSize: '0.8rem',
+                      fontSize: '0.75rem',
                       fontWeight: 'bold',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
                     }}>
-                      <span>TOTAL BETS:</span>
+                      <span>TOTAL:</span>
                       <span style={{ 
                         color: '#FFD700', 
                         backgroundColor: 'rgba(0,0,0,0.5)',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        fontSize: '0.85rem',
+                        padding: '1px 4px',
+                        borderRadius: '3px',
+                        fontSize: '0.75rem',
                       }}>
                         ₱{allBets && allBets.has(horse.id) ? allBets.get(horse.id).toLocaleString() : '0'}
                       </span>
                     </Typography>
                   </Box>
                   
-                  {/* Current Bet Display */}
+                  {/* Current Bet */}
                   <Box sx={{
                     backgroundColor: 'rgba(0,0,0,0.5)',
-                    padding: '6px',
-                    borderRadius: '5px',
+                    padding: '4px',
+                    borderRadius: '4px',
                     textAlign: 'center',
                     marginTop: 'auto',
                     border: slots.has(horse.id) ? '1px solid rgba(255,215,0,0.4)' : 'none',
@@ -1269,24 +1272,20 @@ const HorseRacingGame = () => {
                     <Typography sx={{ 
                       color: slots.has(horse.id) ? '#4CAF50' : '#FFD700',
                       fontWeight: 'bold',
-                      fontSize: '0.9rem',
+                      fontSize: '0.8rem',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}>
                       {slots.has(horse.id) ? (
                         <>
-                          <span style={{ 
-                            marginRight: '4px',
-                            color: '#FFD700',
-                          }}>💰</span>
-                          YOUR BET: ₱{slots.get(horse.id).toLocaleString()}
+                          <span style={{ marginRight: '4px', color: '#FFD700' }}>💰</span>
+                          ₱{slots.get(horse.id).toLocaleString()}
                         </>
-                      ) : 'No bet placed'}
+                      ) : 'No bet'}
                     </Typography>
                   </Box>
   
-                  {/* Show betting closed overlay when betting is not allowed */}
                   {!isBettingAllowed && (
                     <Box sx={{
                       position: 'absolute',
@@ -1298,15 +1297,15 @@ const HorseRacingGame = () => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      borderRadius: '8px',
+                      borderRadius: '6px',
                     }}>
                       <Typography sx={{
                         color: '#FFD700',
                         fontWeight: 'bold',
-                        fontSize: '0.9rem',
+                        fontSize: '0.8rem',
                         backgroundColor: 'rgba(0,0,0,0.6)',
-                        padding: '3px 8px',
-                        borderRadius: '4px',
+                        padding: '2px 6px',
+                        borderRadius: '3px',
                         border: '1px solid rgba(255,215,0,0.3)'
                       }}>
                         BETTING CLOSED
@@ -1316,29 +1315,44 @@ const HorseRacingGame = () => {
                 </Box>
               ))}
             </Box>
-            
-            {/* Chips panel */}
+          </Box>
+          
+          {/* Right Column - Chips and Bet Summary */}
+          <Box sx={{ 
+            width: '40%',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            padding: '8px',
+            gap: '8px'
+          }}>
+            {/* Chips panel - MODIFIED FOR 3x3 GRID */}
             <Box sx={{
               backgroundColor: 'rgba(0,0,0,0.5)',
-              borderRadius: '10px',
-              padding: '12px',
+              borderRadius: '8px',
+              padding: '8px',
               border: '1px solid rgba(255,215,0,0.3)',
+              flex: 1
             }}>
               <Typography sx={{
                 color: '#FFD700',
                 fontWeight: 'bold',
                 textAlign: 'center',
-                mb: '8px',
-                fontSize: '0.95rem',
+                mb: '6px',
+                fontSize: '0.85rem',
               }}>
-                SELECT CHIP AMOUNT
+                SELECT CHIP
               </Typography>
               
+              {/* Modified to display in a 3x3 grid */}
               <Box sx={{
-                display: 'flex',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gridTemplateRows: 'repeat(3, 1fr)',
+                gap: '6px',
                 justifyContent: 'center',
-                gap: '8px',
-                flexWrap: 'wrap'
+                alignItems: 'center',
+                height: 0
               }}>
                 {Object.entries(casinoChips).map(([color, src]) => (
                   <Box 
@@ -1347,18 +1361,20 @@ const HorseRacingGame = () => {
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
+                      justifyContent: 'center',
                       cursor: isBettingAllowed ? 'pointer' : 'default',
                       transform: selectedChip === color && isBettingAllowed ? 'scale(1.1)' : 'scale(1)',
                       transition: 'all 0.2s ease',
                       position: 'relative',
                       pointerEvents: isBettingAllowed ? 'auto' : 'none',
                       borderRadius: '50%',
-                      padding: '3px',
+                      padding: '2px',
                       backgroundColor: selectedChip === color && isBettingAllowed ? 'rgba(255,215,0,0.15)' : 'transparent',
                       border: selectedChip === color && isBettingAllowed ? '1px solid rgba(255,215,0,0.5)' : 'none',
+                      
                       '&:hover': isBettingAllowed ? {
                         transform: 'scale(1.1)',
-                        boxShadow: '0 0 10px rgba(255,215,0,0.5)'
+                        boxShadow: '0 0 8px rgba(255,215,0,0.5)'
                       } : {}
                     }}
                     onClick={() => isBettingAllowed && setSelectedChip(color)}
@@ -1368,24 +1384,23 @@ const HorseRacingGame = () => {
                       src={src} 
                       alt={`${color} chip`}
                       sx={{ 
-                        width: '50px',
-                        height: '50px',
+                        width: '100%',
+                        objectFit: 'contain',
                         filter: selectedChip === color && isBettingAllowed ? 
-                          'drop-shadow(0 0 8px rgba(255,215,0,0.7))' : 'none',
+                          'drop-shadow(0 0 6px rgba(255,215,0,0.7))' : 'none',
                       }}
                     />
                     <Typography 
                       sx={{ 
                         color: '#FFF', 
                         fontWeight: 'bold',
-                        fontSize: '0.75rem',
+                        fontSize: '1rem',
                         position: 'absolute',
                         top: '50%',
                         left: '50%',
                         transform: 'translate(-50%, -50%)',
-                        backgroundColor: 'rgba(0,0,0,0.6)',
-                        padding: '1px 4px',
-                        borderRadius: '8px',
+                        padding: '1px 3px',
+                        borderRadius: '6px',
                       }}
                     >
                       ₱{chipValues[color].toLocaleString()}
@@ -1395,65 +1410,77 @@ const HorseRacingGame = () => {
               </Box>
             </Box>
             
-            {/* Bet Summary Section */}
+            {/* Bet Summary Section - Now in a single row */}
             <Box sx={{ 
               backgroundColor: 'rgba(0, 0, 0, 0.6)',
-              borderRadius: '10px',
-              padding: '12px',
+              borderRadius: '8px',
+              padding: '8px',
               border: '1px solid rgba(255,215,0,0.4)',
             }}>
               <Typography sx={{
                 color: '#FFD700',
                 fontWeight: 'bold',
-                fontSize: '0.95rem',
+                fontSize: '0.85rem',
                 textAlign: 'center',
-                mb: 1,
+                mb: '6px',
                 borderBottom: '1px solid rgba(255,215,0,0.2)',
-                pb: 0.5,
+                pb: '4px',
               }}>
-                YOUR BET SUMMARY
+                BET SUMMARY
               </Typography>
               
               <Box sx={{ 
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: '8px',
-                textAlign: 'center'
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: '4px'
               }}>
-                <Box>
-                  <Typography sx={{ color: '#FFF', fontWeight: 'bold', fontSize: '0.75rem' }}>
+                <Box sx={{ textAlign: 'center', flex: 1 }}>
+                  <Typography sx={{ color: '#FFF', fontWeight: 'bold', fontSize: '0.7rem' }}>
                     TOTAL BET
                   </Typography>
                   <Typography sx={{ 
                     color: '#FFD700', 
                     fontWeight: 'bold',
-                    fontSize: '1rem'
+                    fontSize: '0.9rem',
                   }}>
                     ₱{totalBet.toLocaleString()}
                   </Typography>
                 </Box>
                 
-                <Box>
-                  <Typography sx={{ color: '#FFF', fontWeight: 'bold', fontSize: '0.75rem' }}>
+                <Box sx={{ 
+                  width: '1px',
+                  height: '24px',
+                  backgroundColor: 'rgba(255,215,0,0.3)'
+                }} />
+                
+                <Box sx={{ textAlign: 'center', flex: 1 }}>
+                  <Typography sx={{ color: '#FFF', fontWeight: 'bold', fontSize: '0.7rem' }}>
                     POSSIBLE WIN
                   </Typography>
                   <Typography sx={{ 
                     color: '#4CAF50', 
                     fontWeight: 'bold',
-                    fontSize: '1rem'
+                    fontSize: '0.9rem',
                   }}>
                     ₱{possibleWin.toLocaleString()}
                   </Typography>
                 </Box>
                 
-                <Box>
-                  <Typography sx={{ color: '#FFF', fontWeight: 'bold', fontSize: '0.75rem' }}>
+                <Box sx={{ 
+                  width: '1px',
+                  height: '24px',
+                  backgroundColor: 'rgba(255,215,0,0.3)'
+                }} />
+                
+                <Box sx={{ textAlign: 'center', flex: 1 }}>
+                  <Typography sx={{ color: '#FFF', fontWeight: 'bold', fontSize: '0.7rem' }}>
                     BALANCE
                   </Typography>
                   <Typography sx={{ 
                     color: '#FFD700', 
                     fontWeight: 'bold',
-                    fontSize: '1rem'
+                    fontSize: '0.9rem',
                   }}>
                     ₱{balance.toLocaleString()}
                   </Typography>
@@ -1478,188 +1505,159 @@ const HorseRacingGame = () => {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.8)',
+          backgroundColor: 'rgba(0,0,0,0.75)',
           zIndex: 1300,
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
           alignItems: 'center',
-          p: 2,
+          overflow: 'auto',
+          p: 0,
         }}
       >
-        {/* Main Dialog Container */}
-        <Box
+        {/* Minimal Header */}
+        <Typography
           sx={{
-            backgroundColor: '#1a0a00',
-            backgroundImage: 'linear-gradient(to bottom, #2a1508, #1a0a00)',
-            borderRadius: '12px',
-            border: '3px solid #FFD700',
-            boxShadow: '0 0 20px rgba(255, 215, 0, 0.5)',
-            maxWidth: '500px',
-            width: '100%',
-            overflow: 'hidden',
+            color: '#FFD700',
+            fontWeight: 'bold',
+            fontSize: '1.5rem',
+            mb: 1,
             textAlign: 'center',
           }}
         >
-          {/* Header */}
-          <Box
-            sx={{
-              background: 'linear-gradient(to right, #8B4513, #A0522D, #8B4513)',
-              padding: '12px',
-              borderBottom: '2px solid #FFD700',
-            }}
-          >
-            <Typography
-              sx={{
-                color: '#FFD700',
-                fontWeight: 'bold',
-                fontSize: '1.5rem',
-                textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
-              }}
-            >
-              {winningBall && winningBall.horseRace ? (
-                <>
-                  🏆 HORSE{' '}
-                  <span
-                    style={{
-                      color:horseColor[winningBall.horseRace],
-                      textShadow: '0 0 2px rgba(0,0,0,0.8)',
-                    }}
-                  >
-                    {winningBall.horseRace.toUpperCase()}
-                  </span>{' '}
-                  WINS! 🏆
-                </>
-              ) : (
-                '🏆 RACE FINISHED 🏆'
-              )}
+          {winningBall?.horseRace ? `${winningBall.horseRace.toUpperCase()} WINS!` : 'RACE FINISHED'}
+        </Typography>
+
+        {/* Winner Status - Centered */}
+        {isWinner && (
+          <Box sx={{ 
+            textAlign: 'center',
+            mb: 2,
+            animation: 'pulse 2s infinite',
+            '@keyframes pulse': {
+              '0%': { transform: 'scale(1)' },
+              '50%': { transform: 'scale(1.05)' },
+              '100%': { transform: 'scale(1)' },
+            }
+          }}>
+            <Typography sx={{ 
+              color: '#FFD700', 
+              fontSize: '1.3rem',
+              fontWeight: 'bold',
+              mb: 0.5,
+            }}>
+              🎉 YOU WON! 🎉
+            </Typography>
+            <Typography sx={{ 
+              color: '#4CAF50',
+              fontSize: '1.8rem',
+              fontWeight: 'bold',
+            }}>
+              ₱{topPlayers.find(p => p.userId === userInfo.userData.data.user.id)?.prize.toLocaleString()}
             </Typography>
           </Box>
-  
-          {/* Content Area */}
-          <Box sx={{ p: 3 }}>
-            {/* Winner Announcement */}
-            {isWinner && (
+        )}
+
+        {/* Top Players List - Clean Layout */}
+        <Box sx={{ 
+          width: '100%',
+          maxWidth: '400px',
+          maxHeight: '60vh',
+          overflowY: 'auto',
+          px: 1,
+        }}>
+          <Typography sx={{ 
+            color: '#FFF',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            mb: 1,
+            fontSize: '1.1rem',
+          }}>
+            TOP PLAYERS
+          </Typography>
+
+          {hasWinners ? (
+            topPlayers.map((player, index) => (
               <Box
+                key={player.uuid}
                 sx={{
-                  backgroundColor: 'rgba(76, 175, 80, 0.2)',
-                  border: '2px solid #4CAF50',
-                  borderRadius: '8px',
-                  padding: '16px',
-                  mb: 3,
-                  animation: 'pulse 1.5s infinite',
-                  '@keyframes pulse': {
-                    '0%': { boxShadow: '0 0 0 0 rgba(76, 175, 80, 0.7)' },
-                    '70%': { boxShadow: '0 0 0 10px rgba(76, 175, 80, 0)' },
-                    '100%': { boxShadow: '0 0 0 0 rgba(76, 175, 80, 0)' },
-                  },
+                  display: 'flex',
+                  alignItems: 'center',
+                  mb: 1,
+                  p: 1,
+                  borderRadius: '6px',
+                  background: player.userId === userInfo.userData.data.user.id 
+                    ? 'rgba(255, 215, 0, 0.15)' 
+                    : index < 3 
+                      ? 'rgba(255,255,255,0.05)' 
+                      : 'transparent',
+                  border: player.userId === userInfo.userData.data.user.id
+                    ? '1px solid rgba(255, 215, 0, 0.5)'
+                    : 'none',
                 }}
               >
-                <Typography
-                  sx={{
-                    color: '#FFD700',
-                    fontWeight: 'bold',
-                    fontSize: '1.2rem',
-                    mb: 1,
-                  }}
-                >
-                  🎉 CONGRATULATIONS! 🎉
-                </Typography>
-                <Typography sx={{ color: '#FFF' }}>
-                  You're one of the top winners!
-                </Typography>
-              </Box>
-            )}
-  
-            {/* Top Players List - Only show if there are winners */}
-            {hasWinners && (
-              <Box sx={{ mt: 2 }}>
-                <Typography
-                  sx={{
-                    color: '#FFD700',
-                    fontWeight: 'bold',
-                    fontSize: '1rem',
-                    mb: 1,
-                  }}
-                >
-                  TOP WINNERS
-                </Typography>
-  
-                <Box
-                  sx={{
-                    maxHeight: '300px',
-                    overflowY: 'auto',
-                    '&::-webkit-scrollbar': {
-                      width: '6px',
-                    },
-                    '&::-webkit-scrollbar-thumb': {
-                      backgroundColor: '#FFD700',
-                      borderRadius: '3px',
-                    },
-                  }}
-                >
-                  {topPlayers.map((player, index) => (
-                    <Box
-                      key={player.uuid}
-                      sx={{
-                        backgroundColor:
-                          player.userId === userInfo.userData.data.user.id
-                            ? 'rgba(255, 215, 0, 0.2)'
-                            : 'rgba(0, 0, 0, 0.3)',
-                        border:
-                          player.userId === userInfo.userData.data.user.id
-                            ? '2px solid #FFD700'
-                            : '1px solid rgba(255, 215, 0, 0.2)',
-                        borderRadius: '6px',
-                        padding: '10px',
-                        mb: 1,
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Typography
-                          sx={{
-                            color: '#FFD700',
-                            fontWeight: 'bold',
-                            minWidth: '30px',
-                            textAlign: 'left',
-                          }}
-                        >
-                          {index + 1}.
-                        </Typography>
-                        <Typography
-                          sx={{
-                            color: '#FFF',
-                            fontWeight: 'bold',
-                            textOverflow: 'ellipsis',
-                            overflow: 'hidden',
-                            whiteSpace: 'nowrap',
-                            maxWidth: '120px',
-                          }}
-                        >
-                          {player.name}
-                        </Typography>
-                      </Box>
-                      <Typography
-                        sx={{
-                          color: '#4CAF50',
-                          fontWeight: 'bold',
-                        }}
-                      >
-                        ₱{player.prize.toLocaleString()}
-                      </Typography>
-                    </Box>
-                  ))}
+                <Box sx={{ 
+                  width: '30px',
+                  textAlign: 'center',
+                  color: index === 0 
+                    ? '#FFD700' 
+                    : index === 1 
+                      ? '#C0C0C0' 
+                      : index === 2 
+                        ? '#CD7F32' 
+                        : '#FFF',
+                  fontWeight: 'bold',
+                  fontSize: '0.9rem',
+                }}>
+                  {index + 1}.
                 </Box>
+                
+                <Typography sx={{ 
+                  flex: 1,
+                  color: player.userId === userInfo.userData.data.user.id 
+                    ? '#FFD700' 
+                    : '#FFF',
+                  fontWeight: player.userId === userInfo.userData.data.user.id 
+                    ? 'bold' 
+                    : 'normal',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {player.name}
+                </Typography>
+                
+                <Typography sx={{ 
+                  color: '#4CAF50',
+                  fontWeight: 'bold',
+                  minWidth: 'fit-content',
+                  ml: 1,
+                  fontSize: '0.95rem',
+                }}>
+                  ₱{player.prize.toLocaleString()}
+                </Typography>
               </Box>
-            )}
-          </Box>
+            ))
+          ) : (
+            <Typography sx={{ 
+              color: 'rgba(255,255,255,0.7)',
+              textAlign: 'center',
+              mt: 2,
+            }}>
+              No winners this round
+            </Typography>
+          )}
         </Box>
-  
-        {/* Auto-close timer for empty winners case */}
-        
+
+        {/* Simple Footer */}
+        <Box sx={{ mt: 2, textAlign: 'center' }}>
+          <Typography sx={{ 
+            color: 'rgba(255,255,255,0.5)',
+            fontSize: '0.8rem',
+          }}>
+            {new Date().toLocaleDateString()}
+          </Typography>
+        </Box>
       </Box>
     );
   };

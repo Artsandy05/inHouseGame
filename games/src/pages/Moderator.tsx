@@ -249,14 +249,16 @@ const Moderator = () => {
 
   useEffect(() => {
   if (raceWinner) {
-    sendMessageHorseRace(
-      JSON.stringify({
-        cmd: GameState.WinnerDeclared,
-        game: "horseRace",
-        winnerOrders: raceWinner,
-        uuid: userInfo.uuid,
-      })
-    );
+    setTimeout(() => {
+      sendMessageHorseRace(
+        JSON.stringify({
+          cmd: GameState.WinnerDeclared,
+          game: "horseRace",
+          winnerOrders: raceWinner,
+          uuid: userInfo.uuid,
+        })
+      );
+    }, 2000);
     
     // Ensure animation is stopped
     if (animationFrameRef.current) {

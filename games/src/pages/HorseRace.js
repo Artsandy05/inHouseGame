@@ -14,6 +14,10 @@ import {
 } from '@mui/material';
 import Confetti from 'react-confetti';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
+import createEncryptor from '../utils/createEncryptor';
+import { playerStore } from '../utils/horseRace';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { GameState, mapToArray } from '../utils/gameutils';
 
 // Custom theme with Keania One font
 const theme = createTheme({
@@ -52,24 +56,32 @@ const chipValues = {
 
 // Horse sprite sheets
 const horseSpriteSheets = {
-  horse1: '/assets/blueHorse.png',
-  horse2: '/assets/greenHorse.png',
-  horse3: '/assets/redHorse.png',
-  horse4: '/assets/yellowHorse.png',
+  thunder: '/assets/blueHorse.png',
+  lightning: '/assets/greenHorse.png',
+  storm: '/assets/redHorse.png',
+  blaze: '/assets/yellowHorse.png',
 };
 
 // Horse names and colors
 const horses = [
-  { id: 'horse1', name: 'Thunder', color: '#00008B', laneColor: '#A0522D' },
-  { id: 'horse2', name: 'Lightning', color: '#006400', laneColor: '#dba556' },
-  { id: 'horse3', name: 'Storm', color: '#8B0000', laneColor: '#A0522D' },
-  { id: 'horse4', name: 'Blaze', color: '#FFD700', laneColor: '#dba556' },
+  { id: 'thunder', name: 'Thunder', color: '#00008B', laneColor: '#A0522D' },
+  { id: 'lightning', name: 'Lightning', color: '#006400', laneColor: '#dba556' },
+  { id: 'storm', name: 'Storm', color: '#8B0000', laneColor: '#A0522D' },
+  { id: 'blaze', name: 'Blaze', color: '#FFD700', laneColor: '#dba556' },
 ];
+const horseColor = {
+  thunder: '#00008B',
+  lightning: '#006400',
+  storm: '#8B0000',
+  blaze: '#FFD700',
+};
+
+const encryptor = createEncryptor(process.env.REACT_APP_DECRYPTION_KEY);
 
 const HorseRacingGame = () => {
   // Game states
   const [gameStarted, setGameStarted] = useState(false);
-  const [gameFinished, setGameFinished] = useState(false);
+  //const [gameFinished, setGameFinished] = useState(false);
   const [isLandscape, setIsLandscape] = useState(false);
   const [balance, setBalance] = useState(1000);
   const [betDialogOpen, setBetDialogOpen] = useState(false);
@@ -90,14 +102,91 @@ const HorseRacingGame = () => {
   const texturesRef = useRef({});
   const spriteFramesRef = useRef({});
   const timerRef = useRef(null);
+
+  const { gameState, setPlayerInfo, sendMessage, countdown, slots,setSlots,odds, allBets, winningBall, setUserInfo, topPlayers, voidMessage, horseStats } = playerStore();
+  const { connect } = playerStore.getState();
+  const [searchParams] = useSearchParams();
+  const userDetailsParam = searchParams.get('data');
+  const navigate = useNavigate();
+  let decrypted;
+
+  if(userDetailsParam){
+    decrypted = encryptor.decryptParams(userDetailsParam);
+  }
+  const urlUserDetails = decrypted ? decrypted : null;
+  const localStorageUser = JSON.parse(localStorage.getItem('user') || 'null');
+  const userInfo = {
+    userData: {
+      data: {
+        user: {
+          id: Number(urlUserDetails?.id) || localStorageUser?.userData?.data?.user?.id || 0,
+          firstName: urlUserDetails?.first_name || localStorageUser?.userData?.data?.user?.firstName || 'Guest',
+          lastName: urlUserDetails?.last_name || localStorageUser?.userData?.data?.user?.lastName || 'Guest',
+          balance: urlUserDetails?.credits || localStorageUser?.userData?.data?.wallet?.balance || 0,
+          mobile: urlUserDetails?.mobile || localStorageUser?.userData?.data?.user?.mobile || 'N/A',
+          uuid: urlUserDetails?.uuid || localStorageUser?.userData?.data?.user?.uuid || '0',
+          email: urlUserDetails?.email || localStorageUser?.userData?.data?.user?.email || 'test@gmail.com',
+          role: 'player',
+        },
+        wallet: {
+          balance: urlUserDetails?.credits || localStorageUser?.userData?.data?.wallet?.balance || 0
+        }
+      }
+    }
+  };
   
+
+  
+  
+
+  useEffect(() => {
+    if(userInfo){
+      setUserInfo(userInfo.userData.data.user);
+    }
+  }, []);
+
+  
+
+  
+  useEffect(() => {
+    if(gameState === GameState.WinnerDeclared){
+      setTimerActive(false);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    }
+  }, [gameState]);
+
+
+  useEffect(() => {
+    connect();
+
+    return () => {
+      const { socket } = playerStore.getState();
+      if (socket) {
+        socket.close();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if(gameState === GameState.Closed){
+      startRace();
+    }
+  }, [gameState, horsesRef.current]);
+
+  useEffect(() => {
+    if(gameState === GameState.Open || gameState === GameState.NewGame){
+      nextRound();
+    }
+  }, [gameState]);
+
   // Calculate total bet and possible win
-  const totalBet = Object.values(selectedHorses).reduce((sum, bet) => sum + bet, 0);
-  const possibleWinHorse = Object.keys(selectedHorses).length > 0 ? 
-    Object.keys(selectedHorses)[Math.floor(Math.random() * Object.keys(selectedHorses).length)] : 
+  const totalBet = Array.from(slots.values()).reduce((sum, bet) => sum + bet, 0);
+  const possibleWinHorse = slots.size > 0 ? 
+    Array.from(slots.keys())[Math.floor(Math.random() * slots.size)] : 
     null;
-  const possibleWin = possibleWinHorse ? selectedHorses[possibleWinHorse] * 2 : 0;
-  console.log(possibleWin)
+  const possibleWin = possibleWinHorse ? slots.get(possibleWinHorse) * 2 : 0;
   
   // Check orientation
   useEffect(() => {
@@ -482,16 +571,25 @@ const HorseRacingGame = () => {
       });
     });
   };
+
+  if (horseStats) {
+    horsesRef.current.forEach((horse, idx) => {
+      if(horse){
+        horse.speed = Number(horseStats[idx].speed);
+        horse.finished = horseStats[idx].finished;
+        horse.stamina = Number(horseStats[idx].stamina);
+        horse.fatigue = (horseStats[idx].fatigue);
+        horse.animationSpeed = horseStats[idx].animationSpeed;
+        horse.baseSpeed = horseStats[idx].baseSpeed;
+        horse.position = horseStats[idx].position;
+        horse.baseAnimationSpeed = horseStats[idx].baseAnimationSpeed;
+      }
+    });
+  }
   
   // Start the race
   const startRace = () => {
-    if (gameStarted) return;
-    
     setGameStarted(true);
-    setGameFinished(false);
-    setWinner(null);
-    setPlayerWon(false);
-    setShowConfetti(false);
     setRaceTime(0);
     setTimerActive(true);
     
@@ -541,9 +639,6 @@ const HorseRacingGame = () => {
               partsToRemove.forEach(part => scene.remove(part));
             }, 10); // Remove parts after 2 seconds
           }, 50); // Remove gates after half second
-          
-          // Initialize horses after gates open
-          initializeHorsesAndStartRace();
         }
       };
       
@@ -551,225 +646,98 @@ const HorseRacingGame = () => {
       animateGateOpening();
     };
     
-    const initializeHorsesAndStartRace = () => {
-      // Initialize horse attributes with balanced randomness
-      const baseSpeedMin = 0.01;
-      const baseSpeedMax = 0.03;
-      
-      horsesRef.current.forEach((horse, idx) => {
-        if (!horse) return;
-        
-        // Reset position and stats
-        horse.position = -9;
-        horse.sprite.position.x = -9;
-        horse.finished = false;
-        horse.fatigue = 0;
-        horse.raceProgress = 0;
-        
-        // Assign randomized attributes
-        horse.speed = baseSpeedMin + (Math.random() * (baseSpeedMax - baseSpeedMin));
-        horse.stamina = 5 + (Math.random() * 2); // 0.5-0.9
-        horse.recoveryRate = 0.0003 + (Math.random() * 0.0003); // 0.0003-0.0006
-        horse.burstChance = 0.02 + (Math.random() * 0.03); // 2%-5% chance for speed burst
-        
-        // Set performance profile (0: fast starter, 1: consistent, 2: strong finisher)
-        horse.performanceProfile = Math.floor(Math.random() * 3);
-        
-        // Store base values for reference
-        horse.baseSpeed = horse.speed;
-        horse.baseAnimationSpeed = horse.animationSpeed;
-      });
-      
-      // Start animation
-      animateRace();
-    };
-    
     openGates();
+
+    animateRace();
   };
   
   // Animate the race
   const animateRace = () => {
-    if (!horsesRef.current || horsesRef.current.length === 0) return;
-  
     const startPosition = -9;
     const finishLine = 7 + 101.9;
-    const raceDistance = finishLine - startPosition;
     let allFinished = true;
-    let frameCount = 0;
-    let winnerDetermined = false;
     let raceActive = true;
-  
-    // Initialize speeds with small variations
-    horsesRef.current.forEach(horse => {
-      if (horse) {
-        horse.speed *= 0.95 + Math.random() * 0.1;
-        horse.baseAnimationSpeed = horse.animationSpeed; // Store original animation speed
-      }
-    });
+    let raceFinished = false; 
   
     const updateRace = () => {
-      frameCount++;
-  
-      // Speed adjustments every 30 frames (0.5 seconds at 60fps)
-      if (frameCount % 30 === 0 && raceActive) {
-        let leaderPosition = Math.max(...horsesRef.current.map(h => h?.position || 0));
-        let lastPlacePosition = Math.min(...horsesRef.current
-          .filter(h => h && !h.finished)
-          .map(h => h.position || 0));
-          
-        horsesRef.current.forEach((horse, index) => {
-          if (!horse || horse.finished) return;
-      
-          horse.raceProgress = (horse.position - startPosition) / raceDistance;
-          const distanceBehindLeader = leaderPosition - horse.position;
-          const prevSpeed = horse.speed;
-      
-          // --- Speed variation with fatigue limit ---
-          let speedVariation = (Math.random() - 0.5) * 0.8; // ±5%
-
-          
-          // Weaken variation if horse is tired
-          const fatigueFactor = 1 - horse.fatigue * 2; // Lower = more fatigue = less variation
-          speedVariation *= Math.max(0.2, fatigueFactor); // Cap it
-      
-          // Slight rubber banding for those behind
-          if (distanceBehindLeader > 0.05 && horse.fatigue < 0.4) {
-            speedVariation += 0.03; // small push
-          }
-      
-          // Mid-race burst
-          const inBurstZone = horse.raceProgress > 0.3 && horse.raceProgress < 0.8;
-          let burstChance = 0.03 + horse.stamina * 0.001;
-
-          if (horse.position === lastPlacePosition) {
-            burstChance += 1; 
-          }
-      
-          if (
-            inBurstZone &&
-            Math.random() < burstChance &&
-            horse.fatigue < 0.25 // Only if not too tired
-          ) {
-            speedVariation += 0.2 + Math.random() * 0.05;
-            horse.fatigue += 0.00005;
-            console.log('Bursting!', "horse " + index, 'with speed', horse.speed);
-          }
-      
-          // Fatigue accumulation
-          const fatigueGain =
-            0.0001 + (1 - horse.stamina) * 0.0001 +
-            horse.raceProgress * 0.00003;
-
-      
-          horse.fatigue += fatigueGain;
-      
-          // Mild recovery if going slow and not near finish
-          if (prevSpeed < 0.007 && horse.fatigue > 0.01 && horse.raceProgress < 0.9) {
-            horse.fatigue -= 0.2;
-          }
-      
-          // Clamp fatigue
-          horse.fatigue = Math.min(0.5, Math.max(0, horse.fatigue));
-      
-          // Apply variation & fatigue to speed
-          let newSpeed = prevSpeed * (2 + speedVariation);
-          newSpeed *= (0.5 - horse.fatigue); // stronger slowdown now
-      
-          // Clamp speed
-          horse.speed = Math.max(0.01, Math.min(0.025, newSpeed));
-      
-          // Animation speed sync
-          horse.animationSpeed = horse.baseAnimationSpeed * (horse.speed / 0.02);
-        });
-      }
-      
-      
-      
-  
       allFinished = true;
       let maxPosition = 0;
   
-      horsesRef.current.forEach((horse, idx) => {
-        if (!horse) return;
-  
-        if (raceActive) {
-          // Update animation frame based on current speed
-          if (horse.position > maxPosition && !horse.finished) {
-            maxPosition = horse.position;
-          }
-          horse.currentFrame = (horse.currentFrame + horse.animationSpeed * 1.1) % horse.frameCount;
-          const frameIndex = Math.floor(horse.currentFrame);
-          const frames = spriteFramesRef.current[horses[idx]?.id];
-          if (frames && frameIndex < frames.length) {
-            horse.sprite.material.map = frames[frameIndex];
-          }
-  
-          // Move horse
-          if (!horse.finished) {
-            horse.position += horse.speed;
-            horse.sprite.position.x = horse.position;
-  
-            // Check if horse finished
-            if (horse.position >= finishLine) {
-              horse.finished = true;
-              horse.sprite.position.x = finishLine;
-              horse.animationSpeed = horse.baseAnimationSpeed; // Reset to normal speed
-  
-              if (!winnerDetermined) {
-                winnerDetermined = true;
-                announceWinner(horses[idx]);
-                raceActive = false; // Pause entire race
-              }
-            }
-          }
-        }
-
-        if (raceActive) {
-          // Smooth camera follow - adjust the lerp factor (0.1) for faster/slower follow
-          const targetX = maxPosition;
-          cameraRef.current.position.x += (targetX - cameraRef.current.position.x) * 0.1;
-          
-          // Keep camera within reasonable bounds (optional)
-          cameraRef.current.position.x = Math.max(startPosition, cameraRef.current.position.x);
-          cameraRef.current.position.x = Math.min(finishLine - 5, cameraRef.current.position.x); // Keep some space at finish line
-        }
-  
-        if (!horse.finished) {
-          allFinished = false;
+      // First check if any horse has finished the race
+      horsesRef.current.forEach(horse => {
+        if (horse && horse.position >= finishLine && !raceFinished) {
+          raceFinished = true;
+          // When one horse finishes, we'll stop animation updates for all horses
         }
       });
   
-      // Continue animation if not all horses finished
-      if (!allFinished) {
-        animationFrameRef.current = requestAnimationFrame(updateRace);
+      horsesRef.current.forEach((horse, idx) => {
+        if(horse){
+          // Update position tracking for camera
+          if (horse.position > maxPosition && !horse.finished) {
+            maxPosition = horse.position;
+          }
+  
+          // Check if horse reached finish line
+          if (horse.position >= finishLine) {
+            horse.finished = true;
+            horse.sprite.position.x = finishLine;
+          }
+  
+          // Only animate if the race is still active (no horse has finished)
+          if (!raceFinished) {
+            // Update animation frame based on current speed
+            if(horse.animationSpeed){
+              horse.currentFrame = (horse.currentFrame + horse.animationSpeed * 1) % horse.frameCount;
+            }
+            
+            const frameIndex = Math.floor(horse.currentFrame);
+            const frames = spriteFramesRef.current[horses[idx]?.id];
+            if (frames && frameIndex < frames.length) {
+              horse.sprite.material.map = frames[frameIndex];
+            }
+    
+            // Move horse if not finished
+            if (!horse.finished) {
+              if(horse.position) {
+                horse.sprite.position.x = horse.position; 
+              }
+            }
+          }
+  
+          // Track if all horses have finished
+          if (!horse.finished) {
+            allFinished = false;
+          }
+        }
+      });
+  
+      // Smooth camera follow - adjust the lerp factor (0.1) for faster/slower follow
+      if (raceActive) {
+        const targetX = maxPosition;
+        cameraRef.current.position.x += (targetX - cameraRef.current.position.x) * 0.1;
+        
+        // Keep camera within reasonable bounds (optional)
+        cameraRef.current.position.x = Math.max(startPosition, cameraRef.current.position.x);
+        cameraRef.current.position.x = Math.min(finishLine - 5, cameraRef.current.position.x); // Keep some space at finish line
+      }
+  
+      // End the race if all horses finished
+      if (allFinished) {
+        raceActive = false;
       } else {
-        setGameFinished(true);
+        // Continue animation if not all horses finished
+        animationFrameRef.current = requestAnimationFrame(updateRace);
       }
     };
   
     animationFrameRef.current = requestAnimationFrame(updateRace);
   };
   
-  // Announce the winner
-  const announceWinner = (winningHorse) => {
-    setWinner(winningHorse);
-    setGameFinished(true);
-    
-    if (selectedHorses[winningHorse.id]) {
-      const winnings = selectedHorses[winningHorse.id] * 2;
-      setBalance(prevBalance => prevBalance + winnings);
-      setPlayerWon(true);
-      setShowConfetti(true);
-      
-      setTimeout(() => {
-        setShowConfetti(false);
-      }, 5000);
-    }
-  };
+ 
   
   // Handle placing bets
   const openBetDialog = () => {
-    if (gameStarted) return;
     setBetDialogOpen(true);
   };
   
@@ -941,9 +909,7 @@ const HorseRacingGame = () => {
   
   const nextRound = () => {
     setGameStarted(false);
-    setGameFinished(false);
     setWinner(null);
-    setSelectedHorses({});
     setPlayerWon(false);
     setRaceTime(0);
 
@@ -961,8 +927,8 @@ const HorseRacingGame = () => {
         horse.fatigue = 0;
         horse.raceProgress = 0;
         horse.stamina = 0;
-        horse.speed = horse.baseSpeed;
-        horse.animationSpeed = horse.baseAnimationSpeed;
+        horse.speed = 0;
+        horse.animationSpeed = 0;
         horse.currentFrame = 0;
       });
     }
@@ -982,94 +948,253 @@ const HorseRacingGame = () => {
     if (!selectedChip) return;
     
     const chipValue = chipValues[selectedChip];
-    
-    if (balance - chipValue >= 0) {
-      setSelectedHorses(prev => ({
-        ...prev,
-        [horseId]: (prev[horseId] || 0) + chipValue
-      }));
-      setBalance(prevBalance => prevBalance - chipValue);
+
+    if ((userInfo.userData.data.wallet.balance - parseFloat(chipValue)) < 0) {
+      alert("Insufficient Balance");
+      return;
     }
+
+    const hasSlots = slots.has(horseId);
+
+    if (hasSlots) {
+      let currentValue = slots.get(horseId);
+      slots.set(horseId, currentValue += parseFloat(chipValue));
+    }else{
+      slots.set(horseId, parseFloat(chipValue));
+    }
+    setSlots(new Map(slots));
+
+    sendMessage(
+      JSON.stringify({game: 'horseRace', slots: mapToArray(slots)})
+    );
+  };
+
+  const getOdds = (horseId) => {
+    let str = "0.00";
+    if (odds.has(horseId)) {
+      return odds.get(horseId);
+    }
+    return Number(parseFloat(str).toFixed(2));
   };
   
   // Render bet dialog
-  const renderBetDialog = () => {
+  const renderBetPanel = () => {
+    // Determine if betting is allowed based on game state
+    const isBettingAllowed = gameState === GameState.Open || gameState === GameState.LastCall;
+    
+    // Format countdown timer
+    const formatTime = (seconds) => {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    };
+    
     return (
-      <Dialog 
-        open={betDialogOpen} 
-        onClose={closeBetDialog}
-        PaperProps={{
-          style: {
-            backgroundColor: 'rgba(165, 19, 3, 1)',
-            backgroundImage: 'linear-gradient(to bottom, rgba(180, 30, 10, 1), rgba(120, 10, 0, 0.9))',
-            borderRadius: '16px',
-            border: '4px solid #FFD700',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
-            margin: '0 auto',
-            width: '70%',
-            scrollbarWidth: 'none',
+      <Box
+        sx={{
+          position: 'fixed',
+          bottom: betDialogOpen ? 0 : '-100%',
+          left: 0,
+          right: 0,
+          height: '85%',
+          backgroundColor: 'rgba(30, 10, 5, 0.98)',
+          backgroundImage: 'linear-gradient(to bottom, rgba(80, 20, 10, 1), rgba(30, 10, 5, 1))',
+          borderTop: '4px solid #FFD700',
+          borderTopLeftRadius: '16px',
+          borderTopRightRadius: '16px',
+          boxShadow: '0 -5px 20px rgba(0, 0, 0, 0.6)',
+          transition: 'bottom 0.3s ease-out',
+          zIndex: 1200,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '12px',
+            background: 'repeating-linear-gradient(90deg, #FFD700, #FFD700 8px, transparent 8px, transparent 16px)',
           }
         }}
       >
-        <Box sx={{ 
+        {/* Improved Close Button - Larger and more visible */}
+        <Box 
+          onClick={closeBetDialog}
+          sx={{
+            height: '40px',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            cursor: 'pointer',
+            backgroundColor: 'rgba(255, 215, 0, 0.1)',
+            borderBottom: '1px solid rgba(255, 215, 0, 0.3)',
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 215, 0, 0.2)',
+              '& .close-icon': {
+                transform: 'translateY(2px)',
+                color: '#FFF'
+              }
+            }
+          }}
+        >
+          <Box 
+            className="close-icon"
+            sx={{
+              color: '#FFD700',
+              fontSize: '24px',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center'
+            }}
+          >
+            ▼
+            <Typography sx={{
+              color: 'inherit',
+              fontSize: '0.7rem',
+              fontWeight: 'bold',
+              mt: '-4px'
+            }}>
+              CLOSE
+            </Typography>
+          </Box>
+        </Box>
+        
+        {/* Countdown Timer - Fixed at top */}
+        <Box sx={{
+          padding: '8px 16px',
+          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+          borderBottom: '1px solid #FFD700',
           display: 'flex',
-          flexDirection: { xs: 'column', sm: 'row' }, 
-          position: 'relative'
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          position: 'relative',
         }}>
-          {/* Left content area */}
-          <Box sx={{ 
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <Box sx={{
+              backgroundColor: gameState === GameState.LastCall ? '#FF5722' : 
+                              gameState === GameState.Open ? '#4CAF50' : '#F44336',
+              width: '10px',
+              height: '10px',
+              borderRadius: '50%',
+              boxShadow: '0 0 6px currentColor',
+              flexShrink: 0
+            }} />
+            
+            <Typography sx={{
+              color: '#FFF',
+              fontWeight: 'bold',
+              fontSize: '0.85rem',
+            }}>
+              STATUS: <span style={{ color: '#FFD700' }}>{gameState}</span>
+            </Typography>
+          </Box>
+          
+          <Box sx={{
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            border: '1px solid #FFD700',
+            borderRadius: '6px',
+            padding: '4px 10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+            <Box component="span" sx={{
+              color: countdown <= 10 ? '#F44336' : countdown <= 30 ? '#FF9800' : '#4CAF50',
+              animation: countdown <= 10 ? 'pulse 1s infinite' : 'none',
+              '@keyframes pulse': {
+                '0%': { opacity: 1 },
+                '50%': { opacity: 0.5 },
+                '100%': { opacity: 1 },
+              }
+            }}>
+              ⏱️
+            </Box>
+            <Typography sx={{
+              fontFamily: 'monospace',
+              fontWeight: 'bold',
+              fontSize: '0.9rem',
+              color: countdown <= 10 ? '#F44336' : countdown <= 30 ? '#FF9800' : '#4CAF50',
+            }}>
+              {formatTime(countdown)}
+            </Typography>
+          </Box>
+        </Box>
+        
+        {/* Main content area */}
+        <Box sx={{ 
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden'
+        }}>
+          {/* Title Area */}
+          <Box sx={{
+            padding: '12px',
+            borderBottom: '2px solid #FFD700',
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            textAlign: 'center',
+          }}>
+            <Typography sx={{ 
+              color: '#FFD700',
+              fontSize: '1.3rem',
+              fontWeight: 'bold',
+              textShadow: '1px 1px 3px rgba(0, 0, 0, 0.8)',
+              textTransform: 'uppercase'
+            }}>
+              {isBettingAllowed ? 'Place Your Bets' : 'Betting Closed'}
+            </Typography>
+          </Box>
+          
+          {/* Content with scroll */}
+          <Box sx={{
             flex: 1,
+            overflowY: 'auto',
+            padding: '12px',
             display: 'flex',
             flexDirection: 'column',
+            gap: '12px'
           }}>
-            {/* Title Area */}
-            <Box sx={{
-              padding: '10px 16px',
-              borderBottom: '3px solid #FFD700',
-              backgroundColor: 'rgba(0, 0, 0, 0.4)',
-              textAlign: 'center'
-            }}>
-              <Typography sx={{ 
-                color: '#FFD700',
-                fontSize: '1.5rem',
-                fontWeight: 'bold',
-                textShadow: '2px 2px 4px rgba(0, 0, 0, 0.6)',
-                textTransform: 'uppercase'
-              }}>
-                Place Your Bets
-              </Typography>
-            </Box>
-  
-            {/* Horses Grid - now using 2 rows for better visibility */}
+            {/* Horses Grid */}
             <Box sx={{ 
-              flex: 1,
-              padding: '12px',
               display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, // Single column on mobile
+              gridTemplateColumns: 'repeat(2, 1fr)',
               gap: '12px',
             }}>
-
               {horses.slice(0, 4).map((horse) => (
                 <Box
                   key={horse.id}
-                  onClick={() => selectedChip && placeBetOnHorse(horse.id)}
+                  onClick={() => isBettingAllowed && selectedChip && placeBetOnHorse(horse.id)}
                   sx={{
                     backgroundColor: horse.color,
-                    backgroundImage: 'linear-gradient(rgba(255,255,255,0.15), rgba(0,0,0,0.3))',
-                    borderRadius: '12px',
+                    backgroundImage: 'linear-gradient(rgba(255,255,255,0.1), rgba(0,0,0,0.2))',
+                    borderRadius: '10px',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
-                    border: selectedHorses[horse.id] 
-                      ? '3px solid #FFD700' 
-                      : '2px solid rgba(255,255,255,0.3)',
-                    boxShadow: selectedHorses[horse.id]
-                      ? '0 0 15px rgba(255, 215, 0, 0.6)'
-                      : '0 6px 12px rgba(0, 0, 0, 0.3)',
+                    border: slots.has(horse.id) 
+                      ? '2px solid #FFD700' 
+                      : '1px solid rgba(255,255,255,0.2)',
+                    boxShadow: slots.has(horse.id)
+                      ? '0 0 10px rgba(255, 215, 0, 0.4)'
+                      : '0 4px 8px rgba(0, 0, 0, 0.2)',
                     position: 'relative',
                     overflow: 'hidden',
-                    cursor: selectedChip ? 'pointer' : 'default',
-                    p: 2
+                    cursor: isBettingAllowed && selectedChip ? 'pointer' : 'default',
+                    opacity: isBettingAllowed ? 1 : 0.7,
+                    p: 2,
+                    transition: 'all 0.2s ease',
+                    '&:hover': isBettingAllowed && selectedChip ? {
+                      transform: 'translateY(-2px)',
+                      boxShadow: '0 6px 12px rgba(0,0,0,0.3)'
+                    } : {}
                   }}
                 >
                   {/* Horse Name and Odds in one row */}
@@ -1082,8 +1207,8 @@ const HorseRacingGame = () => {
                     <Typography sx={{ 
                       color: '#FFF',
                       fontWeight: 'bold',
-                      fontSize: '1.1rem',
-                      textShadow: '1px 1px 3px rgba(0, 0, 0, 0.8)',
+                      fontSize: '1rem',
+                      textShadow: '1px 1px 2px rgba(0, 0, 0, 0.8)',
                       maxWidth: '70%'
                     }}>
                       {horse.name}
@@ -1091,37 +1216,183 @@ const HorseRacingGame = () => {
                     
                     {/* Odds Display */}
                     <Box sx={{
-                      backgroundColor: 'rgba(0,0,0,0.7)',
-                      color: '#FFD700',
-                      fontWeight: 'bold',
-                      fontSize: '1rem',
-                      borderRadius: '4px',
-                      padding: '4px 8px',
-                      border: '1px solid #FFD700',
-                      boxShadow: '0 0 8px rgba(255,215,0,0.5)',
-                    }}>
-                      x2
-                    </Box>
-                  </Box>
-                  
-                  {/* Current Bet Display - always visible */}
-                  <Box sx={{
-                    backgroundColor: 'rgba(0,0,0,0.6)',
-                    padding: '6px',
-                    borderRadius: '4px',
-                    textAlign: 'center',
-                    marginTop: 'auto'
-                  }}>
-                    <Typography sx={{ 
+                      backgroundColor: 'rgba(0,0,0,0.6)',
                       color: '#FFD700',
                       fontWeight: 'bold',
                       fontSize: '0.9rem',
+                      borderRadius: '4px',
+                      padding: '3px 6px',
+                      border: '1px solid #FFD700',
                     }}>
-                      {selectedHorses[horse.id] > 0 ? `BET: ₱${selectedHorses[horse.id]}` : 'No bet placed'}
+                      x{getOdds(horse.id)}
+                    </Box>
+                  </Box>
+                  
+                  {/* Total bets for this horse */}
+                  <Box sx={{
+                    backgroundColor: 'rgba(0,0,0,0.4)',
+                    borderRadius: '5px',
+                    padding: '4px 8px',
+                    marginBottom: 1,
+                    border: '1px dashed rgba(255,215,0,0.2)',
+                  }}>
+                    <Typography sx={{
+                      color: '#FFF',
+                      fontSize: '0.8rem',
+                      fontWeight: 'bold',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}>
+                      <span>TOTAL BETS:</span>
+                      <span style={{ 
+                        color: '#FFD700', 
+                        backgroundColor: 'rgba(0,0,0,0.5)',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        fontSize: '0.85rem',
+                      }}>
+                        ₱{allBets && allBets.has(horse.id) ? allBets.get(horse.id).toLocaleString() : '0'}
+                      </span>
                     </Typography>
                   </Box>
+                  
+                  {/* Current Bet Display */}
+                  <Box sx={{
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    padding: '6px',
+                    borderRadius: '5px',
+                    textAlign: 'center',
+                    marginTop: 'auto',
+                    border: slots.has(horse.id) ? '1px solid rgba(255,215,0,0.4)' : 'none',
+                  }}>
+                    <Typography sx={{ 
+                      color: slots.has(horse.id) ? '#4CAF50' : '#FFD700',
+                      fontWeight: 'bold',
+                      fontSize: '0.9rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      {slots.has(horse.id) ? (
+                        <>
+                          <span style={{ 
+                            marginRight: '4px',
+                            color: '#FFD700',
+                          }}>💰</span>
+                          YOUR BET: ₱{slots.get(horse.id).toLocaleString()}
+                        </>
+                      ) : 'No bet placed'}
+                    </Typography>
+                  </Box>
+  
+                  {/* Show betting closed overlay when betting is not allowed */}
+                  {!isBettingAllowed && (
+                    <Box sx={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: 'rgba(0,0,0,0.4)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '8px',
+                    }}>
+                      <Typography sx={{
+                        color: '#FFD700',
+                        fontWeight: 'bold',
+                        fontSize: '0.9rem',
+                        backgroundColor: 'rgba(0,0,0,0.6)',
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        border: '1px solid rgba(255,215,0,0.3)'
+                      }}>
+                        BETTING CLOSED
+                      </Typography>
+                    </Box>
+                  )}
                 </Box>
               ))}
+            </Box>
+            
+            {/* Chips panel */}
+            <Box sx={{
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              borderRadius: '10px',
+              padding: '12px',
+              border: '1px solid rgba(255,215,0,0.3)',
+            }}>
+              <Typography sx={{
+                color: '#FFD700',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                mb: '8px',
+                fontSize: '0.95rem',
+              }}>
+                SELECT CHIP AMOUNT
+              </Typography>
+              
+              <Box sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                gap: '8px',
+                flexWrap: 'wrap'
+              }}>
+                {Object.entries(casinoChips).map(([color, src]) => (
+                  <Box 
+                    key={color} 
+                    sx={{ 
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      cursor: isBettingAllowed ? 'pointer' : 'default',
+                      transform: selectedChip === color && isBettingAllowed ? 'scale(1.1)' : 'scale(1)',
+                      transition: 'all 0.2s ease',
+                      position: 'relative',
+                      pointerEvents: isBettingAllowed ? 'auto' : 'none',
+                      borderRadius: '50%',
+                      padding: '3px',
+                      backgroundColor: selectedChip === color && isBettingAllowed ? 'rgba(255,215,0,0.15)' : 'transparent',
+                      border: selectedChip === color && isBettingAllowed ? '1px solid rgba(255,215,0,0.5)' : 'none',
+                      '&:hover': isBettingAllowed ? {
+                        transform: 'scale(1.1)',
+                        boxShadow: '0 0 10px rgba(255,215,0,0.5)'
+                      } : {}
+                    }}
+                    onClick={() => isBettingAllowed && setSelectedChip(color)}
+                  >
+                    <Box 
+                      component="img" 
+                      src={src} 
+                      alt={`${color} chip`}
+                      sx={{ 
+                        width: '50px',
+                        height: '50px',
+                        filter: selectedChip === color && isBettingAllowed ? 
+                          'drop-shadow(0 0 8px rgba(255,215,0,0.7))' : 'none',
+                      }}
+                    />
+                    <Typography 
+                      sx={{ 
+                        color: '#FFF', 
+                        fontWeight: 'bold',
+                        fontSize: '0.75rem',
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        backgroundColor: 'rgba(0,0,0,0.6)',
+                        padding: '1px 4px',
+                        borderRadius: '8px',
+                      }}
+                    >
+                      ₱{chipValues[color].toLocaleString()}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
             </Box>
             
             {/* Bet Summary Section */}
@@ -1129,96 +1400,267 @@ const HorseRacingGame = () => {
               backgroundColor: 'rgba(0, 0, 0, 0.6)',
               borderRadius: '10px',
               padding: '12px',
-              margin: '12px',
-              border: '2px solid rgba(255,215,0,0.5)'
+              border: '1px solid rgba(255,215,0,0.4)',
             }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography sx={{ color: '#FFF', fontWeight: 'bold' }}>
-                  TOTAL BET:
-                </Typography>
-                <Typography sx={{ color: '#FFD700', fontWeight: 'bold' }}>
-                ₱{totalBet}
-                </Typography>
-              </Box>
-
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                <Typography sx={{ color: '#FFF', fontWeight: 'bold' }}>
-                  POSSIBLE WIN:
-                </Typography>
-                <Typography sx={{ color: '#4CAF50', fontWeight: 'bold' }}>
-                ₱{possibleWin}
-                </Typography>
-              </Box>
-
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Typography sx={{ color: '#FFF', fontWeight: 'bold' }}>
-                  BALANCE:
-                </Typography>
-                <Typography sx={{ color: '#FFD700', fontWeight: 'bold' }}>
-                ₱{balance}
-                </Typography>
+              <Typography sx={{
+                color: '#FFD700',
+                fontWeight: 'bold',
+                fontSize: '0.95rem',
+                textAlign: 'center',
+                mb: 1,
+                borderBottom: '1px solid rgba(255,215,0,0.2)',
+                pb: 0.5,
+              }}>
+                YOUR BET SUMMARY
+              </Typography>
+              
+              <Box sx={{ 
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '8px',
+                textAlign: 'center'
+              }}>
+                <Box>
+                  <Typography sx={{ color: '#FFF', fontWeight: 'bold', fontSize: '0.75rem' }}>
+                    TOTAL BET
+                  </Typography>
+                  <Typography sx={{ 
+                    color: '#FFD700', 
+                    fontWeight: 'bold',
+                    fontSize: '1rem'
+                  }}>
+                    ₱{totalBet.toLocaleString()}
+                  </Typography>
+                </Box>
+                
+                <Box>
+                  <Typography sx={{ color: '#FFF', fontWeight: 'bold', fontSize: '0.75rem' }}>
+                    POSSIBLE WIN
+                  </Typography>
+                  <Typography sx={{ 
+                    color: '#4CAF50', 
+                    fontWeight: 'bold',
+                    fontSize: '1rem'
+                  }}>
+                    ₱{possibleWin.toLocaleString()}
+                  </Typography>
+                </Box>
+                
+                <Box>
+                  <Typography sx={{ color: '#FFF', fontWeight: 'bold', fontSize: '0.75rem' }}>
+                    BALANCE
+                  </Typography>
+                  <Typography sx={{ 
+                    color: '#FFD700', 
+                    fontWeight: 'bold',
+                    fontSize: '1rem'
+                  }}>
+                    ₱{balance.toLocaleString()}
+                  </Typography>
+                </Box>
               </Box>
             </Box>
-
-          </Box>
-          
-          {/* Chips panel - now horizontal on mobile */}
-          <Box sx={{
-            width: '15%',
-            backgroundColor: 'rgba(0,0,0,0.45)',
-            borderTop: { xs: '3px solid rgba(255,215,0,0.4)', sm: 'none' },
-            borderLeft: { xs: 'none', sm: '3px solid rgba(255,215,0,0.4)' },
-            display: 'flex',
-            flexDirection: { xs: 'row', sm: 'column' },
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-            {Object.entries(casinoChips).map(([color, src]) => (
-              <Box 
-                key={color} 
-                sx={{ 
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                  transform: selectedChip === color ? 'scale(1.1)' : 'scale(1)',
-                  transition: 'transform 0.15s ease',
-                  position: 'relative', // Added for absolute positioning of text
-                  mx: 1, // Added some horizontal margin
-                  my: { xs: 0, sm: 1 } // Added some vertical margin
-                }}
-                onClick={() => setSelectedChip(color)}
-              >
-                <Box 
-                  component="img" 
-                  src={src} 
-                  alt={`${color} chip`}
-                  sx={{ 
-                    width: 40,
-                    filter: selectedChip === color ? 
-                      'drop-shadow(0 0 8px rgba(255,215,0,0.9))' : 'none'
-                  }}
-                />
-                <Typography 
-                  sx={{ 
-                    color: '#FFF', 
-                    fontWeight: 'bold',
-                    fontSize: '0.7rem',
-                    textShadow: '0 0 4px rgba(0,0,0,0.9)',
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    pointerEvents: 'none' // Makes the text non-interactive
-                  }}
-                >
-                  ₱{chipValues[color]}
-                </Typography>
-              </Box>
-            ))}
           </Box>
         </Box>
-      </Dialog>
+      </Box>
+    );
+  };
+
+  const renderWinnerDialog = () => {
+    const hasWinners = topPlayers && topPlayers.length > 0;
+    const isWinner = hasWinners && topPlayers.some(player => player.userId === userInfo.userData.data.user.id);
+    
+    return (
+      <Box
+        sx={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.8)',
+          zIndex: 1300,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          p: 2,
+        }}
+      >
+        {/* Main Dialog Container */}
+        <Box
+          sx={{
+            backgroundColor: '#1a0a00',
+            backgroundImage: 'linear-gradient(to bottom, #2a1508, #1a0a00)',
+            borderRadius: '12px',
+            border: '3px solid #FFD700',
+            boxShadow: '0 0 20px rgba(255, 215, 0, 0.5)',
+            maxWidth: '500px',
+            width: '100%',
+            overflow: 'hidden',
+            textAlign: 'center',
+          }}
+        >
+          {/* Header */}
+          <Box
+            sx={{
+              background: 'linear-gradient(to right, #8B4513, #A0522D, #8B4513)',
+              padding: '12px',
+              borderBottom: '2px solid #FFD700',
+            }}
+          >
+            <Typography
+              sx={{
+                color: '#FFD700',
+                fontWeight: 'bold',
+                fontSize: '1.5rem',
+                textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
+              }}
+            >
+              {winningBall && winningBall.horseRace ? (
+                <>
+                  🏆 HORSE{' '}
+                  <span
+                    style={{
+                      color:horseColor[winningBall.horseRace],
+                      textShadow: '0 0 2px rgba(0,0,0,0.8)',
+                    }}
+                  >
+                    {winningBall.horseRace.toUpperCase()}
+                  </span>{' '}
+                  WINS! 🏆
+                </>
+              ) : (
+                '🏆 RACE FINISHED 🏆'
+              )}
+            </Typography>
+          </Box>
+  
+          {/* Content Area */}
+          <Box sx={{ p: 3 }}>
+            {/* Winner Announcement */}
+            {isWinner && (
+              <Box
+                sx={{
+                  backgroundColor: 'rgba(76, 175, 80, 0.2)',
+                  border: '2px solid #4CAF50',
+                  borderRadius: '8px',
+                  padding: '16px',
+                  mb: 3,
+                  animation: 'pulse 1.5s infinite',
+                  '@keyframes pulse': {
+                    '0%': { boxShadow: '0 0 0 0 rgba(76, 175, 80, 0.7)' },
+                    '70%': { boxShadow: '0 0 0 10px rgba(76, 175, 80, 0)' },
+                    '100%': { boxShadow: '0 0 0 0 rgba(76, 175, 80, 0)' },
+                  },
+                }}
+              >
+                <Typography
+                  sx={{
+                    color: '#FFD700',
+                    fontWeight: 'bold',
+                    fontSize: '1.2rem',
+                    mb: 1,
+                  }}
+                >
+                  🎉 CONGRATULATIONS! 🎉
+                </Typography>
+                <Typography sx={{ color: '#FFF' }}>
+                  You're one of the top winners!
+                </Typography>
+              </Box>
+            )}
+  
+            {/* Top Players List - Only show if there are winners */}
+            {hasWinners && (
+              <Box sx={{ mt: 2 }}>
+                <Typography
+                  sx={{
+                    color: '#FFD700',
+                    fontWeight: 'bold',
+                    fontSize: '1rem',
+                    mb: 1,
+                  }}
+                >
+                  TOP WINNERS
+                </Typography>
+  
+                <Box
+                  sx={{
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                    '&::-webkit-scrollbar': {
+                      width: '6px',
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                      backgroundColor: '#FFD700',
+                      borderRadius: '3px',
+                    },
+                  }}
+                >
+                  {topPlayers.map((player, index) => (
+                    <Box
+                      key={player.uuid}
+                      sx={{
+                        backgroundColor:
+                          player.userId === userInfo.userData.data.user.id
+                            ? 'rgba(255, 215, 0, 0.2)'
+                            : 'rgba(0, 0, 0, 0.3)',
+                        border:
+                          player.userId === userInfo.userData.data.user.id
+                            ? '2px solid #FFD700'
+                            : '1px solid rgba(255, 215, 0, 0.2)',
+                        borderRadius: '6px',
+                        padding: '10px',
+                        mb: 1,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Typography
+                          sx={{
+                            color: '#FFD700',
+                            fontWeight: 'bold',
+                            minWidth: '30px',
+                            textAlign: 'left',
+                          }}
+                        >
+                          {index + 1}.
+                        </Typography>
+                        <Typography
+                          sx={{
+                            color: '#FFF',
+                            fontWeight: 'bold',
+                            textOverflow: 'ellipsis',
+                            overflow: 'hidden',
+                            whiteSpace: 'nowrap',
+                            maxWidth: '120px',
+                          }}
+                        >
+                          {player.name}
+                        </Typography>
+                      </Box>
+                      <Typography
+                        sx={{
+                          color: '#4CAF50',
+                          fontWeight: 'bold',
+                        }}
+                      >
+                        ₱{player.prize.toLocaleString()}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+            )}
+          </Box>
+        </Box>
+  
+        {/* Auto-close timer for empty winners case */}
+        
+      </Box>
     );
   };
   
@@ -1255,94 +1697,13 @@ const HorseRacingGame = () => {
   };
   
   // Winner announcement
-  const renderWinnerAnnouncement = () => {
-    if (!winner) return null;
-    
-    const didWin = selectedHorses[winner.id] !== undefined;
-    
-    return (
-      <Box
-        sx={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          bgcolor: 'rgba(0, 0, 0, 0.8)',
-          p: 4,
-          borderRadius: 3,
-          border: '4px solid #FFD700',
-          textAlign: 'center',
-          minWidth: 300,
-          maxWidth: '80%',
-          boxShadow: '0 0 30px rgba(255, 215, 0, 0.7)',
-          zIndex: 1000
-        }}
-      >
-        <Typography 
-          variant="h3" 
-          sx={{ 
-            color: winner.color, 
-            fontWeight: 'bold',
-            mb: 2,
-            textShadow: '0 0 10px rgba(255,255,255,0.5)'
-          }}
-        >
-          {winner.name} WINS!
-        </Typography>
-        
-        {didWin ? (
-          <>
-            <Typography variant="h5" sx={{ color: '#FFD700', mb: 2 }}>
-              YOU WIN ${selectedHorses[winner.id] * 2}!
-            </Typography>
-            <Box 
-              component="span" 
-              role="img" 
-              aria-label="celebration" 
-              sx={{ fontSize: '3rem', display: 'block', mb: 2 }}
-            >
-              🎉
-            </Box>
-          </>
-        ) : (
-          <>
-            <Typography variant="h5" sx={{ color: '#FFD700', mb: 2 }}>
-              BETTER LUCK NEXT TIME!
-            </Typography>
-            <Box 
-              component="span" 
-              role="img" 
-              aria-label="sad" 
-              sx={{ fontSize: '3rem', display: 'block', mb: 2 }}
-            >
-              😔
-            </Box>
-          </>
-        )}
-        
-        <Button
-          variant="contained"
-          onClick={nextRound}
-          sx={{
-            bgcolor: '#4CAF50',
-            color: '#FFF',
-            fontWeight: 'bold',
-            fontSize: '1.2rem',
-            py: 1,
-            px: 4,
-            '&:hover': { bgcolor: '#45a049' }
-          }}
-        >
-          NEXT ROUND
-        </Button>
-      </Box>
-    );
-  };
+  
   
   return (
     <ThemeProvider theme={theme}>
       <Box sx={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
         {!isLandscape && renderOrientationWarning()}
+        {gameState === GameState.WinnerDeclared && renderWinnerDialog()}
         
         <Box ref={canvasRef} sx={{ width: '100%', height: '100%' }} />
         
@@ -1357,12 +1718,10 @@ const HorseRacingGame = () => {
                 top: 0,
                 left: 0,
                 right: 0,
-                bgcolor: 'rgba(0, 0, 0, 0.7)',
                 p: 1,
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                borderBottom: '2px solid #FFD700'
               }}
             >
               <Typography 
@@ -1376,25 +1735,83 @@ const HorseRacingGame = () => {
                 NotAVeryLongName
               </Typography>
               
-              {gameStarted && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    bgcolor: 'rgba(0, 0, 0, 0.7)',
-                    p: 1,
-                    borderRadius: 2,
-                    border: '2px solid #FFD700',
-                    minWidth: 100,
-                    textAlign: 'center'
-                  }}
-                >
-                  <Typography variant="h6" sx={{ color: '#FFF', fontWeight: 'bold' }}>
-                    {formatTime(raceTime)}
-                  </Typography>
-                </Box>
-              )}
+              {/* Countdown/Race Time Display */}
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: 16,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  zIndex: 1,
+                  textAlign: 'center'
+                }}
+              >
+                {/* Closed State - Shows Race Time */}
+                {gameState === GameState.Closed && (
+                  <Box
+                    sx={{
+                      bgcolor: 'rgba(0, 0, 0, 0.8)',
+                      p: '6px 16px',
+                      borderRadius: '20px',
+                      border: '2px solid #FF0000',
+                      boxShadow: '0 0 15px rgba(255, 0, 0, 0.7)',
+                      minWidth: 120,
+                      animation: 'pulse 1.5s infinite',
+                      '@keyframes pulse': {
+                        '0%': { boxShadow: '0 0 15px rgba(255, 0, 0, 0.7)' },
+                        '50%': { boxShadow: '0 0 25px rgba(255, 0, 0, 0.9)' },
+                        '100%': { boxShadow: '0 0 15px rgba(255, 0, 0, 0.7)' }
+                      }
+                    }}
+                  >
+                    <Typography variant="h6" sx={{ 
+                      color: '#FFF', 
+                      fontWeight: 'bold',
+                      textShadow: '0 0 8px rgba(255, 0, 0, 0.9)',
+                      letterSpacing: '1px'
+                    }}>
+                      RACE IN: {formatTime(raceTime)}
+                    </Typography>
+                  </Box>
+                )}
+
+                {/* Open/Last Call State - Shows Countdown */}
+                {(gameState === GameState.Open || gameState === GameState.LastCall) && (
+                  <Box
+                    sx={{
+                      bgcolor: 'rgba(0, 0, 0, 0.8)',
+                      p: '6px 16px',
+                      borderRadius: '20px',
+                      border: `2px solid ${gameState === GameState.LastCall ? '#FFA500' : '#4CAF50'}`,
+                      boxShadow: `0 0 15px ${gameState === GameState.LastCall ? 'rgba(255, 165, 0, 0.7)' : 'rgba(76, 175, 80, 0.7)'}`,
+                      minWidth: 120,
+                      animation: gameState === GameState.LastCall ? 'pulseWarning 1s infinite' : 'none',
+                      '@keyframes pulseWarning': {
+                        '0%': { boxShadow: '0 0 15px rgba(255, 165, 0, 0.7)' },
+                        '50%': { boxShadow: '0 0 25px rgba(255, 165, 0, 0.9)' },
+                        '100%': { boxShadow: '0 0 15px rgba(255, 165, 0, 0.7)' }
+                      }
+                    }}
+                  >
+                    <Typography variant="h6" sx={{ 
+                      color: gameState === GameState.LastCall ? '#FFA500' : '#4CAF50',
+                      fontWeight: 'bold',
+                      textShadow: `0 0 8px ${gameState === GameState.LastCall ? 'rgba(255, 165, 0, 0.9)' : 'rgba(76, 175, 80, 0.9)'}`,
+                      letterSpacing: '1px'
+                    }}>
+                      {gameState === GameState.LastCall ? 'LAST CALL!' : 'BETTING OPEN!'}
+                    </Typography>
+                    <Typography variant="h5" sx={{ 
+                      color: '#FFD700',
+                      fontWeight: 'bold',
+                      textShadow: '0 0 10px rgba(255, 215, 0, 0.9)',
+                      mt: 0.5
+                    }}>
+                      {formatTime(countdown)}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
               
               <Typography 
                 variant="h6" 
@@ -1422,7 +1839,6 @@ const HorseRacingGame = () => {
               <Button
                 variant="contained"
                 onClick={openBetDialog}
-                disabled={gameStarted}
                 sx={{ 
                   bgcolor: '#4CAF50', 
                   color: '#FFF',
@@ -1433,42 +1849,70 @@ const HorseRacingGame = () => {
               >
                 Place Bet
               </Button>
-              
-              <Button
-                variant="contained"
-                onClick={startRace}
-                disabled={gameStarted || Object.keys(selectedHorses).length === 0}
-                sx={{ 
-                  bgcolor: '#2196F3', 
-                  color: '#FFF',
-                  fontWeight: 'bold',
-                  '&:hover': { bgcolor: '#0b7dda' },
-                  py: 1.5
-                }}
-              >
-                Start Race
-              </Button>
-              
-              <Button
-                variant="contained"
-                onClick={nextRound}
-                disabled={!gameFinished}
-                sx={{ 
-                  bgcolor: '#FF9800', 
-                  color: '#FFF',
-                  fontWeight: 'bold',
-                  '&:hover': { bgcolor: '#e68a00' },
-                  py: 1.5
-                }}
-              >
-                Next Round
-              </Button>
             </Box>
             
-            {gameFinished && renderWinnerAnnouncement()}
+            {/* {gameFinished && renderWinnerAnnouncement()} */}
             
-            {renderBetDialog()}
+            {renderBetPanel()}
           </>
+        )}
+        {countdown <= 5 && countdown > 0 && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 1000,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              pointerEvents: 'none'
+            }}
+          >
+            <Box
+              sx={{
+                textAlign: 'center',
+                animation: 'pulse 0.5s infinite alternate',
+                '@keyframes pulse': {
+                  '0%': { transform: 'scale(1)' },
+                  '100%': { transform: 'scale(1.05)' }
+                }
+              }}
+            >
+              <Typography
+                variant="h1"
+                sx={{
+                  fontFamily: '"Keania One", cursive',
+                  fontSize: '8rem',
+                  color: '#FFD700',
+                  textShadow: '0 0 20px rgba(255, 215, 0, 0.8)',
+                  lineHeight: 1,
+                  mb: 1,
+                  animation: countdown === 5 ? 'zoomIn 0.5s' : 'none',
+                  '@keyframes zoomIn': {
+                    '0%': { transform: 'scale(0.5)', opacity: 0 },
+                    '100%': { transform: 'scale(1)', opacity: 1 }
+                  }
+                }}
+              >
+                {countdown}
+              </Typography>
+              <Typography
+                variant="h4"
+                sx={{
+                  fontFamily: '"Keania One", cursive',
+                  color: '#FFF',
+                  textShadow: '0 0 10px rgba(255, 255, 255, 0.7)',
+                  letterSpacing: '2px'
+                }}
+              >
+                RACE STARTING!
+              </Typography>
+            </Box>
+          </Box>
         )}
       </Box>
     </ThemeProvider>

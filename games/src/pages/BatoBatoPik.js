@@ -104,17 +104,12 @@ const BatoBatoPik = () => {
   }, []);
 
   useEffect(() => {
-    let timer;
-  
+    
     if (gameState === GameState.WinnerDeclared) {
       setAnnouncementDialogOpen(true);
     } else {
-      timer = setTimeout(() => {
-        setAnnouncementDialogOpen(false);
-      }, 2000);
+      setAnnouncementDialogOpen(false);
     }
-  
-    return () => clearTimeout(timer);
   }, [gameState]);
   
 
@@ -206,18 +201,7 @@ const BatoBatoPik = () => {
     }
   }, [juanChoice, pedroChoice, isAnimationEnd]);
 
-  useEffect(() => {
-    if(juanChoiceFinal && pedroChoiceFinal){
-      sendMessage(
-        JSON.stringify({
-          cmd: GameState.WinnerDeclared,
-          game: "bbp",
-          winnerOrders: determineWinner(juanChoiceFinal, pedroChoiceFinal),
-          uuid: userInfo.userData.data.user.uuid,
-        })
-      );
-    }
-  }, [juanChoiceFinal, pedroChoiceFinal]);
+  
   
   
   const startGame = () => {

@@ -146,19 +146,12 @@ const KaraKrus = () => {
   // }, [coinResult]);
 
   useEffect(() => {
-    let timer;
-  
     if (gameState === GameState.WinnerDeclared) {
       setOpenAnnouncement(true);
     } else {
-      // Delay closing the announcement when gameState changes away from WinnerDeclared
-      timer = setTimeout(() => {
-        setOpenAnnouncement(false);
-      }, 2000);
+      setOpenAnnouncement(false);
     }
-  
-    // Cleanup timeout if gameState changes before timeout finishes
-    return () => clearTimeout(timer);
+
   }, [gameState]);
   
 
@@ -816,16 +809,6 @@ const KaraKrus = () => {
         if (won) {
           setBalance(prevBalance => prevBalance + (betAmount * 2));
         }
-
-        // Send winner message
-        sendMessage(
-          JSON.stringify({
-            cmd: GameState.WinnerDeclared,
-            game: "karakrus",
-            winnerOrders: coinResult,
-            uuid: userInfo.userData.data.user.uuid,
-          })
-        );
       }
     };
     

@@ -450,6 +450,20 @@ const GoldenGoose = () => {
     
   };
 
+  const styles = `
+  @keyframes shine {
+    0% { transform: translateX(-100%) rotate(30deg); }
+    20% { transform: translateX(100%) rotate(30deg); }
+    100% { transform: translateX(100%) rotate(30deg); }
+  }
+  @keyframes pulse {
+    0% { opacity: 0.5; transform: scale(0.9); }
+    100% { opacity: 0.9; transform: scale(1.1); }
+  }
+`;
+
+// Add to your component or global styles
+
   const EggItem = ({ egg }) => {
     const [showItem, setShowItem] = useState(false);
 
@@ -538,29 +552,164 @@ const GoldenGoose = () => {
               <animated.div style={{scale: scaleSpring.scale,rotate: rotateSpring.rotate,}}><img src={crackedEgg} style={{ width: 50 }} /></animated.div>
             ) : (
               <Box style={{ fontSize: '14px', position: 'relative', width: 50, height: 50 }}>
-                <img 
+                {/* <img 
                   src={crackedEgg} 
                   style={{ 
                     width: '140%', 
                     position: 'absolute', 
-                    top: -14, 
+                    top: -10, 
                     left: -10,
                     transform: 'rotate(10deg)', 
                   }} 
-                />
+                /> */}
                 <animated.div
                   style={{
-                    fontSize: '35px', 
                     position: 'absolute',
-                    fontFamily: 'Paytone One',
-                    fontWeight: '700',
-                    color: egg.color, 
-                    left: -12,
+                    left: 0,
+                    top: -2,
                     ...scaleAndRotate,
-                    textShadow: egg.textShadow,
                   }}
                 >
-                  {egg.item}
+                  <Box
+                    sx={{
+                      position: 'relative',
+                      width: '50px',
+                      height: '50px',
+                      borderRadius: '50%',
+                      // Darker gold gradient
+                      background: 'radial-gradient(circle at 30% 30%, #FFD700, #D4AF37 60%, #AA8800)',
+                      boxShadow: '0 0 15px rgba(184,134,11,0.8), inset 0 0 10px rgba(218,165,32,0.5)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '2px solid #D4AF37',
+                      transform: 'rotateY(-15deg)',
+                      filter: 'drop-shadow(2px 4px 6px rgba(0,0,0,0.3))',
+                      overflow: 'hidden',
+                      transition: 'transform 0.3s ease',
+                      '&:hover': {
+                        transform: 'rotateY(-15deg) rotateX(10deg) scale(1.05)',
+                      },
+                      '&:before': {
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%)',
+                        // Modified to use pulsing animation instead of rotation
+                        animation: 'coinShinePulse 3s infinite ease-in-out',
+                      },
+                      '@keyframes coinShinePulse': {
+                        '0%': {
+                          opacity: 0.3,
+                          transform: 'scale(0.8) rotate(0deg)',
+                        },
+                        '50%': {
+                          opacity: 0.8,
+                          transform: 'scale(1.1) rotate(180deg)',
+                        },
+                        '100%': {
+                          opacity: 0.3,
+                          transform: 'scale(0.8) rotate(360deg)',
+                        },
+                      },
+                      '@keyframes coinPulse': {
+                        '0%, 100%': {
+                          transform: 'scale(1)',
+                          opacity: 0.7,
+                        },
+                        '50%': {
+                          transform: 'scale(1.3)',
+                          opacity: 0.9,
+                        },
+                      },
+                      '@keyframes coinFloat': {
+                        '0%, 100%': {
+                          transform: 'translateY(0)',
+                        },
+                        '50%': {
+                          transform: 'translateY(-5px)',
+                        },
+                      },
+                    }}
+                  >
+                    {/* Main coin highlight - pulsing effect */}
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: '15%',
+                        left: '15%',
+                        width: '25%',
+                        height: '25%',
+                        borderRadius: '50%',
+                        background: 'radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 70%)',
+                        filter: 'blur(1px)',
+                        animation: 'coinPulse 2s infinite ease-in-out',
+                      }}
+                    />
+                    
+                    {/* Secondary reflections */}
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        bottom: '20%',
+                        right: '20%',
+                        width: '15%',
+                        height: '15%',
+                        borderRadius: '50%',
+                        background: 'rgba(255,255,255,0.4)',
+                        filter: 'blur(0.5px)',
+                      }}
+                    />
+                    
+                    {/* Coin value display - darker engraved effect */}
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontFamily: "'Paytone One', sans-serif",
+                        fontWeight: '700',
+                        fontSize: '0.9rem',
+                        color: 'transparent',
+                        background: 'linear-gradient(to bottom, #5E4200 0%, #3A2900 100%)',
+                        textShadow: '1px 1px 1px rgba(255,215,0,0.3), -1px -1px 1px rgba(0,0,0,0.2)',
+                        transform: 'scaleY(1.2)',
+                        letterSpacing: '0.5px',
+                        WebkitBackgroundClip: 'text',
+                        backgroundClip: 'text',
+                        position: 'relative',
+                        zIndex: 1,
+                        '&:after': {
+                          content: '""',
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%)',
+                        }
+                      }}
+                    >
+                      ₱{egg.item}
+                    </Typography>
+                    
+                    {/* Coin rim detail - darker */}
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: '0',
+                        left: '0',
+                        right: '0',
+                        bottom: '0',
+                        borderRadius: '50%',
+                        border: '2px solid rgba(110,80,0,0.4)',
+                        boxShadow: 'inset 0 0 10px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.2)',
+                      }}
+                    />
+                  </Box>
                 </animated.div>
               </Box>
             )}

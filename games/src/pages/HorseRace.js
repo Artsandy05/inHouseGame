@@ -181,12 +181,20 @@ const HorseRacingGame = () => {
     }
   }, [gameState]);
 
+  const getOdds = (horseId) => {
+    let str = "0.00";
+    if (odds.has(horseId)) {
+      return odds.get(horseId);
+    }
+    return Number(parseFloat(str).toFixed(2));
+  };
+
   // Calculate total bet and possible win
   const totalBet = Array.from(slots.values()).reduce((sum, bet) => sum + bet, 0);
   const possibleWinHorse = slots.size > 0 ? 
     Array.from(slots.keys())[Math.floor(Math.random() * slots.size)] : 
     null;
-  const possibleWin = possibleWinHorse ? slots.get(possibleWinHorse) * 2 : 0;
+  const possibleWin = possibleWinHorse ? slots.get(possibleWinHorse) * getOdds(possibleWinHorse) : 0;
   
   // Check orientation
   useEffect(() => {
@@ -586,6 +594,10 @@ const HorseRacingGame = () => {
       }
     });
   }
+  function truncateToTwoDecimals(num) {
+      return Math.trunc(num * 100) / 100;
+  }
+
   
   // Start the race
   const startRace = () => {
@@ -969,13 +981,7 @@ const HorseRacingGame = () => {
     );
   };
 
-  const getOdds = (horseId) => {
-    let str = "0.00";
-    if (odds.has(horseId)) {
-      return odds.get(horseId);
-    }
-    return Number(parseFloat(str).toFixed(2));
-  };
+  
   
   // Render bet dialog
   const renderBetPanel = () => {
@@ -1193,7 +1199,7 @@ const HorseRacingGame = () => {
                     overflow: 'hidden',
                     cursor: isBettingAllowed && selectedChip ? 'pointer' : 'default',
                     opacity: isBettingAllowed ? 1 : 0.7,
-                    p: '10px',
+                    p: '5px',
                     transition: 'all 0.2s ease',
                     '&:hover': isBettingAllowed && selectedChip ? {
                       transform: 'translateY(-2px)',
@@ -1206,12 +1212,12 @@ const HorseRacingGame = () => {
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'flex-start',
-                    mb: '4px'
+                    mb: 0.2
                   }}>
                     <Typography sx={{ 
                       color: '#FFF',
                       fontWeight: 'bold',
-                      fontSize: '0.9rem',
+                      fontSize: '0.9em',
                       textShadow: '1px 1px 2px rgba(0, 0, 0, 0.8)',
                       maxWidth: '70%'
                     }}>
@@ -1222,12 +1228,12 @@ const HorseRacingGame = () => {
                       backgroundColor: 'rgba(0,0,0,0.6)',
                       color: '#FFD700',
                       fontWeight: 'bold',
-                      fontSize: '0.8rem',
+                      fontSize: '0.7rem',
                       borderRadius: '4px',
                       padding: '2px 4px',
                       border: '1px solid #FFD700',
                     }}>
-                      x{getOdds(horse.id)}
+                      x{truncateToTwoDecimals(getOdds(horse.id))}
                     </Box>
                   </Box>
                   
@@ -1235,13 +1241,13 @@ const HorseRacingGame = () => {
                   <Box sx={{
                     backgroundColor: 'rgba(0,0,0,0.4)',
                     borderRadius: '4px',
-                    padding: '3px 6px',
-                    marginBottom: '4px',
+                    padding: '2px 3.5px',
                     border: '1px dashed rgba(255,215,0,0.2)',
+                    mb:0.5
                   }}>
                     <Typography sx={{
                       color: '#FFF',
-                      fontSize: '0.75rem',
+                      fontSize: '0.7rem',
                       fontWeight: 'bold',
                       display: 'flex',
                       justifyContent: 'space-between',
@@ -1251,9 +1257,9 @@ const HorseRacingGame = () => {
                       <span style={{ 
                         color: '#FFD700', 
                         backgroundColor: 'rgba(0,0,0,0.5)',
-                        padding: '1px 4px',
+                        padding: '1px 2px',
                         borderRadius: '3px',
-                        fontSize: '0.75rem',
+                        fontSize: '0.7rem',
                       }}>
                         ₱{allBets && allBets.has(horse.id) ? allBets.get(horse.id).toLocaleString() : '0'}
                       </span>
@@ -1263,7 +1269,7 @@ const HorseRacingGame = () => {
                   {/* Current Bet */}
                   <Box sx={{
                     backgroundColor: 'rgba(0,0,0,0.5)',
-                    padding: '4px',
+                    padding: '2px',
                     borderRadius: '4px',
                     textAlign: 'center',
                     marginTop: 'auto',
@@ -1327,88 +1333,93 @@ const HorseRacingGame = () => {
             gap: '8px'
           }}>
             {/* Chips panel - MODIFIED FOR 3x3 GRID */}
-            <Box sx={{
+            <Grid container sx={{
               backgroundColor: 'rgba(0,0,0,0.5)',
               borderRadius: '8px',
               padding: '8px',
               border: '1px solid rgba(255,215,0,0.3)',
-              flex: 1
+              flex: 1 
             }}>
-              <Typography sx={{
-                color: '#FFD700',
-                fontWeight: 'bold',
-                textAlign: 'center',
-                mb: '6px',
-                fontSize: '0.85rem',
-              }}>
-                SELECT CHIP
-              </Typography>
+              <Grid item xs={12}>
+                <Typography sx={{
+                  color: '#FFD700',
+                  fontWeight: 'bold',
+                  textAlign: 'center',
+                  mb: '6px',
+                  fontSize: '0.85rem',
+                }}>
+                  SELECT CHIP
+                </Typography>
+              </Grid>
               
-              {/* Modified to display in a 3x3 grid */}
-              <Box sx={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gridTemplateRows: 'repeat(3, 1fr)',
-                gap: '6px',
+              {/* 3x3 Grid for chips */}
+              <Grid container spacing={0} sx={{
                 justifyContent: 'center',
                 alignItems: 'center',
-                height: 0
+                width: '100%',
               }}>
                 {Object.entries(casinoChips).map(([color, src]) => (
-                  <Box 
-                    key={color} 
-                    sx={{ 
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: isBettingAllowed ? 'pointer' : 'default',
-                      transform: selectedChip === color && isBettingAllowed ? 'scale(1.1)' : 'scale(1)',
-                      transition: 'all 0.2s ease',
-                      position: 'relative',
-                      pointerEvents: isBettingAllowed ? 'auto' : 'none',
-                      borderRadius: '50%',
-                      padding: '2px',
-                      backgroundColor: selectedChip === color && isBettingAllowed ? 'rgba(255,215,0,0.15)' : 'transparent',
-                      border: selectedChip === color && isBettingAllowed ? '1px solid rgba(255,215,0,0.5)' : 'none',
-                      
-                      '&:hover': isBettingAllowed ? {
-                        transform: 'scale(1.1)',
-                        boxShadow: '0 0 8px rgba(255,215,0,0.5)'
-                      } : {}
-                    }}
-                    onClick={() => isBettingAllowed && setSelectedChip(color)}
-                  >
+                  <Grid item xs={4} key={color} sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    padding: '4px'
+                  }}>
                     <Box 
-                      component="img" 
-                      src={src} 
-                      alt={`${color} chip`}
                       sx={{ 
                         width: '100%',
-                        objectFit: 'contain',
-                        filter: selectedChip === color && isBettingAllowed ? 
-                          'drop-shadow(0 0 6px rgba(255,215,0,0.7))' : 'none',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: isBettingAllowed ? 'pointer' : 'default',
+                        transform: selectedChip === color && isBettingAllowed ? 'scale(1.1)' : 'scale(1)',
+                        transition: 'all 0.2s ease',
+                        position: 'relative',
+                        pointerEvents: isBettingAllowed ? 'auto' : 'none',
+                        borderRadius: '50%',
+                        padding: '2px',
+                        backgroundColor: selectedChip === color && isBettingAllowed ? 'rgba(255,215,0,0.15)' : 'transparent',
+                        border: selectedChip === color && isBettingAllowed ? '1px solid rgba(255,215,0,0.5)' : 'none',
+                        
+                        '&:hover': isBettingAllowed ? {
+                          transform: 'scale(1.1)',
+                          boxShadow: '0 0 8px rgba(255,215,0,0.5)'
+                        } : {}
                       }}
-                    />
-                    <Typography 
-                      sx={{ 
-                        color: '#FFF', 
-                        fontWeight: 'bold',
-                        fontSize: '1rem',
-                        position: 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        padding: '1px 3px',
-                        borderRadius: '6px',
-                      }}
+                      onClick={() => isBettingAllowed && setSelectedChip(color)}
                     >
-                      ₱{chipValues[color].toLocaleString()}
-                    </Typography>
-                  </Box>
+                      <Box 
+                        component="img" 
+                        src={src} 
+                        alt={`${color} chip`}
+                        sx={{ 
+                          width: '100%',
+                          objectFit: 'contain',
+                          filter: selectedChip === color && isBettingAllowed ? 
+                            'drop-shadow(0 0 6px rgba(255,215,0,0.7))' : 'none',
+                        }}
+                      />
+                      <Typography 
+                        sx={{ 
+                          color: '#FFF', 
+                          fontWeight: 'bold',
+                          fontSize: '1rem',
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          padding: '1px 3px',
+                          borderRadius: '6px',
+                        }}
+                      >
+                        ₱{chipValues[color].toLocaleString()}
+                      </Typography>
+                    </Box>
+                  </Grid>
                 ))}
-              </Box>
-            </Box>
+              </Grid>
+            </Grid>
             
             {/* Bet Summary Section - Now in a single row */}
             <Box sx={{ 
@@ -1518,14 +1529,24 @@ const HorseRacingGame = () => {
         {/* Minimal Header */}
         <Typography
           sx={{
-            color: '#FFD700',
             fontWeight: 'bold',
             fontSize: '1.5rem',
             mb: 1,
             textAlign: 'center',
           }}
         >
-          {winningBall?.horseRace ? `${winningBall.horseRace.toUpperCase()} WINS!` : 'RACE FINISHED'}
+          {winningBall?.horseRace ? (
+            <>
+              <Box component="span" sx={{ color: horseColor[winningBall.horseRace] }}>
+                {winningBall.horseRace.toUpperCase()}
+              </Box>{' '}
+              <Box component="span" sx={{ color: '#FFD700' }}>
+                WINS!
+              </Box>
+            </>
+          ) : (
+            'RACE FINISHED'
+          )}
         </Typography>
 
         {/* Winner Status - Centered */}

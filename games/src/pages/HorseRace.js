@@ -1338,14 +1338,12 @@ const HorseRacingGame = () => {
               borderRadius: '8px',
               padding: '8px',
               border: '1px solid rgba(255,215,0,0.3)',
-              flex: 1 
             }}>
               <Grid item xs={12}>
                 <Typography sx={{
                   color: '#FFD700',
                   fontWeight: 'bold',
                   textAlign: 'center',
-                  mb: '6px',
                   fontSize: '0.85rem',
                 }}>
                   SELECT CHIP
@@ -1362,8 +1360,7 @@ const HorseRacingGame = () => {
                   <Grid item xs={4} key={color} sx={{
                     display: 'flex',
                     justifyContent: 'center',
-                    alignItems: 'center',
-                    padding: '4px'
+                    alignItems: 'center', 
                   }}>
                     <Box 
                       sx={{ 

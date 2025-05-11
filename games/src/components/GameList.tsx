@@ -135,6 +135,17 @@ const GameList: React.FC = () => {
       popularity: 3,
       playersOnline: 1012,
       thumbnail: '/assets/horse_race_thumbnail.png',
+    },
+    {
+      id: 6,
+      name: 'boat_race',
+      label: 'Boat Race',
+      isActive: true,
+      isStreaming: true,
+      description: 'Boat Race',
+      popularity: 3,
+      playersOnline: 1012,
+      thumbnail: '/assets/boatRace.jpg',
     }
   ]);
 

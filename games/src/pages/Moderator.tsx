@@ -22,6 +22,7 @@ import { GameState } from '../utils/gameutils';
 import batobatopikModerator from '../utils/batobatoPikModerator';
 import karakrusModerator from '../utils/karakrusModerator';
 import horseRaceModerator from '../utils/horseRaceModerator';
+import boatRaceModerator from '../utils/boatRaceModerator';
 import { useNavigate } from 'react-router-dom';
 import SportsEsportsIcon from '@mui/icons-material/SportsEsports';
 import CasinoIcon from '@mui/icons-material/Casino';
@@ -72,6 +73,11 @@ const HorseRaceIcon = styled(EmojiEventsIcon)({
   animation: `${floating} 4s infinite ease-in-out`,
   color: '#4CAF50'
 });
+const BoatRaceIcon = styled(EmojiEventsIcon)({
+  fontSize: '4rem',
+  animation: `${floating} 4s infinite ease-in-out`,
+  color: '#4CAF50'
+});
 
 const CountdownBadge = styled(Chip)(({ theme }) => ({
   fontSize: '1.2rem',
@@ -88,8 +94,10 @@ const Moderator = () => {
   const [openLogoutDialog, setOpenLogoutDialog] = useState(false);
   const [isLoadingBBP, setIsLoadingBBP] = useState(false);
   const [isLoadingKK, setIsLoadingKK] = useState(false);
+  const [isLoadingBoatRace, setIsLoadingBoatRace] = useState(false);
   const [isLoadingHorseRace, setIsLoadingHorseRace] = useState(false);
   const [raceWinner, setRaceWinner] = useState(null);
+  const [boatRaceWinner, setBoatRaceWinner] = useState(null);
   const navigate = useNavigate();
   const localStorageUser = JSON.parse(localStorage.getItem('user') || 'null');
   const userInfo = localStorageUser.userData.data.user; 
@@ -99,15 +107,26 @@ const Moderator = () => {
     { id: 'storm', name: 'Storm', color: '#8B0000', laneColor: '#A0522D' },
     { id: 'blaze', name: 'Blaze', color: '#FFD700', laneColor: '#dba556' },
   ];
+  const boats = [
+    { id: 'blue', name: 'Blue', color: '#00008B', laneColor: '#A0522D' },
+    { id: 'green', name: 'Green', color: '#006400', laneColor: '#dba556' },
+    { id: 'red', name: 'Red', color: '#8B0000', laneColor: '#A0522D' },
+    { id: 'yellow', name: 'Yellow', color: '#FFD700', laneColor: '#dba556' },
+  ];
   const horsesRef = useRef([
     { id: 1, name: 'Thunder', position: -9, speed: 0.02, stamina: 0.7, fatigue: 0, finished: false, animationSpeed: 0.1, frameCount: 11, currentFrame: 0, raceProgress: 0, recoveryRate: 0, burstChance: 0, performanceProfile: 0, baseSpeed: 0, baseAnimationSpeed: 0 },
     { id: 2, name: 'Lightning', position: -9, speed: 0.02, stamina: 0.8, fatigue: 0, finished: false, animationSpeed: 0.1, frameCount: 11, currentFrame: 0, raceProgress: 0, recoveryRate: 0, burstChance: 0, performanceProfile: 0, baseSpeed: 0, baseAnimationSpeed: 0 },
     { id: 3, name: 'Storm', position: -9, speed: 0.02, stamina: 0.6, fatigue: 0, finished: false, animationSpeed: 0.1, frameCount: 11, currentFrame: 0, raceProgress: 0, recoveryRate: 0, burstChance: 0, performanceProfile: 0, baseSpeed: 0, baseAnimationSpeed: 0 },
     { id: 4, name: 'Blaze', position: -9, speed: 0.02, stamina: 0.75, fatigue: 0, finished: false, animationSpeed: 0.1, frameCount: 11, currentFrame: 0, raceProgress: 0, recoveryRate: 0, burstChance: 0, performanceProfile: 0, baseSpeed: 0, baseAnimationSpeed: 0 }
   ]);
+  const boatsRef = useRef([
+    { id: 1, name: 'Blue', position: -9, speed: 0.02, stamina: 0.7, fatigue: 0, finished: false, animationSpeed: 0.1, frameCount: 6, currentFrame: 0, raceProgress: 0, recoveryRate: 0, burstChance: 0, performanceProfile: 0, baseSpeed: 0, baseAnimationSpeed: 0 },
+    { id: 2, name: 'Green', position: -9, speed: 0.02, stamina: 0.8, fatigue: 0, finished: false, animationSpeed: 0.1, frameCount: 6, currentFrame: 0, raceProgress: 0, recoveryRate: 0, burstChance: 0, performanceProfile: 0, baseSpeed: 0, baseAnimationSpeed: 0 },
+    { id: 3, name: 'Red', position: -9, speed: 0.02, stamina: 0.6, fatigue: 0, finished: false, animationSpeed: 0.1, frameCount: 6, currentFrame: 0, raceProgress: 0, recoveryRate: 0, burstChance: 0, performanceProfile: 0, baseSpeed: 0, baseAnimationSpeed: 0 },
+    { id: 4, name: 'Yellow', position: -9, speed: 0.02, stamina: 0.75, fatigue: 0, finished: false, animationSpeed: 0.1, frameCount: 6, currentFrame: 0, raceProgress: 0, recoveryRate: 0, burstChance: 0, performanceProfile: 0, baseSpeed: 0, baseAnimationSpeed: 0 }
+  ]);
   const animationFrameRef = useRef(null);
-  const lastUpdateTimeRef = useRef(0);
-  const updateIntervalRef = useRef(1); // Update every 100ms (10 times per second)
+  const animationFrameBoatRef = useRef(null);
 
   // Bato Bato Pik state
   const {
@@ -118,6 +137,15 @@ const Moderator = () => {
     countdown: batoBatoPikCountdown,
     socket: bbpSocket
   } = batobatopikModerator();
+
+  const {
+    connect: connectBoatRace,
+    gameState: boatRaceGameState,
+    sendMessage: sendMessageBoatRace,
+    setUserInfo: setUserInfoBoatRace,
+    countdown: boatRaceCountdown,
+    socket: boatRaceSocket
+  } = boatRaceModerator();
 
   // Kara Krus state
   const {
@@ -161,6 +189,8 @@ const Moderator = () => {
       setUserInfoBatoBatoPik(userInfo);
       setUserInfoKaraKrus(userInfo);
       setUserInfoHorseRace(userInfo);
+      setUserInfoHorseRace(userInfo);
+      setUserInfoBoatRace(userInfo);
     }
   }, []);
 
@@ -168,13 +198,18 @@ const Moderator = () => {
     connectBatoBatoPik();
     connectKaraKrus();
     connectHorseRace();
+    connectBoatRace();
 
     return () => {
       if (bbpSocket) bbpSocket.close();
       if (kkSocket) kkSocket.close();
+      if (boatRaceSocket) boatRaceSocket.close();
       if (horseRaceSocket) horseRaceSocket.close();
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (animationFrameBoatRef.current) {
+        cancelAnimationFrame(animationFrameBoatRef.current);
       }
     };
   }, []);
@@ -186,6 +221,16 @@ const Moderator = () => {
       horseStats: horsesRef.current
     }));
   };
+  const updateBoatStatsToClients = () => {
+    sendMessageBoatRace(JSON.stringify({ 
+      game: "boatRace", 
+      boatStats: boatsRef.current
+    }));
+  };
+
+
+  
+  
   
   // Bato Bato Pik game state effects
   useEffect(() => {
@@ -248,24 +293,65 @@ const Moderator = () => {
   }, [horseRaceGameState]);
 
   useEffect(() => {
-  if (raceWinner) {
+    if(boatRaceGameState === GameState.NewGame){
+      setTimeout(() => {
+        startBoatRaceGame();
+      }, 4000);
+    }
+    if(boatRaceGameState === 'Void'){
+      setTimeout(() => {
+        newBoatRaceGame();
+      }, 1500);
+    }
+    if(boatRaceGameState === GameState.WinnerDeclared){
+      setTimeout(() => {
+        newBoatRaceGame();
+      }, 6000);
+    }
+    if(boatRaceGameState === GameState.Closed){
+      startBoatRace();
+    }
+  }, [boatRaceGameState]);
+
+  useEffect(() => {
+    if (raceWinner) {
+      setTimeout(() => {
+        sendMessageHorseRace(
+          JSON.stringify({
+            cmd: GameState.WinnerDeclared,
+            game: "horseRace",
+            winnerOrders: raceWinner,
+            uuid: userInfo.uuid,
+          })
+        );
+      }, 2000);
+      
+      // Ensure animation is stopped
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    }
+}, [raceWinner]);
+
+useEffect(() => {
+  if (boatRaceWinner) {
     setTimeout(() => {
-      sendMessageHorseRace(
+      sendMessageBoatRace(
         JSON.stringify({
           cmd: GameState.WinnerDeclared,
-          game: "horseRace",
-          winnerOrders: raceWinner,
+          game: "boatRace",
+          winnerOrders: boatRaceWinner,
           uuid: userInfo.uuid,
         })
       );
     }, 2000);
     
     // Ensure animation is stopped
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
+    if (animationFrameBoatRef.current) {
+      cancelAnimationFrame(animationFrameBoatRef.current);
     }
   }
-}, [raceWinner]);
+}, [boatRaceWinner]);
 
   useEffect(() => {
     if(batoBatoPikGameState === GameState.Closed){
@@ -328,6 +414,11 @@ const Moderator = () => {
     sendMessageHorseRace(JSON.stringify({ game: "horseRace", cmd: GameState.Open }));
     setTimeout(() => setIsLoadingHorseRace(false), 1000);
   };
+  const startBoatRaceGame = () => {
+    setIsLoadingBoatRace(true);
+    sendMessageBoatRace(JSON.stringify({ game: "boatRace", cmd: GameState.Open }));
+    setTimeout(() => setIsLoadingBoatRace(false), 1000);
+  };
 
   const newHorseRaceGame = () => {
     sendMessageHorseRace(JSON.stringify({ game: "horseRace", cmd: GameState.NewGame }));
@@ -347,6 +438,26 @@ const Moderator = () => {
       });
     }
     setRaceWinner(null);
+  };
+
+  const newBoatRaceGame = () => {
+    sendMessageBoatRace(JSON.stringify({ game: "boatRace", cmd: GameState.NewGame }));
+    if (boatsRef.current) {
+      boatsRef.current.forEach((boat) => {
+        if (!boat) return;
+        boat.position = -9;
+        boat.finished = false;
+        boat.fatigue = 0;
+        boat.raceProgress = 0;
+        boat.stamina = 0;
+        boat.baseSpeed = 0;
+        boat.speed = boat.baseSpeed;
+        boat.baseAnimationSpeed = 0.1;
+        boat.animationSpeed = boat.baseAnimationSpeed;
+        boat.currentFrame = 0;
+      });
+    }
+    setBoatRaceWinner(null);
   };
 
   const startRace = () => {
@@ -379,6 +490,38 @@ const Moderator = () => {
     // Send initial horse stats to players
     updateHorseStatsToClients();
     animateRace();
+  };
+
+  const startBoatRace = () => {
+    const baseSpeedMin = 0.01;
+    const baseSpeedMax = 0.03;
+    
+    boatsRef.current = boatsRef.current.map((boat, idx) => {
+      // Reset position and stats
+      boat.position = -9;
+      boat.finished = false;
+      boat.fatigue = 0;
+      boat.raceProgress = 0;
+      
+      // Assign randomized attributes
+      boat.speed = baseSpeedMin + (Math.random() * (baseSpeedMax - baseSpeedMin));
+      boat.stamina = 0.5 + (Math.random() * 0.4); // 0.5-0.9
+      boat.recoveryRate = 0.0003 + (Math.random() * 0.0003); // 0.0003-0.0006
+      boat.burstChance = 0.02 + (Math.random() * 0.03); // 2%-5% chance for speed burst
+      
+      // Set performance profile (0: fast starter, 1: consistent, 2: strong finisher)
+      boat.performanceProfile = Math.floor(Math.random() * 3);
+      
+      // Store base values for reference
+      boat.baseSpeed = boat.speed;
+      boat.baseAnimationSpeed = boat.animationSpeed;
+      
+      return boat;
+    });
+
+    // Send initial horse stats to players
+    updateBoatStatsToClients();
+    animateBoatRace();
   };
 
   const animateRace = () => {
@@ -520,6 +663,146 @@ const Moderator = () => {
   
     animationFrameRef.current = requestAnimationFrame(updateRace);
   };
+
+  const animateBoatRace = () => {
+    const startPosition = -9;
+    const finishLine = 7 + 101.9;
+    const raceDistance = finishLine - startPosition;
+    let allFinished = true;
+    let frameCount = 0;
+    let winnerDetermined = false;
+    let raceActive = true;
+  
+    // Initialize speeds with small variations
+    boatsRef.current.forEach(boat => {
+      if (boat) {
+        boat.speed *= 0.95 + Math.random() * 0.1;
+        boat.baseAnimationSpeed = boat.animationSpeed; // Store original animation speed
+      }
+    });
+  
+    const updateRace = () => {
+      frameCount++;
+  
+      // Speed adjustments every 30 frames (0.5 seconds at 60fps)
+      if (frameCount % 30 === 0 && raceActive) {
+        let leaderPosition = Math.max(...boatsRef.current.map(h => h?.position || 0));
+        let lastPlacePosition = Math.min(...boatsRef.current
+          .filter(h => h && !h.finished)
+          .map(h => h.position || 0));
+  
+          boatsRef.current.forEach((boat, index) => {
+          if (!boat || boat.finished) return;
+  
+          boat.raceProgress = (boat.position - startPosition) / raceDistance;
+          const distanceBehindLeader = leaderPosition - boat.position;
+          const prevSpeed = boat.speed;
+  
+          // --- Speed variation with fatigue limit ---
+          let speedVariation = (Math.random() - 0.5) * 1.5;
+  
+          // Weaken variation if horse is tired
+          const fatigueFactor = 1 - boat.fatigue * 2;
+          speedVariation *= Math.max(0.2, fatigueFactor);
+  
+          // Slight rubber banding for those behind
+          if (distanceBehindLeader > 0.05 && boat.fatigue < 0.4) {
+            speedVariation += 0.03;
+          }
+  
+          // Mid-race burst
+          const inBurstZone = boat.raceProgress > 0.3 && boat.raceProgress < 0.8;
+          let burstChance = 0.03 + boat.stamina * 0.001;
+  
+          if (boat.position === lastPlacePosition) {
+            burstChance += 0.4;
+          }
+  
+          if (
+            inBurstZone &&
+            Math.random() < burstChance &&
+            boat.fatigue < 0.25
+          ) {
+            speedVariation += 0.2 + Math.random() * 0.05;
+            boat.fatigue += 0.00005;
+          }
+  
+          // Fatigue accumulation
+          const fatigueGain =
+            0.0001 + (1 - boat.stamina) * 0.0001 +
+            boat.raceProgress * 0.00003;
+  
+          boat.fatigue += fatigueGain;
+  
+          // Mild recovery if going slow and not near finish
+          if (prevSpeed < 0.007 && boat.fatigue > 0.01 && boat.raceProgress < 0.9) {
+            boat.fatigue -= 0.2;
+          }
+  
+          // Clamp fatigue
+          boat.fatigue = Math.min(0.5, Math.max(0, boat.fatigue));
+  
+          // Apply variation & fatigue to speed
+          let newSpeed = prevSpeed * (2 + speedVariation);
+          newSpeed *= (0.5 - boat.fatigue);
+  
+          // Clamp speed
+          boat.speed = Math.max(0.02, Math.min(0.04, newSpeed));
+  
+          // Animation speed sync
+          boat.animationSpeed = boat.baseAnimationSpeed * ((boat.speed * 1.1) / 0.05);
+        });
+      }
+  
+      allFinished = true;
+      let maxPosition = 0;
+  
+      boatsRef.current.forEach((boat, idx) => {
+        if (!boat) return;
+  
+        if (raceActive) {
+          // Update animation frame based on current speed
+          if (boat.position > maxPosition && !boat.finished) {
+            maxPosition = boat.position;
+          }
+          boat.currentFrame = (boat.currentFrame + boat.animationSpeed * 1.1) % boat.frameCount;
+  
+          // Move boat
+          if (!boat.finished) {
+            boat.position += boat.speed * 0.65;
+  
+            // Check if boat finished
+            if (boat.position >= finishLine) {
+              boat.finished = true;
+              boat.position = finishLine;
+              boat.animationSpeed = boat.baseAnimationSpeed;
+              setBoatRaceWinner(boats[idx].id);
+              raceActive = false;
+              // Send winner update
+              updateBoatStatsToClients();
+              cancelAnimationFrame(animationFrameBoatRef.current);
+            }
+          }
+        }
+  
+        if (!boat.finished) {
+          allFinished = false;
+        }
+      });
+  
+      // Throttled update: send stats every 5 frames (~12fps)
+      if (frameCount % 5 === 0) {
+        updateBoatStatsToClients();
+      }
+  
+      // Continue animation if not all boats finished
+      if (!allFinished) {
+        animationFrameBoatRef.current = requestAnimationFrame(updateRace);
+      }
+    };
+  
+    animationFrameBoatRef.current = requestAnimationFrame(updateRace);
+  };
   
 
   const handleLogout = () => {
@@ -635,6 +918,7 @@ const Moderator = () => {
             <GameIcon />
             <KaraKrusIcon />
             <HorseRaceIcon />
+            <BoatRaceIcon />
           </Box>
           
           <Typography 
@@ -833,6 +1117,64 @@ const Moderator = () => {
                       <CircularProgress size={24} sx={{ color: '#f0f0f0' }} />
                     ) : (
                       'Start Horse Race'
+                    )}
+                  </AnimatedButton>
+                </Tooltip>
+              </Paper>
+            </Grid>
+            {/* Boat Race Section */}
+            <Grid item xs={12} md={4}>
+              <Paper 
+                sx={{ 
+                  p: 1, 
+                  borderRadius: 2, 
+                  backgroundColor: 'rgba(76, 175, 80, 0.05)',
+                  border: '1px solid rgba(76, 175, 80, 0.2)',
+                  height: '100%'
+                }}
+              >
+                <Typography variant="h6" sx={{ color: '#4CAF50', mb: 2 }}>
+                  Boat Race
+                </Typography>
+                
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, mb: 3 }}>
+                  <AccessTimeIcon sx={{ color: '#4CAF50' }} />
+                  <CountdownBadge
+                    label={boatRaceCountdown || '--'}
+                    color="primary"
+                    sx={{ backgroundColor: 'rgba(76, 175, 80, 0.2)', color: '#4CAF50' }}
+                  />
+                </Box>
+                
+                <Typography variant="body2" sx={{ color: '#c0c0c0', mb: 3, minHeight: 24 }}>
+                  {getGameStatusText(boatRaceGameState)}
+                </Typography>
+                
+                <Tooltip title="Start a new Horse Race game session">
+                  <AnimatedButton
+                    variant="contained"
+                    size="large"
+                    onClick={startBoatRaceGame}
+                    disabled={isLoadingBoatRace}
+                    sx={{
+                      backgroundColor: '#4CAF50',
+                      color: '#f0f0f0',
+                      px: 4,
+                      py: 1.5,
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      '&:hover': {
+                        backgroundColor: '#66BB6A'
+                      },
+                      '&:disabled': {
+                        backgroundColor: '#3a3a3a'
+                      }
+                    }}
+                  >
+                    {isLoadingBoatRace ? (
+                      <CircularProgress size={24} sx={{ color: '#f0f0f0' }} />
+                    ) : (
+                      'Start Boat Race'
                     )}
                   </AnimatedButton>
                 </Tooltip>

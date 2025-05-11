@@ -5,6 +5,7 @@ import logsRoutes from "./logs";
 import batobatopikRoutes from "./batobatopikRoutes";
 import karakrusRoutes from "./karakrusRoutes";
 import horseRaceRoutes from "./horseRaceRoutes";
+import boatRaceRoutes from "./boatRaceRoutes";
 import notificationRoutes from "./notifications";
 import addressRoutes from "./address";
 import referralsRoutes from "./referrals";
@@ -81,6 +82,7 @@ async function protectedRoutes(fastify: any) {
   batobatopikRoutes(fastify);
   karakrusRoutes(fastify);
   horseRaceRoutes(fastify);
+  boatRaceRoutes(fastify);
   goldenGoose(fastify);
   chatSupportRoutes(fastify);
   gamesAuthRoutes(fastify);

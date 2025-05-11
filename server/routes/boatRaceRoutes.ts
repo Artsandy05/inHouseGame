@@ -1,5 +1,5 @@
 import { hasValue } from "../../common/gameutils";
-import { Main } from "../src/inhouseWebsocketAPIMultiplayer/horse_race/horseRaceMain";
+import { Main } from "../src/inhouseWebsocketAPIMultiplayer/boat_race/boatRaceMain";
 
 import WebSocket from 'ws';
 import createEncryptor from "../utils/createEncryptor";
@@ -26,13 +26,13 @@ let main = Main.getInstance();
 main.game.run();
 const encryptor = createEncryptor(process.env.ENCRYPTION_SECRET);
 
-function horseRaceRoutes(fastify) {
+function boatRaceRoutes(fastify) {
   
   fastify.server.on('upgrade', async (request, socket, head) => {
     const url = new URL(request.url, 'http://localhost');
     const path = url.pathname;
     
-    if (path === '/api/horse-race') {
+    if (path === '/api/boat-race') {
       try {
         const queryParams = url.searchParams;
         const encryptedUserInfo = queryParams.get('userInfo');
@@ -134,5 +134,5 @@ function horseRaceRoutes(fastify) {
   });
 }
 
-export default horseRaceRoutes;
+export default boatRaceRoutes;
 

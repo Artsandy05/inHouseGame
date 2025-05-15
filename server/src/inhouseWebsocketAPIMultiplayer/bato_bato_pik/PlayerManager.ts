@@ -196,7 +196,7 @@ function broadcastWinners(game: Game) {
               if (isTesting === 'false') {
                 try {
                     const callbackData = {
-                        player_id: userData.data.dataValues.uuid,
+                        player_id: userData.data.dataValues.id,
                         action: 'bet',
                         round_id: gameData.gameId[gameName],
                         amount: val,
@@ -312,7 +312,7 @@ function broadcastWinners(game: Game) {
               if(isTesting === 'false'){try {
                   
                 const callbackData = {
-                    player_id: userData.data.dataValues.uuid,
+                    player_id: userData.data.dataValues.id,
                     action: 'lose',
                     round_id: gameData.gameId[gameName],
                     amount: 0,
@@ -329,9 +329,9 @@ function broadcastWinners(game: Game) {
                 }else{
                   output.insert("latestBalance", callbackResponse.data.credit);
                 }
-            } catch (callbackError) {
-                console.error('Error in API callback:', callbackError);
-            }}
+              } catch (callbackError) {
+                  console.error('Error in API callback:', callbackError);
+              }}
 
             }
           });

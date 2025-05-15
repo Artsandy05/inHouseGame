@@ -49,13 +49,12 @@ export class PlayerManager implements Plugin {
       });
     }
 
-    if(isTesting === 'false'){
+    if(gameData.state.bbp === GameState.WinnerDeclared && isTesting === 'false') {
       game.view(Player, Input, Output, UserData).each((entity, player, input, output, userData) => {
         const callbackData = {
           player_id: userData.data.dataValues.id,
           action: 'get-balance',
         };
-        // Send the HTTP request asynchronously using a Promise
         axios.post(process.env.KINGFISHER_API, callbackData)
           .then(callbackResponse => {
             if (hasValue(output.msg) && typeof output.msg === 'string') {
@@ -71,8 +70,33 @@ export class PlayerManager implements Plugin {
           });
       });
     }
-    
-    
+
+    if(isTesting === 'false') {
+      game.view(Player, Input, Output, UserData).each((entity, player, input, output, userData) => {
+        if(input.msg){
+          if(input.msg.cmd){
+            const callbackData = {
+              player_id: userData.data.dataValues.id,
+              action: 'get-balance',
+            };
+            axios.post(process.env.KINGFISHER_API, callbackData)
+              .then(callbackResponse => {
+                if (hasValue(output.msg) && typeof output.msg === 'string') {
+                  let newOutPut = JSON.parse(output.msg);
+                  newOutPut.latestBalance = callbackResponse.data.credit;
+                  output.msg = JSON.stringify(newOutPut);
+                } else {
+                  output.insert("latestBalance", callbackResponse.data.credit);
+                }
+              })
+              .catch(error => {
+                console.error('Error while fetching balance:', error);
+              });
+          }
+        }
+        
+      });
+    }
 
     gameData.games.forEach(gameName => {
       game.view(gameName === 'bbp' ? BBPGameStateChanged : null, Output).each((entity, stateChanged, output) => {

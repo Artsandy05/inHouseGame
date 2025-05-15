@@ -2,7 +2,7 @@ import { GameState, hasValue } from "../../../../common/gameutils";
 import { World } from 'uecs';
 
 export class Input {
-	msg: string;
+	msg: any;
 }
 
 export class Output {

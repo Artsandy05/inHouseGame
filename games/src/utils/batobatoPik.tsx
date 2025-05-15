@@ -331,9 +331,6 @@ function open(set, socket) {
 
 async function update(set, eventData) {
   let meta = JSON.parse(eventData);
-  // console.log(meta.juanChoice)
-  // console.log(meta.pedroChoice)
-  //console.log(meta);
   if ((hasValue(meta.juanChoice))) {
     set({ juanChoice: meta.juanChoice });
   }

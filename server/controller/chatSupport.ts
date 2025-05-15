@@ -1505,11 +1505,12 @@ const updateConversationConcern = async (request, reply) => {
             return errorResponse("Missing required field: game", reply);
         }
 
-        // Find all winning balls for the specified game
+        // Find all winning balls for the specified game, ordered by id descending
         const winningBalls = await WinningBall.findAll({
             where: {
                 game: game
             },
+            order: [['id', 'DESC']]
         });
 
         return successResponse({ winningBalls }, "Winning balls retrieved successfully!", reply);
@@ -1517,6 +1518,7 @@ const updateConversationConcern = async (request, reply) => {
         return errorResponse(`Error retrieving winning balls: ${error.message}`, reply, 'custom');
     }
   };
+
 
   const getTransactionStatistics2 = async (request, reply) => {
     try {

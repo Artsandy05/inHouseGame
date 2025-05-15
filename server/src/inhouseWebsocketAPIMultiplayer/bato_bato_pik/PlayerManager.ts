@@ -14,6 +14,7 @@ import WinningBets from "../../../models/WinningBets";
 import WinningBall from "../../../models/WinningBall";
 import LosingBets from "../../../models/LosingBets";
 import axios from "axios";
+import { randomBytes } from "crypto";
 const isTesting = process.env.IS_TESTING;
 
 export class PlayerManager implements Plugin {
@@ -190,6 +191,10 @@ function broadcastWinners(game: Game) {
         
         const winner = gameName === 'bbp' && gameData.winnerOrders[gameName];
         if(player.game === gameName){
+          let totalWin = 0;
+          let totalBet = 0;
+          const betTransactionNo = `KFH-${randomBytes(10).toString('hex')}`;
+          const transactionNo = `KFH-${randomBytes(10).toString('hex')}`;
           player.slots.forEach(async (val, key:any) => {
             if (winner === key && gameName === prize.game) {
               const p = prize.values.get(key);
@@ -204,7 +209,6 @@ function broadcastWinners(game: Game) {
                 odds,
                 uuid: userData.data.dataValues.uuid
               });
-              const isTesting = process.env.IS_TESTING;
               const wallet = await getWallet(userData.data.dataValues.id);
               let finalWinPrize = Number(wallet.balance) + Number(p);
               const transaction = await Transaction.new(wallet.id, gameData.gamesTableId[gameName], p, "wonprize", odds, gameData.gameId[gameName]);
@@ -218,31 +222,7 @@ function broadcastWinners(game: Game) {
               const overAllCommission = Number(val * config.fee);
               await BetModel.new(gameData.gamesTableId[gameName], transaction.id, key, gameData.gameId[gameName], companyCommission, overAllCommission);
               
-              if (isTesting === 'false') {
-                try {
-                    const callbackData = {
-                        player_id: userData.data.dataValues.id,
-                        action: 'bet',
-                        round_id: gameData.gameId[gameName],
-                        amount: val,
-                        game_uuid: `KFH-${gameData.gamesTableId[gameName]}`,
-                        transaction_id: `KFH-${betTransaction.id}`
-                    };
-
-                    const callbackResponse = await axios.post(process.env.KINGFISHER_API, callbackData);
-
-                    if(hasValue(output.msg) && typeof output.msg === 'string'){
-                      let newOutPut = JSON.parse(output.msg);
-                      newOutPut.latestBalance = callbackResponse.data.credit;
-                      output.msg = JSON.stringify(newOutPut);
-                    }else{
-                      output.insert("latestBalance", callbackResponse.data.credit);
-                    }
-                    
-                } catch (callbackError) {
-                    console.error('Error in API callback:', callbackError);
-                }
-              }
+              
               // end of process bet
               await WinningBets.new(transaction.id, key, val, p);
               await Wallet.update(
@@ -257,30 +237,8 @@ function broadcastWinners(game: Game) {
                 output.insert("prize", p);
               }
 
-              if(isTesting === 'false'){try {
-                  
-                  const callbackData = {
-                      player_id: userData.data.dataValues.id,
-                      action: 'win',
-                      round_id: gameData.gameId[gameName],
-                      amount: p,
-                      game_uuid: `KFH-${gameData.gamesTableId[gameName]}`,
-                      transaction_id: `KFH-${transaction.id}`,
-                      transaction_bet_id: `KFH-${betTransaction.id}`
-                  };
-          
-                  const callbackResponse = await axios.post(process.env.KINGFISHER_API, callbackData);
-                  if(hasValue(output.msg) && typeof output.msg === 'string'){
-                    let newOutPut = JSON.parse(output.msg);
-                    newOutPut.latestBalance = callbackResponse.data.credit;
-                    output.msg = JSON.stringify(newOutPut);
-                  }else{
-                    output.insert("latestBalance", callbackResponse.data.credit);
-                  }
-              } catch (callbackError) {
-                  console.error('Error in API callback:', callbackError);
-              }}
-
+              totalBet += val;
+              totalWin += p;
             }else{
               const p = prize.values.get(key);
               const odds = gameData.odds[gameName].get(key);
@@ -292,7 +250,6 @@ function broadcastWinners(game: Game) {
                 loseOnGame:player.game,
                 odds
               });
-              const isTesting = process.env.IS_TESTING;
               const wallet = await getWallet(userData.data.dataValues.id);
               const transaction = await Transaction.new(wallet.id, gameData.gamesTableId[gameName], val, "losebet", odds, gameData.gameId[gameName]);
 
@@ -305,61 +262,102 @@ function broadcastWinners(game: Game) {
 
               const overAllCommission = Number(val * config.fee);
               await BetModel.new(gameData.gamesTableId[gameName], transaction.id, key, gameData.gameId[gameName], companyCommission, overAllCommission);
-              
-              if (isTesting === 'false') {
-                try {
-                    const callbackData = {
-                        player_id: userData.data.dataValues.id,
-                        action: 'bet',
-                        round_id: gameData.gameId[gameName],
-                        amount: val,
-                        game_uuid: `KFH-${gameData.gamesTableId[gameName]}`,
-                        transaction_id: `KFH-${betTransaction.id}`
-                    };
-
-                    const callbackResponse = await axios.post(process.env.KINGFISHER_API, callbackData);
-
-                    if(hasValue(output.msg) && typeof output.msg === 'string'){
-                      let newOutPut = JSON.parse(output.msg);
-                      newOutPut.latestBalance = callbackResponse.data.credit;
-                      output.msg = JSON.stringify(newOutPut);
-                    }else{
-                      output.insert("latestBalance", callbackResponse.data.credit);
-                    }
-                    
-                } catch (callbackError) {
-                    console.error('Error in API callback:', callbackError);
-                }
-              }
               // end of process bet
               await LosingBets.new(transaction.id, key, val, 0);
-
-              if(isTesting === 'false'){try {
-                  
-                const callbackData = {
-                    player_id: userData.data.dataValues.id,
-                    action: 'lose',
-                    round_id: gameData.gameId[gameName],
-                    amount: 0,
-                    game_uuid: `KFH-${gameData.gamesTableId[gameName]}`,
-                    transaction_id: `KFH-${transaction.id}`,
-                    transaction_bet_id: `KFH-${betTransaction.id}`
-                };
-        
-                const callbackResponse = await axios.post(process.env.KINGFISHER_API, callbackData);
-                if(hasValue(output.msg) && typeof output.msg === 'string'){
-                  let newOutPut = JSON.parse(output.msg);
-                  newOutPut.latestBalance = callbackResponse.data.credit;
-                  output.msg = JSON.stringify(newOutPut);
-                }else{
-                  output.insert("latestBalance", callbackResponse.data.credit);
-                }
-              } catch (callbackError) {
-                  console.error('Error in API callback:', callbackError);
-              }}
-
+              totalBet += val;
             }
           });
+
+          if (isTesting === 'false' && totalBet) {
+            try {
+              const callbackData = {
+                player_id: userData.data.dataValues.id,
+                action: 'bet',
+                round_id: gameData.gameId[gameName],
+                amount: totalBet,
+                game_uuid: `KFH-${gameData.gamesTableId[gameName]}`,
+                transaction_id: `KFH-${betTransactionNo}`
+              };
+          
+              axios.post(process.env.KINGFISHER_API, callbackData)
+                .then((callbackResponse) => {
+                  if (hasValue(output.msg) && typeof output.msg === 'string') {
+                    let newOutPut = JSON.parse(output.msg);
+                    newOutPut.latestBalance = callbackResponse.data.credit;
+                    output.msg = JSON.stringify(newOutPut);
+                  } else {
+                    output.insert("latestBalance", callbackResponse.data.credit);
+                  }
+                })
+                .catch((callbackError) => {
+                  console.error('Error in API callback:', callbackError);
+                });
+            } catch (callbackError) {
+              console.error('Error in API callback:', callbackError);
+            }
+          }
+          
+
+          if (isTesting === 'false' && totalWin > 0) {
+            try {
+              const callbackData = {
+                player_id: userData.data.dataValues.id,
+                action: 'win',
+                round_id: gameData.gameId[gameName],
+                amount: totalWin,
+                game_uuid: `KFH-${gameData.gamesTableId[gameName]}`,
+                transaction_id: `KFH-${transactionNo}`,
+                transaction_bet_id: `KFH-${betTransactionNo}`
+              };
+          
+              axios.post(process.env.KINGFISHER_API, callbackData)
+                .then((callbackResponse) => {
+                  if (hasValue(output.msg) && typeof output.msg === 'string') {
+                    let newOutPut = JSON.parse(output.msg);
+                    newOutPut.latestBalance = callbackResponse.data.credit;
+                    output.msg = JSON.stringify(newOutPut);
+                  } else {
+                    output.insert("latestBalance", callbackResponse.data.credit);
+                  }
+                })
+                .catch((callbackError) => {
+                  console.error('Error in API callback:', callbackError);
+                });
+            } catch (callbackError) {
+              console.error('Error in API callback:', callbackError);
+            }
+          }
+          
+
+          if (isTesting === 'false' && totalWin === 0) {
+            try {
+              const callbackData = {
+                player_id: userData.data.dataValues.id,
+                action: 'lose',
+                round_id: gameData.gameId[gameName],
+                amount: 0,
+                game_uuid: `KFH-${gameData.gamesTableId[gameName]}`,
+                transaction_id: `KFH-${transactionNo}`,
+                transaction_bet_id: `KFH-${betTransactionNo}`
+              };
+          
+              axios.post(process.env.KINGFISHER_API, callbackData)
+                .then((callbackResponse) => {
+                  if (hasValue(output.msg) && typeof output.msg === 'string') {
+                    let newOutPut = JSON.parse(output.msg);
+                    newOutPut.latestBalance = callbackResponse.data.credit;
+                    output.msg = JSON.stringify(newOutPut);
+                  } else {
+                    output.insert("latestBalance", callbackResponse.data.credit);
+                  }
+                })
+                .catch((callbackError) => {
+                  console.error('Error in API callback:', callbackError);
+                });
+            } catch (callbackError) {
+              console.error('Error in API callback:', callbackError);
+            }
+          }
         }
       }
     });

@@ -101,6 +101,8 @@ const BatoBatoPik = () => {
     }
   };
 
+  console.log(userInfo)
+
   useEffect(() => {
     if(userInfo){
       setUserInfo(userInfo.userData.data.user);
@@ -128,7 +130,6 @@ const BatoBatoPik = () => {
     }
   }, [latestBalance]);
 
-  console.log(latestBalance);
 
   useEffect(() => {
     const fetchGameHistory = async () => {
@@ -302,7 +303,7 @@ const BatoBatoPik = () => {
         alert("Minimum bet amount is 5");
         return;
       }
-      if ((userInfo.userData.data.wallet.balance - parseFloat(betAmount)) < 0) {
+      if (((credits-totalBet) - parseFloat(betAmount)) < 0) {
         alert("Insufficient Balance");
         return;
       }

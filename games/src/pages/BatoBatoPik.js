@@ -142,11 +142,16 @@ const BatoBatoPik = () => {
   }, [gameState]);
 
   useEffect(() => {
-    
     if (gameState === GameState.WinnerDeclared) {
       setAnnouncementDialogOpen(true);
     } else {
       setAnnouncementDialogOpen(false);
+    }
+  }, [gameState]);
+
+  useEffect(() => {
+    if (gameState === GameState.NewGame) {
+      setTotalBet(0);
     }
   }, [gameState]);
   

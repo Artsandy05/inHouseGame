@@ -345,7 +345,6 @@ async function update(set, eventData) {
   if ((hasValue(meta.host)) || (typeof meta === 'string' && meta.includes('host'))) {
     const host = typeof meta ==='string' ? JSON.parse(meta) : meta;
     set({ host: host.host.bbp });
-    
   }
   if ((hasValue(meta.betOnGame)) || (typeof meta === 'string' && meta.includes('betOnGame'))) {
     const betOnGame = typeof meta ==='string' ? JSON.parse(meta) : meta;

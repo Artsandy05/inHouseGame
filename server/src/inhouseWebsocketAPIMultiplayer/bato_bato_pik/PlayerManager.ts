@@ -57,8 +57,39 @@ export class PlayerManager implements Plugin {
           player_id: userData.data.dataValues.id,
           action: 'get-balance',
         };
-        if(input.msg){
-          axios.post(process.env.KINGFISHER_API, callbackData)
+        // if(input.msg){
+        //   axios.post(process.env.KINGFISHER_API, callbackData)
+        //     .then(callbackResponse => {
+        //       console.log(callbackResponse.data.credit);
+        //       if (hasValue(output.msg) && typeof output.msg === 'string') {
+        //         let newOutPut = JSON.parse(output.msg);
+        //         newOutPut.latestBalance = callbackResponse.data.credit;
+        //         output.msg = JSON.stringify(newOutPut);
+        //       } else {
+        //         output.insert("latestBalance", callbackResponse.data.credit);
+        //       }
+        //     })
+        //     .catch(error => {
+        //       console.error('Error while fetching balance:', error);
+        //   });
+        // }
+        // if(gameData.state.bbp === GameState.WinnerDeclared){
+        //   axios.post(process.env.KINGFISHER_API, callbackData)
+        //     .then(callbackResponse => {
+        //       console.log(callbackResponse.data.credit);
+        //       if (hasValue(output.msg) && typeof output.msg === 'string') {
+        //         let newOutPut = JSON.parse(output.msg);
+        //         newOutPut.latestBalance = callbackResponse.data.credit;
+        //         output.msg = JSON.stringify(newOutPut);
+        //       } else {
+        //         output.insert("latestBalance", callbackResponse.data.credit);
+        //       }
+        //     })
+        //     .catch(error => {
+        //       console.error('Error while fetching balance:', error);
+        //   });
+        // }
+        axios.post(process.env.KINGFISHER_API, callbackData)
             .then(callbackResponse => {
               console.log(callbackResponse.data.credit);
               if (hasValue(output.msg) && typeof output.msg === 'string') {
@@ -72,23 +103,6 @@ export class PlayerManager implements Plugin {
             .catch(error => {
               console.error('Error while fetching balance:', error);
           });
-        }
-        if(gameData.state.bbp === GameState.WinnerDeclared){
-          axios.post(process.env.KINGFISHER_API, callbackData)
-            .then(callbackResponse => {
-              console.log(callbackResponse.data.credit);
-              if (hasValue(output.msg) && typeof output.msg === 'string') {
-                let newOutPut = JSON.parse(output.msg);
-                newOutPut.latestBalance = callbackResponse.data.credit;
-                output.msg = JSON.stringify(newOutPut);
-              } else {
-                output.insert("latestBalance", callbackResponse.data.credit);
-              }
-            })
-            .catch(error => {
-              console.error('Error while fetching balance:', error);
-          });
-        }
       });
     }
 

@@ -62,6 +62,7 @@ const BatoBatoPik = () => {
   const [openMechanicsDialog, setOpenMechanicsDialog] = React.useState(false);
   const [gameHistory, setGameHistory] = useState([]);
   const [credits, setCredits] = useState(0);
+  const [totalBet, setTotalBet] = useState(0);
   
   const { gameState, setPlayerInfo, sendMessage, countdown, slots,setSlots,odds, allBets, winningBall, setUserInfo, topPlayers, juanChoice, pedroChoice, voidMessage, latestBalance } = playerStore();
   const { connect } = playerStore.getState();
@@ -105,6 +106,17 @@ const BatoBatoPik = () => {
       setUserInfo(userInfo.userData.data.user);
     }
   }, []);
+
+  useEffect(() => {
+    if (slots.size > 0) {
+      let total = 0;
+  
+      slots.forEach(value => {
+        total += value;
+      });
+      setTotalBet(total);
+    }
+  }, [slots]);
 
   useEffect(() => {
     if(latestBalance){
@@ -152,11 +164,11 @@ const BatoBatoPik = () => {
     };
   }, []);
 
-  useEffect(() => {
-    if(winningBall){
-      console.log(winningBall)
-    }
-  }, [winningBall]);
+  // useEffect(() => {
+  //   if(winningBall){
+  //     console.log(winningBall)
+  //   }
+  // }, [winningBall]);
 
   useEffect(() => {
     if(voidMessage){
@@ -782,7 +794,7 @@ const BatoBatoPik = () => {
             fontFamily: "'Roboto', sans-serif",
             whiteSpace: 'nowrap'
           }}>
-            {formatTruncatedMoney(credits)}
+            {formatTruncatedMoney(credits-totalBet)}
           </Typography>
         </Box>
       </Box>

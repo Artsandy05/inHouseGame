@@ -51,24 +51,26 @@ export class PlayerManager implements Plugin {
 
     if(isTesting === 'false'){
       game.view(Player, Input, Output, UserData).each((entity, player, input, output, userData) => {
-        const callbackData = {
-          player_id: userData.data.dataValues.id,
-          action: 'get-balance',
-        };
-        // Send the HTTP request asynchronously using a Promise
-        axios.post(process.env.KINGFISHER_API, callbackData)
-          .then(callbackResponse => {
-            if (hasValue(output.msg) && typeof output.msg === 'string') {
-              let newOutPut = JSON.parse(output.msg);
-              newOutPut.latestBalance = callbackResponse.data.credit;
-              output.msg = JSON.stringify(newOutPut);
-            } else {
-              output.insert("latestBalance", callbackResponse.data.credit);
-            }
-          })
-          .catch(error => {
-            console.error('Error while fetching balance:', error);
-          });
+        if(input.msg){
+          const callbackData = {
+            player_id: userData.data.dataValues.id,
+            action: 'get-balance',
+          };
+          // Send the HTTP request asynchronously using a Promise
+          axios.post(process.env.KINGFISHER_API, callbackData)
+            .then(callbackResponse => {
+              if (hasValue(output.msg) && typeof output.msg === 'string') {
+                let newOutPut = JSON.parse(output.msg);
+                newOutPut.latestBalance = callbackResponse.data.credit;
+                output.msg = JSON.stringify(newOutPut);
+              } else {
+                output.insert("latestBalance", callbackResponse.data.credit);
+              }
+            })
+            .catch(error => {
+              console.error('Error while fetching balance:', error);
+            });
+        }
       });
     }
     
@@ -315,67 +317,76 @@ function broadcastWinners(game: Game) {
               }
             }
             
-
-            if (isTesting === 'false' && totalWin > 0) {
-              try {
-                const callbackData = {
-                  player_id: userData.data.dataValues.id,
-                  action: 'win',
-                  round_id: gameData.gameId[gameName],
-                  amount: totalWin,
-                  game_uuid: `KFH-${gameData.gamesTableId[gameName]}`,
-                  transaction_id: `KFH-${transactionNo}`,
-                  transaction_bet_id: `KFH-${betTransactionNo}`
-                };
+            // Add this function to create delay
+            const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
             
-                axios.post(process.env.KINGFISHER_API, callbackData)
-                  .then((callbackResponse) => {
-                    if (hasValue(output.msg) && typeof output.msg === 'string') {
-                      let newOutPut = JSON.parse(output.msg);
-                      newOutPut.latestBalance = callbackResponse.data.credit;
-                      output.msg = JSON.stringify(newOutPut);
-                    } else {
-                      output.insert("latestBalance", callbackResponse.data.credit);
-                    }
-                  })
-                  .catch((callbackError) => {
-                    console.error('Error in API callback:', callbackError);
-                  });
-              } catch (callbackError) {
-                console.error('Error in API callback:', callbackError);
+            // Wrap in an async IIFE to use await
+            (async () => {
+              if (isTesting === 'false' && totalBet) {
+                await delay(1000); // Delay 1 second before processing win/lose
               }
-            }
             
-
-            if (isTesting === 'false' && totalWin === 0) {
-              try {
-                const callbackData = {
-                  player_id: userData.data.dataValues.id,
-                  action: 'lose',
-                  round_id: gameData.gameId[gameName],
-                  amount: 0,
-                  game_uuid: `KFH-${gameData.gamesTableId[gameName]}`,
-                  transaction_id: `KFH-${transactionNo}`,
-                  transaction_bet_id: `KFH-${betTransactionNo}`
-                };
+              if (isTesting === 'false' && totalWin > 0) {
+                try {
+                  const callbackData = {
+                    player_id: userData.data.dataValues.id,
+                    action: 'win',
+                    round_id: gameData.gameId[gameName],
+                    amount: totalWin,
+                    game_uuid: `KFH-${gameData.gamesTableId[gameName]}`,
+                    transaction_id: `KFH-${transactionNo}`,
+                    transaction_bet_id: `KFH-${betTransactionNo}`
+                  };
             
-                axios.post(process.env.KINGFISHER_API, callbackData)
-                  .then((callbackResponse) => {
-                    if (hasValue(output.msg) && typeof output.msg === 'string') {
-                      let newOutPut = JSON.parse(output.msg);
-                      newOutPut.latestBalance = callbackResponse.data.credit;
-                      output.msg = JSON.stringify(newOutPut);
-                    } else {
-                      output.insert("latestBalance", callbackResponse.data.credit);
-                    }
-                  })
-                  .catch((callbackError) => {
-                    console.error('Error in API callback:', callbackError);
-                  });
-              } catch (callbackError) {
-                console.error('Error in API callback:', callbackError);
+                  axios.post(process.env.KINGFISHER_API, callbackData)
+                    .then((callbackResponse) => {
+                      if (hasValue(output.msg) && typeof output.msg === 'string') {
+                        let newOutPut = JSON.parse(output.msg);
+                        newOutPut.latestBalance = callbackResponse.data.credit;
+                        output.msg = JSON.stringify(newOutPut);
+                      } else {
+                        output.insert("latestBalance", callbackResponse.data.credit);
+                      }
+                    })
+                    .catch((callbackError) => {
+                      console.error('Error in API callback:', callbackError);
+                    });
+                } catch (callbackError) {
+                  console.error('Error in API callback:', callbackError);
+                }
               }
-            }
+            
+              if (isTesting === 'false' && totalWin === 0) {
+                try {
+                  const callbackData = {
+                    player_id: userData.data.dataValues.id,
+                    action: 'lose',
+                    round_id: gameData.gameId[gameName],
+                    amount: 0,
+                    game_uuid: `KFH-${gameData.gamesTableId[gameName]}`,
+                    transaction_id: `KFH-${transactionNo}`,
+                    transaction_bet_id: `KFH-${betTransactionNo}`
+                  };
+            
+                  axios.post(process.env.KINGFISHER_API, callbackData)
+                    .then((callbackResponse) => {
+                      if (hasValue(output.msg) && typeof output.msg === 'string') {
+                        let newOutPut = JSON.parse(output.msg);
+                        newOutPut.latestBalance = callbackResponse.data.credit;
+                        output.msg = JSON.stringify(newOutPut);
+                      } else {
+                        output.insert("latestBalance", callbackResponse.data.credit);
+                      }
+                    })
+                    .catch((callbackError) => {
+                      console.error('Error in API callback:', callbackError);
+                    });
+                } catch (callbackError) {
+                  console.error('Error in API callback:', callbackError);
+                }
+              }
+            })();
+            
           };
           
           // Execute the async function

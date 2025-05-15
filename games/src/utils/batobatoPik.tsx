@@ -53,6 +53,7 @@ type State = {
   playerHasWon: boolean;
   voidMessage: boolean;
   triggerRefetchBalance: boolean;
+  latestBalance: number;
   isHostGifted: boolean;
   userInfo: any;
   juanChoice: any;
@@ -77,6 +78,10 @@ export const playerStore = create<State>((set) => ({
   juanChoice: false,
   setJuancChoice: (g) => {
     set({ juanChoice: g });
+  },
+  latestBalance: 0,
+  setLatestBalance: (g) => {
+    set({ latestBalance: g });
   },
   pedroChoice: false,
   setPedroChoice: (g) => {
@@ -328,9 +333,14 @@ async function update(set, eventData) {
   let meta = JSON.parse(eventData);
   // console.log(meta.juanChoice)
   // console.log(meta.pedroChoice)
-  
+  //console.log(meta);
   if ((hasValue(meta.juanChoice))) {
     set({ juanChoice: meta.juanChoice });
+  }
+  if ((hasValue(meta.latestBalance)) || (typeof meta === 'string' && meta.includes('latestBalance'))) {
+    const latestBalance = typeof meta ==='string' ? JSON.parse(meta) : meta;
+    set({ latestBalance: meta.latestBalance });
+    set({ latestBalance: latestBalance.latestBalance });
   }
   if ((hasValue(meta.pedroChoice))) {
     set({ pedroChoice: meta.pedroChoice });

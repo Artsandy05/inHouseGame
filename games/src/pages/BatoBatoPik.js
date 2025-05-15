@@ -61,8 +61,9 @@ const BatoBatoPik = () => {
   const [voidMessageDialogOpen, setVoidMessageDialogOpen] = useState(false);
   const [openMechanicsDialog, setOpenMechanicsDialog] = React.useState(false);
   const [gameHistory, setGameHistory] = useState([]);
+  const [credits, setCredits] = useState(0);
   
-  const { gameState, setPlayerInfo, sendMessage, countdown, slots,setSlots,odds, allBets, winningBall, setUserInfo, topPlayers, juanChoice, pedroChoice, voidMessage } = playerStore();
+  const { gameState, setPlayerInfo, sendMessage, countdown, slots,setSlots,odds, allBets, winningBall, setUserInfo, topPlayers, juanChoice, pedroChoice, voidMessage, latestBalance } = playerStore();
   const { connect } = playerStore.getState();
   const [searchParams] = useSearchParams();
   const userDetailsParam = searchParams.get('data');
@@ -104,6 +105,14 @@ const BatoBatoPik = () => {
       setUserInfo(userInfo.userData.data.user);
     }
   }, []);
+
+  useEffect(() => {
+    if(latestBalance){
+      setCredits(latestBalance);
+    }else{
+      setCredits(urlUserDetails?.credits || localStorageUser?.userData?.data?.wallet?.balance);
+    }
+  }, [latestBalance]);
 
   useEffect(() => {
     const fetchGameHistory = async () => {
@@ -170,10 +179,10 @@ const BatoBatoPik = () => {
     return () => clearTimeout(timer);
   }, [voidMessage]);
 
-  useEffect(() => {
-    console.log(juanChoice)
-    console.log(pedroChoice)
-  }, [juanChoice, pedroChoice]);
+  // useEffect(() => {
+  //   console.log(juanChoice)
+  //   console.log(pedroChoice)
+  // }, [juanChoice, pedroChoice]);
 
   useEffect(() => {
     if(gameState === GameState.Closed){
@@ -773,7 +782,7 @@ const BatoBatoPik = () => {
             fontFamily: "'Roboto', sans-serif",
             whiteSpace: 'nowrap'
           }}>
-            {formatTruncatedMoney(userInfo?.userData?.data?.wallet?.balance)}
+            {formatTruncatedMoney(credits)}
           </Typography>
         </Box>
       </Box>

@@ -118,7 +118,7 @@ function goldenGoose(fastify) {
                     user_id: userId, 
                 });
     
-                const isTesting = process.env.IS_TESTING_GOLDEN_GOOSE;
+                const isTesting = process.env.IS_TESTING;
                 if (isTesting === 'false') {
                     try {
                         const callbackData = {

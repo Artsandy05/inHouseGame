@@ -115,6 +115,8 @@ const BatoBatoPik = () => {
         total += value;
       });
       setTotalBet(total);
+    }else{
+      setTotalBet(0);
     }
   }, [slots]);
 
@@ -150,7 +152,7 @@ const BatoBatoPik = () => {
   }, [gameState]);
 
   useEffect(() => {
-    if (gameState === GameState.NewGame) {
+    if (gameState === GameState.NewGame || gameState === GameState.WinnerDeclared) {
       setTotalBet(0);
     }
   }, [gameState]);

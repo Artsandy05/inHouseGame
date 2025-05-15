@@ -56,6 +56,7 @@ type State = {
   isHostGifted: boolean;
   userInfo: any;
   horseStats: any;
+  latestBalance: number;
 };
 
 export const playerStore = create<State>((set) => ({
@@ -72,6 +73,10 @@ export const playerStore = create<State>((set) => ({
   userInfo: null,
   setUserInfo: (g) => {
     set({ userInfo: g });
+  },
+  latestBalance: 0,
+  setLatestBalance: (g) => {
+    set({ latestBalance: g });
   },
   horseStats: false,
   setHorseStats: (g) => {
@@ -324,6 +329,9 @@ async function update(set, eventData) {
   // console.log(meta.juanChoice)
   // console.log(meta.pedroChoice)
   
+  if ((hasValue(meta.latestBalance))) {
+    set({ latestBalance: meta.latestBalance });
+  }
   if ((hasValue(meta.horseStats))) {
     set({ horseStats: meta.horseStats });
   }

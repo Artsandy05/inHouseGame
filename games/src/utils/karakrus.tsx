@@ -57,6 +57,7 @@ type State = {
   userInfo: any;
   coinResult: any;
   animationDuration: any;
+  latestBalance: number;
 };
 
 export const playerStore = create<State>((set) => ({
@@ -69,6 +70,10 @@ export const playerStore = create<State>((set) => ({
   gameState: null,
   setGameState: (g) => {
     set({ gameState: g });
+  },
+  latestBalance: 0,
+  setLatestBalance: (g) => {
+    set({ latestBalance: g });
   },
   userInfo: null,
   setUserInfo: (g) => {
@@ -334,6 +339,10 @@ async function update(set, eventData) {
 
   if ((hasValue(meta.animationDuration))) {
     set({ animationDuration: meta.animationDuration });
+  }
+
+  if ((hasValue(meta.latestBalance))) {
+    set({ latestBalance: meta.latestBalance });
   }
   
   if ((hasValue(meta.host)) || (typeof meta === 'string' && meta.includes('host'))) {

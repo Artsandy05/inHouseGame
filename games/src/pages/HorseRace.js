@@ -17,7 +17,7 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 import createEncryptor from '../utils/createEncryptor';
 import { playerStore } from '../utils/horseRace';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { GameState, mapToArray } from '../utils/gameutils';
+import { formatTruncatedMoney, GameState, mapToArray } from '../utils/gameutils';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import HistoryIcon from '@mui/icons-material/History';
 import HelpIcon from '@mui/icons-material/Help';
@@ -112,6 +112,8 @@ const HorseRacingGame = () => {
   const [helpDialogOpen, setHelpDialogOpen] = useState(false);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [gameHistory, setGameHistory] = useState(null);
+  const [credits, setCredits] = useState(0);
+  const [totalBets, setTotalBets] = useState(0);
   // Refs
   const canvasRef = useRef(null);
   const sceneRef = useRef(null);
@@ -123,7 +125,7 @@ const HorseRacingGame = () => {
   const spriteFramesRef = useRef({});
   const timerRef = useRef(null);
 
-  const { gameState, setPlayerInfo, sendMessage, countdown, slots,setSlots,odds, allBets, winningBall, setUserInfo, topPlayers, voidMessage, horseStats } = playerStore();
+  const { gameState, setPlayerInfo, sendMessage, countdown, slots,setSlots,odds, allBets, winningBall, setUserInfo, topPlayers, voidMessage, horseStats, latestBalance } = playerStore();
   const { connect } = playerStore.getState();
   const [searchParams] = useSearchParams();
   const userDetailsParam = searchParams.get('data');
@@ -157,7 +159,32 @@ const HorseRacingGame = () => {
   
 
   
+  useEffect(() => {
+    if (slots.size > 0) {
+      let total = 0;
   
+      slots.forEach(value => {
+        total += value;
+      });
+      setTotalBets(total);
+    }else{
+      setTotalBets(0);
+    }
+  }, [slots]);
+
+  useEffect(() => {
+    if(latestBalance){
+      setCredits(latestBalance);
+    }else{
+      setCredits(urlUserDetails?.credits || localStorageUser?.userData?.data?.wallet?.balance);
+    }
+  }, [latestBalance]);
+
+  useEffect(() => {
+    if (gameState === GameState.NewGame || gameState === GameState.WinnerDeclared) {
+      setTotalBets(0);
+    }
+  }, [gameState]);
 
   useEffect(() => {
     if(userInfo){
@@ -2369,7 +2396,7 @@ const HorseRacingGame = () => {
                     ml: 2
                   }}
                 >
-                  NotAVeryLongName
+                  {userInfo?.userData?.data?.user?.firstName}
                 </Typography>
               </Box>
               
@@ -2459,7 +2486,7 @@ const HorseRacingGame = () => {
                   mr: 2
                 }}
               >
-                Balance: ${balance}
+                Balance: {formatTruncatedMoney(credits-totalBets)}
               </Typography>
             </Box>
             

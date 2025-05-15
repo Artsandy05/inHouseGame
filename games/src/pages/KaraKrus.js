@@ -6,7 +6,7 @@ import { ArrowBack, Celebration, ChevronLeft, ChevronRight, Close, HelpOutline, 
 import ReactConfetti from 'react-confetti';
 import { playerStore } from "../utils/karakrus";
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { GameState } from '../utils/gameutils';
+import { formatTruncatedMoney, GameState } from '../utils/gameutils';
 import createEncryptor from '../utils/createEncryptor';
 import { getGameHistory } from '../services/gameService';
 const encryptor = createEncryptor(process.env.REACT_APP_DECRYPTION_KEY);
@@ -29,11 +29,13 @@ const KaraKrus = () => {
   const handRef = useRef(null);
   const [coinFaceImg, setCoinFaceImg] = useState(null);
   const theme = useTheme();
-  const { gameState, setPlayerInfo, sendMessage, countdown, slots, setSlots, odds, allBets, winningBall, setUserInfo, topPlayers, coinResult, animationDuration, voidMessage, setVoidMessage } = playerStore();
+  const { gameState, setPlayerInfo, sendMessage, countdown, slots, setSlots, odds, allBets, winningBall, setUserInfo, topPlayers, coinResult, animationDuration, voidMessage, latestBalance } = playerStore();
   const { connect } = playerStore.getState();
   const [searchParams] = useSearchParams();
   const userDetailsParam = searchParams.get('data');
   const [showControls, setShowControls] = useState(false);
+  const [totalBet, setTotalBet] = useState(0);
+  const [credits, setCredits] = useState(0);
   let decrypted;
 
   const [showBettingSection, setShowBettingSection] = useState(true);
@@ -87,13 +89,39 @@ const KaraKrus = () => {
     }
   };
 
+  useEffect(() => {
+    if (slots.size > 0) {
+      let total = 0;
   
+      slots.forEach(value => {
+        total += value;
+      });
+      setTotalBet(total);
+    }else{
+      setTotalBet(0);
+    }
+  }, [slots]);
+
+  useEffect(() => {
+    if (gameState === GameState.NewGame || gameState === GameState.WinnerDeclared) {
+      setTotalBet(0);
+    }
+  }, [gameState]);
 
   useEffect(() => {
     if(userInfo){
       setUserInfo(userInfo.userData.data.user);
     }
   }, []);
+
+  useEffect(() => {
+    if(latestBalance){
+      setCredits(latestBalance);
+    }else{
+      setCredits(urlUserDetails?.credits || localStorageUser?.userData?.data?.wallet?.balance);
+    }
+  }, [latestBalance]);
+
   useEffect(() => {
     const fetchGameHistory = async () => {
       try {
@@ -979,7 +1007,7 @@ const KaraKrus = () => {
             mb: 2 
           }}>
             <Chip 
-              label={`${userInfo.userData.data.user.firstName.toUpperCase()} - BALANCE: ₱${balance.toFixed(2)}`} 
+              label={`${userInfo.userData.data.user.firstName.toUpperCase()} - BALANCE: ${formatTruncatedMoney(credits-totalBet)}`} 
               sx={{ 
                 background: 'rgba(0,0,0,0.5)',
                 color: '#ffeb3b',

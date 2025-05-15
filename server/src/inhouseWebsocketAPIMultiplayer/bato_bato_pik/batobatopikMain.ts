@@ -85,7 +85,6 @@ export class Main {
       ];
       
       if (d?.role === "moderator" || d?.role === "superadmin") {
-        console.log("moderator");
         components.push(new Moderator);
       } else {
         components.push(new Player)

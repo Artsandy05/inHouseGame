@@ -344,8 +344,8 @@ async function update(set, eventData) {
     set({ gameId: meta.gameId.horseRace });
   }
 
-  if (hasValue(meta.voidGameMessage)) {
-    set({ voidMessage: meta.voidGameMessage });
+  if (hasValue(meta.voidGameMessage) && meta.voidGameMessage.game && meta.voidGameMessage.message) {
+    set({ voidMessage: true });
   }
 
   if (typeof meta === 'string' && meta.includes('winningBall')) {

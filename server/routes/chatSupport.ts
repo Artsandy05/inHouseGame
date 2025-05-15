@@ -157,11 +157,6 @@ function chatSupportRoutes(fastify) {
       schema: schema.claimRepresentativePlayerTransactions,
       handler: controllers.claimRepresentativePlayerTransactions,
     });
-    
-    // fastify.get("/get-badge-by-user-id", {
-    //   schema: schema.getBadgeByUserId,
-    //   handler: controllers.getBadgeByUserId,
-    // });
   }
   
   export default chatSupportRoutes;

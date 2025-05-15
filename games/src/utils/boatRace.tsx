@@ -321,7 +321,7 @@ function open(set, socket) {
 
 async function update(set, eventData) {
   let meta = JSON.parse(eventData);
-  console.log(meta)
+  //console.log(meta)
   
   if ((hasValue(meta.boatStats))) {
     set({ boatStats: meta.boatStats });
@@ -343,8 +343,8 @@ async function update(set, eventData) {
     set({ gameId: meta.gameId.boatRace });
   }
 
-  if (hasValue(meta.voidGameMessage)) {
-    set({ voidMessage: meta.voidGameMessage });
+  if (hasValue(meta.voidGameMessage) && meta.voidGameMessage.game && meta.voidGameMessage.message) {
+    set({ voidMessage: true });
   }
 
   if (typeof meta === 'string' && meta.includes('winningBall')) {

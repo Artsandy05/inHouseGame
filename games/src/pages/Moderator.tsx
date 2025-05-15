@@ -607,10 +607,10 @@ useEffect(() => {
           newSpeed *= (0.5 - horse.fatigue);
   
           // Clamp speed
-          horse.speed = Math.max(0.02, Math.min(0.04, newSpeed));
+          horse.speed = Math.max(0.025, Math.min(0.05, newSpeed));
   
           // Animation speed sync
-          horse.animationSpeed = horse.baseAnimationSpeed * ((horse.speed * 1.1) / 0.02);
+          horse.animationSpeed = horse.baseAnimationSpeed * ((horse.speed * 1.1) / 0.015);
         });
       }
   
@@ -745,12 +745,13 @@ useEffect(() => {
           // Apply variation & fatigue to speed
           let newSpeed = prevSpeed * (2 + speedVariation);
           newSpeed *= (0.5 - boat.fatigue);
+          console.log(newSpeed);
   
           // Clamp speed
-          boat.speed = Math.max(0.02, Math.min(0.04, newSpeed));
+          boat.speed = Math.max(0.02, Math.min(0.05, newSpeed));
   
           // Animation speed sync
-          boat.animationSpeed = boat.baseAnimationSpeed * ((boat.speed * 1.1) / 0.05);
+          boat.animationSpeed = boat.baseAnimationSpeed * ((boat.speed * 1.1) / 0.04);
         });
       }
   

@@ -8,20 +8,10 @@ import { playerStore } from "../utils/karakrus";
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { GameState } from '../utils/gameutils';
 import createEncryptor from '../utils/createEncryptor';
+import { getGameHistory } from '../services/gameService';
 const encryptor = createEncryptor(process.env.REACT_APP_DECRYPTION_KEY);
 const KaraKrus = () => {
-  const [gameHistory, setGameHistory] = useState([
-    { result: 'H', timestamp: '10:30 AM', winningAmount: 120 },
-    { result: 'T', timestamp: '10:25 AM', winningAmount: 80 },
-    { result: 'H', timestamp: '10:20 AM', winningAmount: 200 },
-    { result: 'T', timestamp: '10:15 AM', winningAmount: 150 },
-    { result: 'H', timestamp: '10:10 AM', winningAmount: 100 },
-    { result: 'T', timestamp: '10:05 AM', winningAmount: 180 },
-    { result: 'H', timestamp: '10:00 AM', winningAmount: 90 },
-    { result: 'T', timestamp: '09:55 AM', winningAmount: 110 },
-    { result: 'H', timestamp: '09:50 AM', winningAmount: 130 },
-    { result: 'H', timestamp: '09:45 AM', winningAmount: 170 },
-  ]);
+  const [gameHistory, setGameHistory] = useState([]);
   const mountRef = useRef(null);
   const [balance, setBalance] = useState(1000);
   const [openAnnouncement, setOpenAnnouncement] = useState(false);
@@ -104,6 +94,18 @@ const KaraKrus = () => {
       setUserInfo(userInfo.userData.data.user);
     }
   }, []);
+  useEffect(() => {
+    const fetchGameHistory = async () => {
+      try {
+        const response = await getGameHistory('karakrus');
+        setGameHistory(response.data.winningBalls);
+      } catch (error) {
+        console.error('Error fetching game history:', error);
+      }
+    };
+  
+    fetchGameHistory();
+  }, [gameState]);
 
   useEffect(() => {
     let timer;
@@ -632,10 +634,7 @@ const KaraKrus = () => {
     }
   };
 
-  useEffect(() => {
-    console.log("HEY");
-  }, []);
-  console.log(coinResult,"HEY");
+  
 
   const tossCoin = () => {
     
@@ -1356,17 +1355,17 @@ const KaraKrus = () => {
             right: historyPanelOpen ? 0 : '-300px',
             top: 0,
             bottom: 0,
-            width: '280px', // Slightly narrower
+            width: '280px',
             background: 'linear-gradient(135deg, rgba(25,0,0,0.95) 0%, rgba(60,0,0,0.95) 100%)',
             zIndex: 99,
             transition: 'right 0.4s ease',
             boxShadow: '-5px 0 20px rgba(0,0,0,0.7)',
-            borderLeft: '2px solid rgba(255, 235, 59, 0.3)', // Thinner border
+            borderLeft: '2px solid rgba(255, 235, 59, 0.3)',
             overflowY: 'auto',
             display: 'flex',
             flexDirection: 'column',
             '&::-webkit-scrollbar': {
-              width: '4px', // Thinner scrollbar
+              width: '4px',
             },
             '&::-webkit-scrollbar-thumb': {
               background: '#c62828',
@@ -1374,25 +1373,25 @@ const KaraKrus = () => {
             }
           }}
         >
-          {/* History Panel Header - Fixed with proper z-index */}
+          {/* History Panel Header */}
           <Box sx={{
-            p: 1.5, // Reduced padding
-            borderBottom: '1px solid rgba(255, 235, 59, 0.3)', // Thinner border
-            background: 'rgba(0,0,0,0.7)', // More opaque for better contrast
+            p: 1.5,
+            borderBottom: '1px solid rgba(255, 235, 59, 0.3)',
+            background: 'rgba(0,0,0,0.7)',
             position: 'sticky',
             top: 0,
-            zIndex: 100, // Higher than content
+            zIndex: 100,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            backdropFilter: 'blur(5px)' // Blur effect for better readability
+            backdropFilter: 'blur(5px)'
           }}>
             <Typography variant="subtitle1" sx={{ 
               color: '#ffeb3b',
               fontFamily: "'Cinzel Decorative', cursive",
               textShadow: '0 0 5px rgba(255, 235, 59, 0.5)',
-              letterSpacing: '0.5px', // Reduced letter spacing
-              fontSize: '0.9rem', // Smaller font
+              letterSpacing: '0.5px',
+              fontSize: '0.9rem',
               fontWeight: 'bold'
             }}>
               GAME HISTORY
@@ -1407,7 +1406,7 @@ const KaraKrus = () => {
                   backgroundColor: 'rgba(255,255,255,0.1)'
                 },
                 padding: '4px',
-                fontSize: '1rem' // Smaller icon
+                fontSize: '1rem'
               }}
             >
               <ChevronRight fontSize="inherit" />
@@ -1415,13 +1414,13 @@ const KaraKrus = () => {
           </Box>
           
           {/* History Content */}
-          <Box sx={{ p: 1.5, flexGrow: 1 }}> {/* Reduced padding */}
+          <Box sx={{ p: 1.5, flexGrow: 1 }}>
             {/* Pagination Controls */}
             <Box sx={{ 
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              mb: 1.5 // Reduced margin
+              mb: 1.5
             }}>
               <IconButton 
                 onClick={() => handleHistoryPage('prev')} 
@@ -1432,13 +1431,13 @@ const KaraKrus = () => {
                     backgroundColor: 'rgba(255,235,59,0.1)'
                   },
                   padding: '4px',
-                  fontSize: '1rem' // Smaller icon
+                  fontSize: '1rem'
                 }}
               >
                 <KeyboardArrowLeft fontSize="inherit" />
               </IconButton>
               
-              <Typography variant="caption" sx={{  // Smaller text
+              <Typography variant="caption" sx={{
                 color: 'rgba(255,255,255,0.8)',
                 fontSize: '0.75rem'
               }}>
@@ -1454,21 +1453,21 @@ const KaraKrus = () => {
                     backgroundColor: 'rgba(255,235,59,0.1)'
                   },
                   padding: '4px',
-                  fontSize: '1rem' // Smaller icon
+                  fontSize: '1rem'
                 }}
               >
                 <KeyboardArrowRight fontSize="inherit" />
               </IconButton>
             </Box>
             
-            {/* Game History List - Compact items */}
+            {/* Game History List */}
             <Box sx={{ mb: 1.5 }}>
               {displayedHistory.map((item, index) => (
                 <Box key={index} sx={{
                   background: 'rgba(0,0,0,0.3)',
-                  borderRadius: '6px', // Smaller radius
-                  p: 1, // Reduced padding
-                  mb: 1, // Reduced margin
+                  borderRadius: '6px',
+                  p: 1,
+                  mb: 1,
                   display: 'flex',
                   alignItems: 'center',
                   border: '1px solid rgba(255,255,255,0.1)',
@@ -1476,7 +1475,7 @@ const KaraKrus = () => {
                   overflow: 'hidden',
                   '&:hover': {
                     background: 'rgba(0,0,0,0.4)',
-                    boxShadow: '0 0 8px rgba(198, 40, 40, 0.3)' // Smaller shadow
+                    boxShadow: '0 0 8px rgba(198, 40, 40, 0.3)'
                   },
                   '&:before': {
                     content: '""',
@@ -1484,16 +1483,16 @@ const KaraKrus = () => {
                     top: 0,
                     left: 0,
                     bottom: 0,
-                    width: '2px', // Thinner indicator
-                    background: item.result === 'H' ? '#ffeb3b' : '#c62828'
+                    width: '2px',
+                    background: item.zodiac === 'heads' ? '#ffeb3b' : '#c62828'
                   }
                 }}>
-                  {/* Result Circle - Smaller */}
+                  {/* Result Circle */}
                   <Box sx={{
-                    width: '32px', // Smaller circle
+                    width: '32px',
                     height: '32px',
                     borderRadius: '50%',
-                    background: item.result === 'H'
+                    background: item.zodiac === 'heads'
                       ? 'linear-gradient(135deg, #ffeb3b, #c62828)' 
                       : 'linear-gradient(135deg, #c62828, #ffeb3b)',
                     display: 'flex',
@@ -1501,68 +1500,48 @@ const KaraKrus = () => {
                     justifyContent: 'center',
                     color: 'black',
                     fontWeight: 'bold',
-                    boxShadow: '0 0 8px rgba(0,0,0,0.5)', // Smaller shadow
-                    border: '1px solid rgba(255,255,255,0.3)', // Thinner border
-                    marginRight: 1.5 // Reduced margin
+                    boxShadow: '0 0 8px rgba(0,0,0,0.5)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    marginRight: 1.5
                   }}>
-                    {item.result}
+                    {item.zodiac === 'heads' ? 'H' : 'T'}
                   </Box>
                   
-                  {/* Result Details - Compact */}
+                  {/* Result Details */}
                   <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="caption" sx={{  // Smaller text
+                    <Typography variant="caption" sx={{
                       color: '#ffeb3b',
                       fontWeight: 'bold',
                       display: 'block',
                       lineHeight: 1.2
                     }}>
-                      {item.result === 'H' ? 'KARA' : 'KRUS'} WINS
+                      {item.zodiac === 'heads' ? 'KARA' : 'KRUS'} WINS
                     </Typography>
                     
                     <Typography variant="caption" sx={{ 
                       color: 'rgba(255,255,255,0.7)',
                       display: 'block',
-                      fontSize: '0.65rem', // Smaller text
+                      fontSize: '0.65rem',
                       lineHeight: 1.2
                     }}>
-                      {item.timestamp}
-                    </Typography>
-                  </Box>
-                  
-                  {/* Winning Amount Badge - Smaller */}
-                  <Box sx={{
-                    background: 'rgba(0,0,0,0.5)',
-                    borderRadius: '10px', // Smaller radius
-                    padding: '2px 6px', // Reduced padding
-                    border: '1px solid #c62828',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    minWidth: '50px' // Fixed width
-                  }}>
-                    <Typography variant="caption" sx={{  // Smaller text
-                      color: '#ffeb3b',
-                      fontWeight: 'bold',
-                      fontSize: '0.7rem'
-                    }}>
-                      ₱{item.winningAmount}
+                      {new Date(item.createdAt).toLocaleString()}
                     </Typography>
                   </Box>
                 </Box>
               ))}
             </Box>
             
-            {/* Statistics Section - Compact */}
+            {/* Statistics Section */}
             <Box sx={{ 
-              mt: 2, // Reduced margin
-              pt: 1.5, // Reduced padding
+              mt: 2,
+              pt: 1.5,
               borderTop: '1px solid rgba(255,255,255,0.1)'
             }}>
-              <Typography variant="caption" sx={{  // Smaller text
+              <Typography variant="caption" sx={{
                 color: '#ffeb3b',
-                mb: 1, // Reduced margin
+                mb: 1,
                 fontWeight: 'bold',
-                letterSpacing: '0.5px', // Reduced spacing
+                letterSpacing: '0.5px',
                 display: 'block',
                 fontSize: '0.75rem'
               }}>
@@ -1571,98 +1550,83 @@ const KaraKrus = () => {
               
               <Box sx={{
                 background: 'rgba(0,0,0,0.3)',
-                borderRadius: '6px', // Smaller radius
-                p: 1, // Reduced padding
+                borderRadius: '6px',
+                p: 1,
                 border: '1px solid rgba(255,255,255,0.1)',
               }}>
-                {/* Stat rows - Compact */}
-                <Box sx={{ 
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  mb: 0.5 // Reduced margin
-                }}>
-                  <Typography variant="caption" sx={{ 
-                    color: 'rgba(255,255,255,0.7)',
-                    fontSize: '0.7rem' // Smaller text
-                  }}>
-                    KARA (Heads):
-                  </Typography>
-                  <Typography variant="caption" sx={{ 
-                    color: '#ffeb3b',
-                    fontWeight: 'bold',
-                    fontSize: '0.7rem' // Smaller text
-                  }}>
-                    48%
-                  </Typography>
-                </Box>
+                {/* Calculate statistics from gameHistory */}
+                {gameHistory.length > 0 && (
+                  <>
+                    <Box sx={{ 
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      mb: 0.5
+                    }}>
+                      <Typography variant="caption" sx={{ 
+                        color: 'rgba(255,255,255,0.7)',
+                        fontSize: '0.7rem'
+                      }}>
+                        KARA (Heads):
+                      </Typography>
+                      <Typography variant="caption" sx={{ 
+                        color: '#ffeb3b',
+                        fontWeight: 'bold',
+                        fontSize: '0.7rem'
+                      }}>
+                        {Math.round((gameHistory.filter(item => item.zodiac === 'heads').length / gameHistory.length) * 100)}%
+                      </Typography>
+                    </Box>
+                    
+                    <Box sx={{ 
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      mb: 0.5
+                    }}>
+                      <Typography variant="caption" sx={{ 
+                        color: 'rgba(255,255,255,0.7)',
+                        fontSize: '0.7rem'
+                      }}>
+                        KRUS (Tails):
+                      </Typography>
+                      <Typography variant="caption" sx={{ 
+                        color: '#ffeb3b',
+                        fontWeight: 'bold',
+                        fontSize: '0.7rem'
+                      }}>
+                        {Math.round((gameHistory.filter(item => item.zodiac === 'tails').length / gameHistory.length) * 100)}%
+                      </Typography>
+                    </Box>
+                  </>
+                )}
                 
                 <Box sx={{ 
                   display: 'flex',
                   justifyContent: 'space-between',
-                  mb: 0.5 // Reduced margin
+                  mb: 0.5
                 }}>
                   <Typography variant="caption" sx={{ 
                     color: 'rgba(255,255,255,0.7)',
-                    fontSize: '0.7rem' // Smaller text
-                  }}>
-                    KRUS (Tails):
-                  </Typography>
-                  <Typography variant="caption" sx={{ 
-                    color: '#ffeb3b',
-                    fontWeight: 'bold',
-                    fontSize: '0.7rem' // Smaller text
-                  }}>
-                    52%
-                  </Typography>
-                </Box>
-                
-                <Box sx={{ 
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  mb: 0.5 // Reduced margin
-                }}>
-                  <Typography variant="caption" sx={{ 
-                    color: 'rgba(255,255,255,0.7)',
-                    fontSize: '0.7rem' // Smaller text
+                    fontSize: '0.7rem'
                   }}>
                     Total Games:
                   </Typography>
                   <Typography variant="caption" sx={{ 
                     color: '#ffeb3b',
                     fontWeight: 'bold',
-                    fontSize: '0.7rem' // Smaller text
+                    fontSize: '0.7rem'
                   }}>
-                    142
-                  </Typography>
-                </Box>
-                
-                <Box sx={{ 
-                  display: 'flex',
-                  justifyContent: 'space-between'
-                }}>
-                  <Typography variant="caption" sx={{ 
-                    color: 'rgba(255,255,255,0.7)',
-                    fontSize: '0.7rem' // Smaller text
-                  }}>
-                    Biggest Win:
-                  </Typography>
-                  <Typography variant="caption" sx={{ 
-                    color: '#ffeb3b',
-                    fontWeight: 'bold',
-                    fontSize: '0.7rem' // Smaller text
-                  }}>
-                    ₱5,420
+                    {gameHistory.length}
                   </Typography>
                 </Box>
               </Box>
             </Box>
           </Box>
           
-          {/* Footer - My Game History - Compact */}
+          {/* Footer */}
           <Box sx={{
-            p: 1.5, // Reduced padding
-            borderTop: '1px solid rgba(255, 235, 59, 0.3)', // Thinner border
-            background: 'rgba(0,0,0,0.7)', // More opaque
+            p: 1.5,
+            borderTop: '1px solid rgba(255, 235, 59, 0.3)',
+            background: 'rgba(0,0,0,0.7)',
             position: 'sticky',
             bottom: 0,
             backdropFilter: 'blur(5px)'
@@ -1670,7 +1634,7 @@ const KaraKrus = () => {
             <Button 
               fullWidth
               variant="outlined"
-              size="small" // Smaller button
+              size="small"
               sx={{ 
                 color: '#ffeb3b',
                 borderColor: 'rgba(255, 235, 59, 0.3)',
@@ -1679,15 +1643,16 @@ const KaraKrus = () => {
                   background: 'rgba(255, 235, 59, 0.1)'
                 },
                 fontWeight: 'bold',
-                fontSize: '0.75rem', // Smaller text
-                py: 0.5, // Reduced padding
-                minHeight: '32px' // Smaller height
+                fontSize: '0.75rem',
+                py: 0.5,
+                minHeight: '32px'
               }}
             >
               MY GAME HISTORY
             </Button>
           </Box>
         </Box>
+
 
         {/* Announcement Dialog (keep existing) */}
         {openAnnouncement && (

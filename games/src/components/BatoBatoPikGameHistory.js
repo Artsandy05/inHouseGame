@@ -20,21 +20,9 @@ import { format } from 'date-fns';
 const GameHistoryPanel = ({ gameHistory }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [page, setPage] = useState(1);
-  const itemsPerPage = 5;
   
-  // Use the passed gameHistory prop or sample data if not available
-  const historyData = gameHistory || [
-    { id: 1, date: new Date(), result: 'juan', totalBets: 12500 },
-    { id: 2, date: new Date(Date.now() - 3600000), result: 'pedro', totalBets: 8900 },
-    { id: 3, date: new Date(Date.now() - 7200000), result: 'tie', totalBets: 15300 },
-    { id: 4, date: new Date(Date.now() - 10800000), result: 'juan', totalBets: 11200 },
-    { id: 5, date: new Date(Date.now() - 14400000), result: 'pedro', totalBets: 9800 },
-    { id: 6, date: new Date(Date.now() - 18000000), result: 'juan', totalBets: 8500 },
-    { id: 7, date: new Date(Date.now() - 21600000), result: 'pedro', totalBets: 11000 },
-    { id: 8, date: new Date(Date.now() - 25200000), result: 'tie', totalBets: 14200 },
-    { id: 9, date: new Date(Date.now() - 28800000), result: 'juan', totalBets: 9500 },
-    { id: 10, date: new Date(Date.now() - 32400000), result: 'pedro', totalBets: 7800 },
-  ];
+  const itemsPerPage = 5;
+  const historyData = gameHistory || [];
 
   // Pagination calculations
   const count = Math.ceil(historyData.length / itemsPerPage);
@@ -45,10 +33,9 @@ const GameHistoryPanel = ({ gameHistory }) => {
 
   // Statistics calculations
   const totalGames = historyData.length;
-  const juanWins = historyData.filter(game => game.result === 'juan').length;
-  const pedroWins = historyData.filter(game => game.result === 'pedro').length;
-  const ties = historyData.filter(game => game.result === 'tie').length;
-  const totalWagered = historyData.reduce((sum, game) => sum + game.totalBets, 0);
+  const juanWins = historyData.filter(game => game.zodiac === 'juan').length;
+  const pedroWins = historyData.filter(game => game.zodiac === 'pedro').length;
+  const ties = historyData.filter(game => game.zodiac === 'tie').length;
 
   const togglePanel = () => {
     setIsOpen(!isOpen);
@@ -69,7 +56,7 @@ const GameHistoryPanel = ({ gameHistory }) => {
 
   return (
     <>
-      {/* Toggle Button - Fixed on the right side */}
+      {/* Toggle Button */}
       <Box
         sx={{
           position: 'fixed',
@@ -166,30 +153,30 @@ const GameHistoryPanel = ({ gameHistory }) => {
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               <Typography sx={{ color: '#32CD32', fontSize: '0.8rem' }}>Juan Wins:</Typography>
               <Typography sx={{ color: '#fff', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                {juanWins} ({Math.round((juanWins/totalGames)*100)}%)
+                {juanWins} ({totalGames > 0 ? Math.round((juanWins/totalGames)*100) : 0}%)
               </Typography>
             </Box>
             
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               <Typography sx={{ color: '#FF6347', fontSize: '0.8rem' }}>Pedro Wins:</Typography>
               <Typography sx={{ color: '#fff', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                {pedroWins} ({Math.round((pedroWins/totalGames)*100)}%)
+                {pedroWins} ({totalGames > 0 ? Math.round((pedroWins/totalGames)*100) : 0}%)
               </Typography>
             </Box>
             
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               <Typography sx={{ color: '#00BFFF', fontSize: '0.8rem' }}>Ties:</Typography>
               <Typography sx={{ color: '#fff', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                {ties} ({Math.round((ties/totalGames)*100)}%)
+                {ties} ({totalGames > 0 ? Math.round((ties/totalGames)*100) : 0}%)
               </Typography>
             </Box>
             
             <Divider sx={{ my: 1, borderColor: 'rgba(255, 215, 0, 0.3)' }} />
             
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography sx={{ color: '#FFD700', fontSize: '0.8rem' }}>Total Wagered:</Typography>
+              <Typography sx={{ color: '#FFD700', fontSize: '0.8rem' }}>Total Games:</Typography>
               <Typography sx={{ color: '#FFD700', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                ₱{totalWagered.toLocaleString()}
+                {totalGames}
               </Typography>
             </Box>
           </Stack>
@@ -216,7 +203,7 @@ const GameHistoryPanel = ({ gameHistory }) => {
             gap: 1,
             fontSize: '0.9rem'
           }}>
-            <EmojiEventsIcon /> RECENT GAMES
+            <EmojiEventsIcon /> RECENT RESULTS
           </Typography>
           
           <List dense sx={{ py: 0 }}>
@@ -228,13 +215,13 @@ const GameHistoryPanel = ({ gameHistory }) => {
                   padding: '6px 12px',
                   marginBottom: '6px',
                   borderRadius: '4px',
-                  borderLeft: `3px solid ${getResultColor(game.result)}`,
+                  borderLeft: `3px solid ${getResultColor(game.zodiac)}`,
                   transition: 'all 0.2s',
                   '&:hover': {
                     transform: 'translateX(3px)',
                     backgroundColor: 'rgba(255, 215, 0, 0.05)',
                   },
-                  minHeight: '36px', // Fixed height for consistency
+                  minHeight: '36px',
                 }}
               >
                 <ListItemText
@@ -247,41 +234,25 @@ const GameHistoryPanel = ({ gameHistory }) => {
                     }}>
                       <Typography 
                         sx={{ 
-                          color: getResultColor(game.result),
+                          color: getResultColor(game.zodiac),
                           fontWeight: 'bold',
                           fontSize: '0.75rem',
                           textTransform: 'uppercase',
-                          flex: 1,
-                          minWidth: '60px' // Ensure consistent width for result
+                          flex: 1
                         }}
                       >
-                        {game.result === 'juan' ? 'JUAN' : 
-                        game.result === 'pedro' ? 'PEDRO' : 'TIE'}
+                        {game.zodiac === 'juan' ? 'JUAN WON' : 
+                         game.zodiac === 'pedro' ? 'PEDRO WON' : 'TIE'}
                       </Typography>
                       
                       <Typography 
                         sx={{ 
                           color: '#aaa', 
                           fontSize: '0.7rem',
-                          flex: 2,
-                          textAlign: 'center',
-                          px: 1
+                          textAlign: 'right'
                         }}
                       >
-                        {format(game.date, 'hh:mm a')}
-                      </Typography>
-                      
-                      <Typography 
-                        sx={{ 
-                          color: '#FFD700', 
-                          fontSize: '0.75rem',
-                          fontWeight: '500',
-                          flex: 1,
-                          textAlign: 'right',
-                          minWidth: '70px' // Ensure consistent width for amount
-                        }}
-                      >
-                        ₱{game.totalBets.toLocaleString()}
+                        {format(new Date(game.createdAt), 'hh:mm a')}
                       </Typography>
                     </Box>
                   }

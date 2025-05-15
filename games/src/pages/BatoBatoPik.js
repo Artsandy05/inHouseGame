@@ -19,6 +19,7 @@ import createEncryptor from "../utils/createEncryptor";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import GameHistoryPanel from "../components/BatoBatoPikGameHistory";
 import { ArrowBack, ArrowBackIosNew, HelpOutline } from "@mui/icons-material";
+import { getGameHistory } from "../services/gameService";
 
 
 // Image assets
@@ -59,6 +60,7 @@ const BatoBatoPik = () => {
   const [announcementDialogOpen, setAnnouncementDialogOpen] = useState(false);
   const [voidMessageDialogOpen, setVoidMessageDialogOpen] = useState(false);
   const [openMechanicsDialog, setOpenMechanicsDialog] = React.useState(false);
+  const [gameHistory, setGameHistory] = useState([]);
   
   const { gameState, setPlayerInfo, sendMessage, countdown, slots,setSlots,odds, allBets, winningBall, setUserInfo, topPlayers, juanChoice, pedroChoice, voidMessage } = playerStore();
   const { connect } = playerStore.getState();
@@ -102,6 +104,19 @@ const BatoBatoPik = () => {
       setUserInfo(userInfo.userData.data.user);
     }
   }, []);
+
+  useEffect(() => {
+    const fetchGameHistory = async () => {
+      try {
+        const response = await getGameHistory('bbp');
+        setGameHistory(response.data.winningBalls);
+      } catch (error) {
+        console.error('Error fetching game history:', error);
+      }
+    };
+  
+    fetchGameHistory();
+  }, [gameState]);
 
   useEffect(() => {
     
@@ -1526,7 +1541,7 @@ const BatoBatoPik = () => {
       </Dialog>
 
       {/* Fixed Position Buttons at Bottom */}
-      <GameHistoryPanel />
+      <GameHistoryPanel gameHistory={gameHistory}/>
     </Container>
   );
 };

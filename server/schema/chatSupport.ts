@@ -94,6 +94,21 @@ const getPlayerIdByUUID = {
   },
 };
 
+const getGameHistory = {
+  response: {
+    200: {
+      type: "object",
+      properties: {
+        gameHistory: {type: "object" },
+        message: {
+          type: "string",
+          default: "Player ID fetched successfully!",
+        },
+      },
+    },
+  },
+};
+
 const loginSchema = {
   response: {
     200: {
@@ -925,5 +940,6 @@ const claimRepresentativePlayerTransactions = {
     claimRepresentativePlayerTransactions,
     getOverallTopGiversRanking,
     loginSchema,
-    getGames
+    getGames,
+    getGameHistory
   };

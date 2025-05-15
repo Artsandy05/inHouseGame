@@ -18,6 +18,11 @@ import createEncryptor from '../utils/createEncryptor';
 import { playerStore } from '../utils/boatRace';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { GameState, mapToArray } from '../utils/gameutils';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import HistoryIcon from '@mui/icons-material/History';
+import HelpIcon from '@mui/icons-material/Help';
+import CloseIcon from '@mui/icons-material/Close';
+import { getAllGameHistory, getGameHistory } from '../services/gameService';
 
 // Custom theme with Keania One font
 const theme = createTheme({
@@ -76,6 +81,17 @@ const boatColor = {
   yellow: '#FFD700',
 };
 
+// const sampleGameHistory = [
+//   { id: 1, winner: 'red', date: '2023-05-15 14:30' },
+//   { id: 2, winner: 'blue', date: '2023-05-15 14:15' },
+//   { id: 3, winner: 'yellow', date: '2023-05-15 14:00'},
+//   { id: 4, winner: 'green', date: '2023-05-15 13:45' },
+//   { id: 5, winner: 'red', date: '2023-05-15 13:30' },
+//   { id: 6, winner: 'blue', date: '2023-05-15 13:15' },
+//   { id: 7, winner: 'yellow', date: '2023-05-15 13:00'},
+//   { id: 8, winner: 'green', date: '2023-05-15 12:45' },
+// ];
+
 const encryptor = createEncryptor(process.env.REACT_APP_DECRYPTION_KEY);
 
 const BoatRacingGame = () => {
@@ -92,6 +108,10 @@ const BoatRacingGame = () => {
   const [raceTime, setRaceTime] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
   const [selectedChip, setSelectedChip] = useState(null);
+  const [showVoidDialog, setShowVoidDialog] = useState(false);
+  const [helpDialogOpen, setHelpDialogOpen] = useState(false);
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [gameHistory, setGameHistory] = useState(null);
   // Refs
   const canvasRef = useRef(null);
   const sceneRef = useRef(null);
@@ -148,6 +168,30 @@ const BoatRacingGame = () => {
       setUserInfo(userInfo.userData.data.user);
     }
   }, []);
+
+  useEffect(() => {
+    const fetchGameHistory = async () => {
+      try {
+        const response = await getGameHistory('boatRace');
+        setGameHistory(response.data.winningBalls);
+      } catch (error) {
+        console.error('Error fetching game history:', error);
+      }
+    };
+  
+    fetchGameHistory();
+  }, [gameState]);
+
+ 
+
+  useEffect(() => {
+    if (voidMessage) {
+      setShowVoidDialog(true);
+      setTimeout(() => {
+        setShowVoidDialog(false);
+      }, 3000);
+    }
+  }, [voidMessage]);
 
   
 
@@ -473,8 +517,6 @@ const createRaceTrack = () => {
   bottomEdge.position.y = -3.9;
   bottomEdge.position.x = 51;
   scene.add(bottomEdge);
-  
-  
 
   // Rest of existing code (clouds, trees, etc.)
   const cloudImages = [
@@ -617,6 +659,7 @@ const createRaceTrack = () => {
     
     scene.add(cloud);
   }
+
   
   // Finish line
   const finishLineWidth = 0.5;
@@ -731,6 +774,7 @@ const createRaceTrack = () => {
       }
     });
   }
+
   function truncateToTwoDecimals(num) {
       return Math.trunc(num * 100) / 100;
   }
@@ -747,6 +791,7 @@ const createRaceTrack = () => {
 
     animateRace();
   };
+  
   
   // Animate the race
   const animateRace = () => {
@@ -853,7 +898,9 @@ const createRaceTrack = () => {
     setPlayerWon(false);
     setRaceTime(0);
 
-    cameraRef.current.position.x = 0
+    if(cameraRef.current){
+      cameraRef.current.position.x = 0;
+    }
     
     if (boatsRef.current) {
       boatsRef.current.forEach((boat) => {
@@ -910,523 +957,680 @@ const createRaceTrack = () => {
 
   
   
-  // Render bet dialog
-  const renderBetPanel = () => {
-    // Determine if betting is allowed based on game state
-    const isBettingAllowed = gameState === GameState.Open || gameState === GameState.LastCall;
-    
-    // Format countdown timer
-    const formatTime = (seconds) => {
-      const mins = Math.floor(seconds / 60);
-      const secs = seconds % 60;
-      return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-    };
-    
-    return (
-      <Box
-        sx={{
-          position: 'fixed',
-          bottom: betDialogOpen ? 0 : '-100%',
+  
+const renderBetPanel = () => {
+  // Determine if betting is allowed based on game state
+  const isBettingAllowed = gameState === GameState.Open || gameState === GameState.LastCall;
+  
+  // Format countdown timer
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+  
+  return (
+    <Box
+      sx={{
+        position: 'fixed',
+        bottom: betDialogOpen ? 0 : '-100%',
+        left: 0,
+        right: 0,
+        height: '100vh',
+        backgroundColor: '#1a1a2e',
+        backgroundImage: 'linear-gradient(to bottom, #16213e, #0f3460)',
+        borderTop: '3px solid yellow',
+        borderTopLeftRadius: '12px',
+        borderTopRightRadius: '12px',
+        boxShadow: '0 -4px 15px rgba(0, 0, 0, 0.7)',
+        transition: 'bottom 0.3s ease-out',
+        zIndex: 1200,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
           left: 0,
           right: 0,
-          height: '100vh',
-          backgroundColor: 'rgba(30, 10, 5, 0.98)',
-          backgroundImage: 'linear-gradient(to bottom, rgba(80, 20, 10, 1), rgba(30, 10, 5, 1))',
-          borderTop: '4px solid #FFD700',
-          borderTopLeftRadius: '16px',
-          borderTopRightRadius: '16px',
-          boxShadow: '0 -5px 20px rgba(0, 0, 0, 0.6)',
-          transition: 'bottom 0.3s ease-out',
-          zIndex: 1200,
+          height: '8px',
+          background: 'repeating-linear-gradient(90deg, yellow, yellow 6px, transparent 6px, transparent 12px)',
+        }
+      }}
+    >
+      {/* Close Button */}
+      <Box 
+        onClick={closeBetDialog}
+        sx={{
+          height: '28px',
           display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: '12px',
-            background: 'repeating-linear-gradient(90deg, #FFD700, #FFD700 8px, transparent 8px, transparent 16px)',
+          justifyContent: 'center',
+          alignItems: 'center',
+          cursor: 'pointer',
+          backgroundColor: 'rgba(233, 69, 96, 0.15)',
+          borderBottom: '1px solid rgba(233, 69, 96, 0.3)',
+          transition: 'all 0.2s ease',
+          '&:hover': {
+            backgroundColor: 'rgba(233, 69, 96, 0.25)',
+            '& .close-icon': {
+              transform: 'translateY(2px)',
+              color: '#FFF'
+            }
           }
         }}
       >
-        {/* Close Button */}
         <Box 
-          onClick={closeBetDialog}
+          className="close-icon"
           sx={{
-            height: '36px',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            cursor: 'pointer',
-            backgroundColor: 'rgba(255, 215, 0, 0.1)',
-            borderBottom: '1px solid rgba(255, 215, 0, 0.3)',
+            color: 'yellow',
+            fontSize: '16px',
             transition: 'all 0.2s ease',
-            '&:hover': {
-              backgroundColor: 'rgba(255, 215, 0, 0.2)',
-              '& .close-icon': {
-                transform: 'translateY(2px)',
-                color: '#FFF'
-              }
-            }
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center'
           }}
         >
-          <Box 
-            className="close-icon"
-            sx={{
-              color: '#FFD700',
-              fontSize: '20px',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center'
-            }}
-          >
-            ▼
-            <Typography sx={{
-              color: 'inherit',
-              fontSize: '0.65rem',
-              fontWeight: 'bold',
-              mt: '-4px'
-            }}>
-              CLOSE
-            </Typography>
-          </Box>
+          ▼
+          <Typography sx={{
+            color: 'inherit',
+            fontSize: '0.6rem',
+            fontFamily: "'Poppins', sans-serif",
+            fontWeight: 600,
+            mt: '-4px'
+          }}>
+            CLOSE
+          </Typography>
         </Box>
-        
-        {/* Main content area - now with two columns */}
+      </Box>
+      
+      {/* Main content area - two columns */}
+      <Box sx={{ 
+        flex: 1,
+        display: 'flex',
+        overflow: 'hidden'
+      }}>
+        {/* Left Column - Boats */}
         <Box sx={{ 
           flex: 1,
           display: 'flex',
-          overflow: 'hidden'
+          flexDirection: 'column',
+          overflow: 'hidden',
+          borderRight: '1px solid rgba(233, 69, 96, 0.2)',
+          padding: '6px'
         }}>
-          {/* Left Column - Boats */}
+          {/* Game Status */}
+          <Box sx={{
+            padding: '4px 10px',
+            backgroundColor: '#0f3460',
+            borderBottom: '1px solid yellow',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            mb: '6px',
+            borderRadius: '4px'
+          }}>
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}>
+              <Box sx={{
+                backgroundColor: gameState === GameState.LastCall ? '#ff9a3c' : 
+                                gameState === GameState.Open ? '#06d6a0' : '#ef4565',
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                boxShadow: '0 0 5px currentColor',
+                flexShrink: 0
+              }} />
+              
+              <Typography sx={{
+                color: '#fff',
+                fontFamily: "'Roboto Condensed', sans-serif",
+                fontWeight: 700,
+                fontSize: '0.75rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px'
+              }}>
+                STATUS: <span style={{ color: 'yellow' }}>{gameState}</span>
+              </Typography>
+            </Box>
+            
+            <Box sx={{
+              backgroundColor: '#0a1929',
+              border: '1px solid yellow',
+              borderRadius: '4px',
+              padding: '2px 6px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '3px'
+            }}>
+              <Box component="span" sx={{
+                color: countdown <= 10 ? '#ef4565' : countdown <= 30 ? '#ff9a3c' : '#06d6a0',
+                animation: countdown <= 10 ? 'pulse 1s infinite' : 'none',
+                '@keyframes pulse': {
+                  '0%': { opacity: 1 },
+                  '50%': { opacity: 0.5 },
+                  '100%': { opacity: 1 },
+                }
+              }}>
+                ⏱️
+              </Box>
+              <Typography sx={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontWeight: 600,
+                fontSize: '0.8rem',
+                color: countdown <= 10 ? '#ef4565' : countdown <= 30 ? '#ff9a3c' : '#06d6a0',
+              }}>
+                {formatTime(countdown)}
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Title Area */}
+          <Box sx={{
+            padding: '5px',
+            borderBottom: '1px solid yellow',
+            backgroundColor: '#0a1929',
+            textAlign: 'center',
+            mb: '6px',
+            borderRadius: '4px'
+          }}>
+            <Typography sx={{ 
+              color: 'yellow',
+              fontSize: '0.9rem',
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: 600,
+              textShadow: '1px 1px 2px rgba(0, 0, 0, 0.7)',
+              textTransform: 'uppercase',
+              letterSpacing: '1px'
+            }}>
+              {isBettingAllowed ? 'Place Your Bets' : 'Betting Closed'}
+            </Typography>
+          </Box>
+          
+          {/* Boats Grid */}
           <Box sx={{ 
             flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            borderRight: '1px solid rgba(255,215,0,0.2)',
-            padding: '8px'
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gridTemplateRows: '1fr 1fr',
+            gap: '6px',
+            overflow: 'hidden'
           }}>
-            {/* Game Status moved to first column */}
-            <Box sx={{
-              padding: '6px 12px',
-              backgroundColor: 'rgba(0, 0, 0, 0.7)',
-              borderBottom: '1px solid #FFD700',
+            {boats.slice(0, 4).map((boat) => (
+              <Box
+                key={boat.id}
+                onClick={() => isBettingAllowed && selectedChip && placeBetOnBoat(boat.id)}
+                sx={{
+                  backgroundColor: boat.color,
+                  backgroundImage: 'linear-gradient(rgba(255,255,255,0.1), rgba(0,0,0,0.2))',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  border: slots.has(boat.id) 
+                    ? '2px solid yellow' 
+                    : '1px solid rgba(255,255,255,0.15)',
+                  boxShadow: slots.has(boat.id)
+                    ? '0 0 8px rgba(233, 69, 96, 0.5)'
+                    : '0 2px 3px rgba(0, 0, 0, 0.2)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  cursor: isBettingAllowed && selectedChip ? 'pointer' : 'default',
+                  opacity: isBettingAllowed ? 1 : 0.7,
+                  p: '4px',
+                  transition: 'all 0.2s ease',
+                  '&:hover': isBettingAllowed && selectedChip ? {
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 3px 6px rgba(0,0,0,0.3)'
+                  } : {}
+                }}
+              >
+                {/* Boat Name and Odds */}
+                <Box sx={{ 
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  mb: 0.1
+                }}>
+                  <Typography sx={{ 
+                    color: '#FFF',
+                    fontFamily: "'Roboto Condensed', sans-serif",
+                    fontWeight: 700,
+                    fontSize: '0.85em',
+                    textShadow: '1px 1px 2px rgba(0, 0, 0, 0.7)',
+                    maxWidth: '70%'
+                  }}>
+                    {boat.name.toUpperCase() + ' BOAT'}
+                  </Typography>
+                  
+                  <Box sx={{
+                    backgroundColor: 'rgba(0,0,0,0.6)',
+                    color: 'yellow',
+                    fontWeight: 600,
+                    fontSize: '0.65rem',
+                    borderRadius: '3px',
+                    padding: '1px 3px',
+                    border: '1px solid yellow',
+                    fontFamily: "'JetBrains Mono', monospace",
+                  }}>
+                    x{truncateToTwoDecimals(getOdds(boat.id))}
+                  </Box>
+                </Box>
+                
+                {/* Total bets */}
+                <Box sx={{
+                  backgroundColor: 'rgba(0,0,0,0.4)',
+                  borderRadius: '3px',
+                  padding: '2px 3px',
+                  border: '1px dashed rgba(233,69,96,0.2)',
+                  mb: 0.3
+                }}>
+                  <Typography sx={{
+                    color: '#FFF',
+                    fontSize: '0.65rem',
+                    fontFamily: "'Roboto Condensed', sans-serif",
+                    fontWeight: 700,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}>
+                    <span>TOTAL:</span>
+                    <span style={{ 
+                      color: 'yellow', 
+                      backgroundColor: 'rgba(0,0,0,0.5)',
+                      padding: '1px 2px',
+                      borderRadius: '2px',
+                      fontSize: '0.65rem',
+                      fontFamily: "'JetBrains Mono', monospace",
+                    }}>
+                      ₱{allBets && allBets.has(boat.id) ? allBets.get(boat.id).toLocaleString() : '0'}
+                    </span>
+                  </Typography>
+                </Box>
+                
+                {/* Current Bet */}
+                <Box sx={{
+                  backgroundColor: 'rgba(0,0,0,0.5)',
+                  padding: '2px',
+                  borderRadius: '3px',
+                  textAlign: 'center',
+                  marginTop: 'auto',
+                  border: slots.has(boat.id) ? '1px solid rgba(233,69,96,0.4)' : 'none',
+                }}>
+                  <Typography sx={{ 
+                    color: slots.has(boat.id) ? '#06d6a0' : 'yellow',
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontWeight: 600,
+                    fontSize: '0.75rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    {slots.has(boat.id) ? (
+                      <>
+                        <span style={{ marginRight: '3px', color: 'yellow' }}>💰</span>
+                        ₱{slots.get(boat.id).toLocaleString()}
+                      </>
+                    ) : 'No bet'}
+                  </Typography>
+                </Box>
+
+                {!isBettingAllowed && (
+                  <Box sx={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.4)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '5px',
+                  }}>
+                    <Typography sx={{
+                      color: 'yellow',
+                      fontFamily: "'Roboto Condensed', sans-serif",
+                      fontWeight: 700,
+                      fontSize: '0.75rem',
+                      backgroundColor: 'rgba(0,0,0,0.6)',
+                      padding: '1px 5px',
+                      borderRadius: '2px',
+                      border: '1px solid rgba(233,69,96,0.3)'
+                    }}>
+                      BETTING CLOSED
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            ))}
+          </Box>
+        </Box>
+        
+        {/* Right Column - Chips and Bet Summary */}
+        <Box sx={{ 
+          width: '38%',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          padding: '6px',
+          gap: '6px'
+        }}>
+          {/* Chips panel - 3x3 GRID */}
+          <Grid container sx={{
+            backgroundColor: '#0f3460',
+            borderRadius: '6px',
+            padding: '6px',
+            border: '1px solid rgba(233,69,96,0.3)',
+          }}>
+            <Grid item xs={12}>
+              <Typography sx={{
+                color: 'yellow',
+                fontFamily: "'Poppins', sans-serif",
+                fontWeight: 600,
+                textAlign: 'center',
+                fontSize: '0.8rem',
+                letterSpacing: '0.5px',
+                mb: '3px'
+              }}>
+                SELECT CHIP
+              </Typography>
+            </Grid>
+            
+            {/* 3x3 Grid for chips */}
+            <Grid container spacing={0} sx={{
+              justifyContent: 'center',
+              alignItems: 'center',
+              width: '100%',
+            }}>
+              {Object.entries(casinoChips).map(([color, src]) => (
+                <Grid item xs={4} key={color} sx={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center', 
+                }}>
+                  <Box 
+                    sx={{ 
+                      width: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: isBettingAllowed ? 'pointer' : 'default',
+                      transform: selectedChip === color && isBettingAllowed ? 'scale(1.08)' : 'scale(1)',
+                      transition: 'all 0.2s ease',
+                      position: 'relative',
+                      pointerEvents: isBettingAllowed ? 'auto' : 'none',
+                      borderRadius: '50%',
+                      padding: '2px',
+                      backgroundColor: selectedChip === color && isBettingAllowed ? 'rgba(233,69,96,0.15)' : 'transparent',
+                      border: selectedChip === color && isBettingAllowed ? '1px solid rgba(233,69,96,0.5)' : 'none',
+                      
+                      '&:hover': isBettingAllowed ? {
+                        transform: 'scale(1.08)',
+                        boxShadow: '0 0 6px rgba(233,69,96,0.5)'
+                      } : {}
+                    }}
+                    onClick={() => isBettingAllowed && setSelectedChip(color)}
+                  >
+                    <Box 
+                      component="img" 
+                      src={src} 
+                      alt={`${color} chip`}
+                      sx={{ 
+                        width: '90%',
+                        objectFit: 'contain',
+                        filter: selectedChip === color && isBettingAllowed ? 
+                          'drop-shadow(0 0 5px rgba(233,69,96,0.7))' : 'none',
+                      }}
+                    />
+                    <Typography 
+                      sx={{ 
+                        color: '#FFF', 
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontWeight: 600,
+                        fontSize: '0.9rem',
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        padding: '1px 2px',
+                        borderRadius: '4px',
+                      }}
+                    >
+                      ₱{chipValues[color].toLocaleString()}
+                    </Typography>
+                  </Box>
+                </Grid>
+              ))}
+            </Grid>
+          </Grid>
+          
+          {/* Bet Summary Section - Now in a single row */}
+          <Box sx={{ 
+            backgroundColor: '#0a1929',
+            borderRadius: '6px',
+            padding: '6px',
+            border: '1px solid rgba(233,69,96,0.4)',
+          }}>
+            <Typography sx={{
+              color: 'yellow',
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: 600,
+              fontSize: '0.8rem',
+              textAlign: 'center',
+              mb: '4px',
+              borderBottom: '1px solid rgba(233,69,96,0.2)',
+              pb: '3px',
+              letterSpacing: '0.5px'
+            }}>
+              BET SUMMARY
+            </Typography>
+            
+            <Box sx={{ 
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              mb: '8px'
+              gap: '3px'
             }}>
-              <Box sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}>
-                <Box sx={{
-                  backgroundColor: gameState === GameState.LastCall ? '#FF5722' : 
-                                  gameState === GameState.Open ? '#4CAF50' : '#F44336',
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  boxShadow: '0 0 6px currentColor',
-                  flexShrink: 0
-                }} />
-                
-                <Typography sx={{
-                  color: '#FFF',
-                  fontWeight: 'bold',
-                  fontSize: '0.8rem',
-                  textTransform: 'uppercase',
+              <Box sx={{ textAlign: 'center', flex: 1 }}>
+                <Typography sx={{ 
+                  color: '#FFF', 
+                  fontFamily: "'Roboto Condensed', sans-serif",
+                  fontWeight: 700, 
+                  fontSize: '0.65rem' 
                 }}>
-                  STATUS: <span style={{ color: '#FFD700' }}>{gameState}</span>
+                  TOTAL BET
                 </Typography>
-              </Box>
-              
-              <Box sx={{
-                backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                border: '1px solid #FFD700',
-                borderRadius: '6px',
-                padding: '3px 8px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}>
-                <Box component="span" sx={{
-                  color: countdown <= 10 ? '#F44336' : countdown <= 30 ? '#FF9800' : '#4CAF50',
-                  animation: countdown <= 10 ? 'pulse 1s infinite' : 'none',
-                  '@keyframes pulse': {
-                    '0%': { opacity: 1 },
-                    '50%': { opacity: 0.5 },
-                    '100%': { opacity: 1 },
-                  }
-                }}>
-                  ⏱️
-                </Box>
-                <Typography sx={{
-                  fontFamily: 'monospace',
-                  fontWeight: 'bold',
-                  fontSize: '0.85rem',
-                  color: countdown <= 10 ? '#F44336' : countdown <= 30 ? '#FF9800' : '#4CAF50',
-                }}>
-                  {formatTime(countdown)}
-                </Typography>
-              </Box>
-            </Box>
-
-            {/* Title Area */}
-            <Box sx={{
-              padding: '8px',
-              borderBottom: '1px solid #FFD700',
-              backgroundColor: 'rgba(0, 0, 0, 0.4)',
-              textAlign: 'center',
-              mb: '8px'
-            }}>
-              <Typography sx={{ 
-                color: '#FFD700',
-                fontSize: '1rem',
-                fontWeight: 'bold',
-                textShadow: '1px 1px 3px rgba(0, 0, 0, 0.8)',
-                textTransform: 'uppercase'
-              }}>
-                {isBettingAllowed ? 'Place Your Bets' : 'Betting Closed'}
-              </Typography>
-            </Box>
-            
-            {/* Boats Grid */}
-            <Box sx={{ 
-              flex: 1,
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gridTemplateRows: '1fr 1fr',
-              gap: '8px',
-              overflow: 'hidden'
-            }}>
-              {boats.slice(0, 4).map((boat) => (
-                <Box
-                  key={boat.id}
-                  onClick={() => isBettingAllowed && selectedChip && placeBetOnBoat(boat.id)}
-                  sx={{
-                    backgroundColor: boat.color,
-                    backgroundImage: 'linear-gradient(rgba(255,255,255,0.1), rgba(0,0,0,0.2))',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    border: slots.has(boat.id) 
-                      ? '2px solid #FFD700' 
-                      : '1px solid rgba(255,255,255,0.2)',
-                    boxShadow: slots.has(boat.id)
-                      ? '0 0 10px rgba(255, 215, 0, 0.4)'
-                      : '0 2px 4px rgba(0, 0, 0, 0.2)',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    cursor: isBettingAllowed && selectedChip ? 'pointer' : 'default',
-                    opacity: isBettingAllowed ? 1 : 0.7,
-                    p: '5px',
-                    transition: 'all 0.2s ease',
-                    '&:hover': isBettingAllowed && selectedChip ? {
-                      transform: 'translateY(-2px)',
-                      boxShadow: '0 4px 8px rgba(0,0,0,0.3)'
-                    } : {}
-                  }}
-                >
-                  {/* boat Name and Odds */}
-                  <Box sx={{ 
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-start',
-                    mb: 0.2
-                  }}>
-                    <Typography sx={{ 
-                      color: '#FFF',
-                      fontWeight: 'bold',
-                      fontSize: '0.9em',
-                      textShadow: '1px 1px 2px rgba(0, 0, 0, 0.8)',
-                      maxWidth: '70%'
-                    }}>
-                      {boat.name}
-                    </Typography>
-                    
-                    <Box sx={{
-                      backgroundColor: 'rgba(0,0,0,0.6)',
-                      color: '#FFD700',
-                      fontWeight: 'bold',
-                      fontSize: '0.7rem',
-                      borderRadius: '4px',
-                      padding: '2px 4px',
-                      border: '1px solid #FFD700',
-                    }}>
-                      x{truncateToTwoDecimals(getOdds(boat.id))}
-                    </Box>
-                  </Box>
-                  
-                  {/* Total bets */}
-                  <Box sx={{
-                    backgroundColor: 'rgba(0,0,0,0.4)',
-                    borderRadius: '4px',
-                    padding: '2px 3.5px',
-                    border: '1px dashed rgba(255,215,0,0.2)',
-                    mb:0.5
-                  }}>
-                    <Typography sx={{
-                      color: '#FFF',
-                      fontSize: '0.7rem',
-                      fontWeight: 'bold',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                    }}>
-                      <span>TOTAL:</span>
-                      <span style={{ 
-                        color: '#FFD700', 
-                        backgroundColor: 'rgba(0,0,0,0.5)',
-                        padding: '1px 2px',
-                        borderRadius: '3px',
-                        fontSize: '0.7rem',
-                      }}>
-                        ₱{allBets && allBets.has(boat.id) ? allBets.get(boat.id).toLocaleString() : '0'}
-                      </span>
-                    </Typography>
-                  </Box>
-                  
-                  {/* Current Bet */}
-                  <Box sx={{
-                    backgroundColor: 'rgba(0,0,0,0.5)',
-                    padding: '2px',
-                    borderRadius: '4px',
-                    textAlign: 'center',
-                    marginTop: 'auto',
-                    border: slots.has(boat.id) ? '1px solid rgba(255,215,0,0.4)' : 'none',
-                  }}>
-                    <Typography sx={{ 
-                      color: slots.has(boat.id) ? '#4CAF50' : '#FFD700',
-                      fontWeight: 'bold',
-                      fontSize: '0.8rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
-                      {slots.has(boat.id) ? (
-                        <>
-                          <span style={{ marginRight: '4px', color: '#FFD700' }}>💰</span>
-                          ₱{slots.get(boat.id).toLocaleString()}
-                        </>
-                      ) : 'No bet'}
-                    </Typography>
-                  </Box>
-  
-                  {!isBettingAllowed && (
-                    <Box sx={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      backgroundColor: 'rgba(0,0,0,0.4)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      borderRadius: '6px',
-                    }}>
-                      <Typography sx={{
-                        color: '#FFD700',
-                        fontWeight: 'bold',
-                        fontSize: '0.8rem',
-                        backgroundColor: 'rgba(0,0,0,0.6)',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        border: '1px solid rgba(255,215,0,0.3)'
-                      }}>
-                        BETTING CLOSED
-                      </Typography>
-                    </Box>
-                  )}
-                </Box>
-              ))}
-            </Box>
-          </Box>
-          
-          {/* Right Column - Chips and Bet Summary */}
-          <Box sx={{ 
-            width: '40%',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            padding: '8px',
-            gap: '8px'
-          }}>
-            {/* Chips panel - MODIFIED FOR 3x3 GRID */}
-            <Grid container sx={{
-              backgroundColor: 'rgba(0,0,0,0.5)',
-              borderRadius: '8px',
-              padding: '8px',
-              border: '1px solid rgba(255,215,0,0.3)',
-            }}>
-              <Grid item xs={12}>
-                <Typography sx={{
-                  color: '#FFD700',
-                  fontWeight: 'bold',
-                  textAlign: 'center',
+                <Typography sx={{ 
+                  color: 'yellow', 
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontWeight: 600,
                   fontSize: '0.85rem',
                 }}>
-                  SELECT CHIP
+                  ₱{totalBet.toLocaleString()}
                 </Typography>
-              </Grid>
-              
-              {/* 3x3 Grid for chips */}
-              <Grid container spacing={0} sx={{
-                justifyContent: 'center',
-                alignItems: 'center',
-                width: '100%',
-              }}>
-                {Object.entries(casinoChips).map(([color, src]) => (
-                  <Grid item xs={4} key={color} sx={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center', 
-                  }}>
-                    <Box 
-                      sx={{ 
-                        width: '100%',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: isBettingAllowed ? 'pointer' : 'default',
-                        transform: selectedChip === color && isBettingAllowed ? 'scale(1.1)' : 'scale(1)',
-                        transition: 'all 0.2s ease',
-                        position: 'relative',
-                        pointerEvents: isBettingAllowed ? 'auto' : 'none',
-                        borderRadius: '50%',
-                        padding: '2px',
-                        backgroundColor: selectedChip === color && isBettingAllowed ? 'rgba(255,215,0,0.15)' : 'transparent',
-                        border: selectedChip === color && isBettingAllowed ? '1px solid rgba(255,215,0,0.5)' : 'none',
-                        
-                        '&:hover': isBettingAllowed ? {
-                          transform: 'scale(1.1)',
-                          boxShadow: '0 0 8px rgba(255,215,0,0.5)'
-                        } : {}
-                      }}
-                      onClick={() => isBettingAllowed && setSelectedChip(color)}
-                    >
-                      <Box 
-                        component="img" 
-                        src={src} 
-                        alt={`${color} chip`}
-                        sx={{ 
-                          width: '100%',
-                          objectFit: 'contain',
-                          filter: selectedChip === color && isBettingAllowed ? 
-                            'drop-shadow(0 0 6px rgba(255,215,0,0.7))' : 'none',
-                        }}
-                      />
-                      <Typography 
-                        sx={{ 
-                          color: '#FFF', 
-                          fontWeight: 'bold',
-                          fontSize: '1rem',
-                          position: 'absolute',
-                          top: '50%',
-                          left: '50%',
-                          transform: 'translate(-50%, -50%)',
-                          padding: '1px 3px',
-                          borderRadius: '6px',
-                        }}
-                      >
-                        ₱{chipValues[color].toLocaleString()}
-                      </Typography>
-                    </Box>
-                  </Grid>
-                ))}
-              </Grid>
-            </Grid>
-            
-            {/* Bet Summary Section - Now in a single row */}
-            <Box sx={{ 
-              backgroundColor: 'rgba(0, 0, 0, 0.6)',
-              borderRadius: '8px',
-              padding: '8px',
-              border: '1px solid rgba(255,215,0,0.4)',
-            }}>
-              <Typography sx={{
-                color: '#FFD700',
-                fontWeight: 'bold',
-                fontSize: '0.85rem',
-                textAlign: 'center',
-                mb: '6px',
-                borderBottom: '1px solid rgba(255,215,0,0.2)',
-                pb: '4px',
-              }}>
-                BET SUMMARY
-              </Typography>
+              </Box>
               
               <Box sx={{ 
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: '4px'
-              }}>
-                <Box sx={{ textAlign: 'center', flex: 1 }}>
-                  <Typography sx={{ color: '#FFF', fontWeight: 'bold', fontSize: '0.7rem' }}>
-                    TOTAL BET
-                  </Typography>
-                  <Typography sx={{ 
-                    color: '#FFD700', 
-                    fontWeight: 'bold',
-                    fontSize: '0.9rem',
-                  }}>
-                    ₱{totalBet.toLocaleString()}
-                  </Typography>
-                </Box>
-                
-                <Box sx={{ 
-                  width: '1px',
-                  height: '24px',
-                  backgroundColor: 'rgba(255,215,0,0.3)'
-                }} />
-                
-                <Box sx={{ textAlign: 'center', flex: 1 }}>
-                  <Typography sx={{ color: '#FFF', fontWeight: 'bold', fontSize: '0.7rem' }}>
-                    POSSIBLE WIN
-                  </Typography>
-                  <Typography sx={{ 
-                    color: '#4CAF50', 
-                    fontWeight: 'bold',
-                    fontSize: '0.9rem',
-                  }}>
-                    ₱{possibleWin.toLocaleString()}
-                  </Typography>
-                </Box>
-                
-                <Box sx={{ 
-                  width: '1px',
-                  height: '24px',
-                  backgroundColor: 'rgba(255,215,0,0.3)'
-                }} />
-                
-                <Box sx={{ textAlign: 'center', flex: 1 }}>
-                  <Typography sx={{ color: '#FFF', fontWeight: 'bold', fontSize: '0.7rem' }}>
-                    BALANCE
-                  </Typography>
-                  <Typography sx={{ 
-                    color: '#FFD700', 
-                    fontWeight: 'bold',
-                    fontSize: '0.9rem',
-                  }}>
-                    ₱{balance.toLocaleString()}
-                  </Typography>
-                </Box>
+                width: '1px',
+                height: '20px',
+                backgroundColor: 'rgba(233,69,96,0.3)'
+              }} />
+              
+              <Box sx={{ textAlign: 'center', flex: 1 }}>
+                <Typography sx={{ 
+                  color: '#FFF', 
+                  fontFamily: "'Roboto Condensed', sans-serif",
+                  fontWeight: 700, 
+                  fontSize: '0.65rem' 
+                }}>
+                  POSSIBLE WIN
+                </Typography>
+                <Typography sx={{ 
+                  color: '#06d6a0', 
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                }}>
+                  ₱{possibleWin.toLocaleString()}
+                </Typography>
+              </Box>
+              
+              <Box sx={{ 
+                width: '1px',
+                height: '20px',
+                backgroundColor: 'rgba(233,69,96,0.3)'
+              }} />
+              
+              <Box sx={{ textAlign: 'center', flex: 1 }}>
+                <Typography sx={{ 
+                  color: '#FFF', 
+                  fontFamily: "'Roboto Condensed', sans-serif",
+                  fontWeight: 700, 
+                  fontSize: '0.65rem' 
+                }}>
+                  BALANCE
+                </Typography>
+                <Typography sx={{ 
+                  color: 'yellow', 
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                }}>
+                  ₱{balance.toLocaleString()}
+                </Typography>
               </Box>
             </Box>
           </Box>
         </Box>
       </Box>
-    );
-  };
+    </Box>
+  );
+};
+
+const renderVoidDialog = () => {
+  return (
+    <Dialog
+      open={showVoidDialog}
+      onClose={() => setShowVoidDialog(false)}
+      maxWidth="xs"
+      fullWidth
+      PaperProps={{
+        sx: {
+          backgroundColor: '#0f172a',
+          backgroundImage: 'linear-gradient(to bottom, #0f172a, #1e293b)',
+          borderRadius: '12px',
+          border: '2px solid #ef4565',
+          boxShadow: '0 0 20px rgba(239, 69, 101, 0.4)',
+        }
+      }}
+    >
+      <DialogTitle sx={{
+        backgroundColor: 'rgba(30, 41, 59, 0.8)',
+        borderBottom: '1px solid rgba(239, 69, 101, 0.3)',
+        padding: '12px 16px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}>
+        <Typography sx={{
+          color: '#e2e8f0',
+          fontFamily: "'Poppins', sans-serif",
+          fontWeight: 600,
+          fontSize: '1.1rem',
+          letterSpacing: '0.5px',
+        }}>
+          ⚠️ RACE VOIDED
+        </Typography>
+        <IconButton 
+          onClick={() => setShowVoidDialog(false)}
+          sx={{ 
+            color: '#94a3b8',
+            '&:hover': {
+              color: '#e2e8f0',
+              backgroundColor: 'rgba(239, 69, 101, 0.1)'
+            }
+          }}
+        >
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+      
+      <DialogContent sx={{ padding: '16px', textAlign: 'center' }}>
+        <Box sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          mb: '16px',
+        }}>
+          <Box sx={{
+            width: '60px',
+            height: '60px',
+            borderRadius: '50%',
+            backgroundColor: 'rgba(239, 69, 101, 0.2)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            mb: '12px',
+            mt: '12px', 
+          }}>
+            <Box sx={{
+              fontSize: '2rem',
+              color: '#ef4565',
+            }}>
+              ❌
+            </Box>
+          </Box>
+          
+          <Typography sx={{
+            color: '#e2e8f0',
+            fontFamily: "'Roboto', sans-serif",
+            fontWeight: 500,
+            fontSize: '1rem',
+            mb: '8px',
+          }}>
+            The current race has been voided by the system.
+          </Typography>
+          
+          <Typography sx={{
+            color: '#94a3b8',
+            fontFamily: "'Roboto', sans-serif",
+            fontSize: '0.85rem',
+          }}>
+            All bets will be refunded to players' accounts.
+          </Typography>
+        </Box>
+      </DialogContent>
+      
+      <DialogActions sx={{
+        padding: '12px 16px',
+        backgroundColor: 'rgba(30, 41, 59, 0.8)',
+        borderTop: '1px solid rgba(239, 69, 101, 0.3)',
+        justifyContent: 'center',
+      }}>
+        <Button
+          onClick={() => setShowVoidDialog(false)}
+          sx={{
+            color: '#e2e8f0',
+            fontFamily: "'Roboto Condensed', sans-serif",
+            fontWeight: 700,
+            backgroundColor: '#ef4565',
+            padding: '8px 24px',
+            '&:hover': {
+              backgroundColor: '#dc2626',
+            }
+          }}
+        >
+          UNDERSTOOD
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
 
   const renderWinnerDialog = () => {
     const hasWinners = topPlayers && topPlayers.length > 0;
@@ -1638,6 +1842,453 @@ const createRaceTrack = () => {
       </Box>
     );
   };
+
+  const renderHelpDialog = () => {
+    return (
+      <Dialog
+        open={helpDialogOpen}
+        onClose={() => setHelpDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            backgroundColor: '#0f172a',
+            backgroundImage: 'linear-gradient(to bottom, #0f172a, #1e293b)',
+            borderRadius: '12px',
+            border: '2px solid #3b82f6',
+            boxShadow: '0 0 20px rgba(59, 130, 246, 0.4)',
+          }
+        }}
+      >
+        <DialogTitle sx={{
+          backgroundColor: 'rgba(30, 41, 59, 0.8)',
+          borderBottom: '1px solid rgba(59, 130, 246, 0.3)',
+          padding: '12px 16px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}>
+          <Typography sx={{
+            color: '#e2e8f0',
+            fontFamily: "'Poppins', sans-serif",
+            fontWeight: 600,
+            fontSize: '1.1rem',
+            letterSpacing: '0.5px',
+          }}>
+            🚤 BOAT RACE GUIDE
+          </Typography>
+          <IconButton 
+            onClick={() => setHelpDialogOpen(false)}
+            sx={{ 
+              color: '#94a3b8',
+              '&:hover': {
+                color: '#e2e8f0',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)'
+              }
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        
+        <DialogContent sx={{ padding: '16px' }}>
+          <Box sx={{ mb: '16px' }}>
+            <Typography sx={{
+              color: '#3b82f6',
+              fontFamily: "'Roboto Condensed', sans-serif",
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              mb: '8px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+            }}>
+              GAME MECHANICS
+            </Typography>
+            
+            <Box component="ul" sx={{
+              paddingLeft: '20px',
+              '& li': {
+                color: '#e2e8f0',
+                fontFamily: "'Roboto', sans-serif",
+                fontSize: '0.85rem',
+                marginBottom: '8px',
+                lineHeight: '1.5',
+              }
+            }}>
+              <li>Bet on which boat you think will win the race</li>
+              <li>Each boat has different odds (multiplier) based on its total bets</li>
+              <li>You can bet on multiple boats in a single race</li>
+              <li>Betting closes when the countdown timer reaches zero</li>
+              <li>Watch the exciting race animation after betting closes</li>
+              <li>If your boat wins, you get your bet multiplied by the odds</li>
+            </Box>
+          </Box>
+          
+          <Box sx={{ mb: '16px' }}>
+            <Typography sx={{
+              color: '#3b82f6',
+              fontFamily: "'Roboto Condensed', sans-serif",
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              mb: '8px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+            }}>
+              BETTING TIMER
+            </Typography>
+            
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              mb: '8px',
+              padding: '8px',
+              backgroundColor: 'rgba(30, 41, 59, 0.6)',
+              borderRadius: '6px',
+            }}>
+              <Box sx={{
+                width: '12px',
+                height: '12px',
+                borderRadius: '50%',
+                backgroundColor: '#06d6a0',
+                marginRight: '8px',
+              }} />
+              <Typography sx={{
+                color: '#e2e8f0',
+                fontFamily: "'Roboto', sans-serif",
+                fontSize: '0.85rem',
+                flex: 1,
+              }}>
+                <strong>OPEN:</strong> Betting is active, place your bets
+              </Typography>
+            </Box>
+            
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              mb: '8px',
+              padding: '8px',
+              backgroundColor: 'rgba(30, 41, 59, 0.6)',
+              borderRadius: '6px',
+            }}>
+              <Box sx={{
+                width: '12px',
+                height: '12px',
+                borderRadius: '50%',
+                backgroundColor: '#ff9a3c',
+                marginRight: '8px',
+              }} />
+              <Typography sx={{
+                color: '#e2e8f0',
+                fontFamily: "'Roboto', sans-serif",
+                fontSize: '0.85rem',
+                flex: 1,
+              }}>
+                <strong>LAST CALL:</strong> Final 30 seconds to place bets
+              </Typography>
+            </Box>
+            
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              padding: '8px',
+              backgroundColor: 'rgba(30, 41, 59, 0.6)',
+              borderRadius: '6px',
+            }}>
+              <Box sx={{
+                width: '12px',
+                height: '12px',
+                borderRadius: '50%',
+                backgroundColor: '#ef4565',
+                marginRight: '8px',
+              }} />
+              <Typography sx={{
+                color: '#e2e8f0',
+                fontFamily: "'Roboto', sans-serif",
+                fontSize: '0.85rem',
+                flex: 1,
+              }}>
+                <strong>CLOSED:</strong> Betting is closed, race in progress
+              </Typography>
+            </Box>
+          </Box>
+          
+          <Box>
+            <Typography sx={{
+              color: '#3b82f6',
+              fontFamily: "'Roboto Condensed', sans-serif",
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              mb: '8px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+            }}>
+              WINNERS ANNOUNCEMENT
+            </Typography>
+            
+            <Typography sx={{
+              color: '#e2e8f0',
+              fontFamily: "'Roboto', sans-serif",
+              fontSize: '0.85rem',
+              mb: '8px',
+              lineHeight: '1.5',
+            }}>
+              After the race finishes, the winning boat will be announced and the top 3 players with the highest payouts will be displayed.
+            </Typography>
+            
+            <Typography sx={{
+              color: '#e2e8f0',
+              fontFamily: "'Roboto', sans-serif",
+              fontSize: '0.85rem',
+              lineHeight: '1.5',
+            }}>
+              If you're one of the top winners, your name and prize will be highlighted in the winners list.
+            </Typography>
+          </Box>
+        </DialogContent>
+        
+        <DialogActions sx={{
+          padding: '12px 16px',
+          backgroundColor: 'rgba(30, 41, 59, 0.8)',
+          borderTop: '1px solid rgba(59, 130, 246, 0.3)',
+        }}>
+          <Button
+            onClick={() => setHelpDialogOpen(false)}
+            sx={{
+              color: '#e2e8f0',
+              fontFamily: "'Roboto Condensed', sans-serif",
+              fontWeight: 700,
+              backgroundColor: '#3b82f6',
+              '&:hover': {
+                backgroundColor: '#2563eb',
+              }
+            }}
+          >
+            GOT IT!
+          </Button>
+        </DialogActions>
+      </Dialog>
+    );
+  };
+  
+  const renderHistoryPanel = () => {
+    // Calculate boat statistics from history
+    const calculateBoatStats = () => {
+      const stats = {
+        red: { wins: 0, percentage: 0 },
+        blue: { wins: 0, percentage: 0 },
+        green: { wins: 0, percentage: 0 },
+        yellow: { wins: 0, percentage: 0 },
+        total: gameHistory.length
+      };
+      
+      gameHistory.forEach(game => {
+        stats[game.zodiac].wins++;
+      });
+      
+      Object.keys(stats).forEach(color => {
+        if (color !== 'total') {
+          stats[color].percentage = Math.round((stats[color].wins / stats.total) * 100);
+        }
+      });
+      
+      return stats;
+    };
+    
+    const boatStats = calculateBoatStats();
+  
+    return (
+      <Box
+        sx={{
+          position: 'fixed',
+          bottom: historyDialogOpen ? 0 : '-100%',
+          left: 0,
+          right: 0,
+          height: '100vh',
+          backgroundColor: '#0f172a',
+          backgroundImage: 'linear-gradient(to bottom, #0f172a, #1e293b)',
+          borderTop: '3px solid #3b82f6',
+          borderTopLeftRadius: '16px',
+          borderTopRightRadius: '16px',
+          boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.8)',
+          transition: 'bottom 0.3s ease-out',
+          zIndex: 1200,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '8px',
+            background: 'repeating-linear-gradient(90deg, #3b82f6, #3b82f6 6px, transparent 6px, transparent 12px)',
+          }
+        }}
+      >
+        {/* Header */}
+        <Box sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '12px 16px',
+          backgroundColor: 'rgba(30, 41, 59, 0.8)',
+          borderBottom: '1px solid rgba(59, 130, 246, 0.3)',
+        }}>
+          <Typography sx={{
+            color: '#e2e8f0',
+            fontFamily: "'Poppins', sans-serif",
+            fontWeight: 600,
+            fontSize: '1.1rem',
+            letterSpacing: '0.5px',
+          }}>
+            🏆 RACE HISTORY
+          </Typography>
+          
+          <IconButton 
+            onClick={() => setHistoryDialogOpen(false)}
+            sx={{ 
+              color: '#94a3b8',
+              '&:hover': {
+                color: '#e2e8f0',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)'
+              }
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </Box>
+        
+        {/* Stats Summary */}
+        <Box sx={{
+          padding: '12px 16px',
+          backgroundColor: 'rgba(15, 23, 42, 0.6)',
+          borderBottom: '1px solid rgba(59, 130, 246, 0.2)',
+        }}>
+          <Typography sx={{
+            color: '#94a3b8',
+            fontFamily: "'Roboto Condensed', sans-serif",
+            fontWeight: 700,
+            fontSize: '0.8rem',
+            mb: '8px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+          }}>
+            WIN PERCENTAGE (LAST {boatStats.total} RACES)
+          </Typography>
+          
+          <Grid container spacing={1}>
+            {boats.map(boat => (
+              <Grid item xs={3} key={boat.id}>
+                <Box sx={{
+                  backgroundColor: boat.color,
+                  backgroundImage: 'linear-gradient(rgba(255,255,255,0.1), rgba(0,0,0,0.2))',
+                  borderRadius: '6px',
+                  padding: '8px',
+                  textAlign: 'center',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                }}>
+                  <Typography sx={{
+                    color: '#fff',
+                    fontFamily: "'Roboto Condensed', sans-serif",
+                    fontWeight: 700,
+                    fontSize: '0.7rem',
+                    mb: '2px',
+                  }}>
+                    {boat.name.toUpperCase()}
+                  </Typography>
+                  <Typography sx={{
+                    color: '#fff',
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontWeight: 800,
+                    fontSize: '1rem',
+                  }}>
+                    {boatStats[boat.id].percentage}%
+                  </Typography>
+                  <Typography sx={{
+                    color: 'rgba(255,255,255,0.7)',
+                    fontFamily: "'Roboto Condensed', sans-serif",
+                    fontWeight: 400,
+                    fontSize: '0.6rem',
+                  }}>
+                    {boatStats[boat.id].wins} WINS
+                  </Typography>
+                </Box>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+        
+        {/* History List */}
+        <Box sx={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '8px',
+        }}>
+          <Typography sx={{
+            color: '#94a3b8',
+            fontFamily: "'Roboto Condensed', sans-serif",
+            fontWeight: 700,
+            fontSize: '0.8rem',
+            mb: '8px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+            padding: '0 8px',
+          }}>
+            RECENT RACES
+          </Typography>
+          
+          {gameHistory.map((game, index) => (
+            <Box 
+              key={game.id}
+              sx={{
+                backgroundColor: index % 2 === 0 ? 'rgba(30, 41, 59, 0.5)' : 'rgba(15, 23, 42, 0.5)',
+                borderRadius: '6px',
+                padding: '10px 12px',
+                marginBottom: '6px',
+                borderLeft: `4px solid ${boatColor[game.zodiac]}`,
+              }}
+            >
+              <Box sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Box sx={{
+                    width: '16px',
+                    height: '16px',
+                    borderRadius: '50%',
+                    backgroundColor: boatColor[game.zodiac],
+                    marginRight: '8px',
+                    border: '2px solid rgba(255,255,255,0.3)',
+                  }} />
+                  <Typography sx={{
+                    color: '#e2e8f0',
+                    fontFamily: "'Poppins', sans-serif",
+                    fontWeight: 600,
+                    fontSize: '0.9rem',
+                    textTransform: 'capitalize',
+                  }}>
+                    {game.zodiac} boat won
+                  </Typography>
+                </Box>
+                
+                <Typography sx={{
+                  color: '#94a3b8',
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontWeight: 500,
+                  fontSize: '0.7rem',
+                }}>
+                  {new Date(game.createdAt).toLocaleString()}
+                </Typography>
+              </Box>
+            </Box>
+          ))}
+        </Box>
+      </Box>
+    );
+  };
   
   // Winner announcement
   
@@ -1651,6 +2302,9 @@ const createRaceTrack = () => {
         <Box ref={canvasRef} sx={{ width: '100%', height: '100%' }} />
         
         {showConfetti && <Confetti width={window.innerWidth} height={window.innerHeight} />}
+        {renderVoidDialog()}
+        {renderHelpDialog()}
+        {gameHistory && renderHistoryPanel()}
         
         {isLandscape && (
           <>
@@ -1667,16 +2321,32 @@ const createRaceTrack = () => {
                 alignItems: 'center',
               }}
             >
-              <Typography 
-                variant="h6" 
-                sx={{ 
-                  color: '#FFD700',
-                  fontWeight: 'bold',
-                  ml: 2
-                }}
-              >
-                NotAVeryLongName
-              </Typography>
+              
+              <Box sx={{display: 'flex', alignItems: 'center', gap: 1, color: 'white'}}>
+                <IconButton 
+                  onClick={() => navigate(-1)}
+                  sx={{ 
+                    color: 'white',
+                    backgroundColor: 'rgba(0,0,0,0.3)',
+                    '&:hover': { backgroundColor: 'rgba(0,0,0,0.5)' }
+                  }}
+                >
+                  <ArrowBackIcon />
+                </IconButton>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    color: '#FFFFFF',  // White for better contrast
+                    fontWeight: 'bold',
+                    ml: 2,
+                    fontFamily: '"Roboto Condensed", sans-serif',  // More compact font
+                    textShadow: '1px 1px 2px rgba(0,0,0,0.5)',  // Adds depth
+                    letterSpacing: '1px'  // More elegant spacing
+                  }}
+                >
+                  NotAVeryLongName
+                </Typography>
+              </Box>
               
               {/* Countdown/Race Time Display */}
               <Box
@@ -1693,27 +2363,40 @@ const createRaceTrack = () => {
                 {gameState === GameState.Closed && (
                   <Box
                     sx={{
-                      bgcolor: 'rgba(0, 0, 0, 0.8)',
-                      p: '6px 16px',
-                      borderRadius: '20px',
-                      border: '2px solid #FF0000',
-                      boxShadow: '0 0 15px rgba(255, 0, 0, 0.7)',
-                      minWidth: 120,
-                      animation: 'pulse 1.5s infinite',
-                      '@keyframes pulse': {
-                        '0%': { boxShadow: '0 0 15px rgba(255, 0, 0, 0.7)' },
-                        '50%': { boxShadow: '0 0 25px rgba(255, 0, 0, 0.9)' },
-                        '100%': { boxShadow: '0 0 15px rgba(255, 0, 0, 0.7)' }
+                      bgcolor: '#0a1929',
+                      p: '4px 12px',
+                      borderRadius: '12px',
+                      border: '2px solid #ef4565',
+                      boxShadow: '0 0 10px rgba(239, 69, 101, 0.6)',
+                      minWidth: 110,
+                      animation: 'pulseClosed 1.5s infinite',
+                      '@keyframes pulseClosed': {
+                        '0%': { boxShadow: '0 0 10px rgba(239, 69, 101, 0.5)' },
+                        '50%': { boxShadow: '0 0 18px rgba(239, 69, 101, 0.8)' },
+                        '100%': { boxShadow: '0 0 10px rgba(239, 69, 101, 0.5)' }
                       }
                     }}
                   >
-                    <Typography variant="h6" sx={{ 
+                    <Typography sx={{ 
                       color: '#FFF', 
-                      fontWeight: 'bold',
-                      textShadow: '0 0 8px rgba(255, 0, 0, 0.9)',
-                      letterSpacing: '1px'
+                      fontFamily: "'Bebas Neue', sans-serif",
+                      fontSize: '1.1rem',
+                      textShadow: '0 0 6px rgba(239, 69, 101, 0.7)',
+                      letterSpacing: '1px',
+                      lineHeight: 1.1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
                     }}>
-                      RACE IN: {formatTime(raceTime)}
+                      <span style={{ color: '#ef4565' }}>RACE IN:</span> 
+                      <span style={{ 
+                        fontFamily: "'JetBrains Mono', monospace", 
+                        fontWeight: 600,
+                        color: 'yellow'
+                      }}>
+                        {formatTime(raceTime)}
+                      </span>
                     </Typography>
                   </Box>
                 )}
@@ -1722,33 +2405,38 @@ const createRaceTrack = () => {
                 {(gameState === GameState.Open || gameState === GameState.LastCall) && (
                   <Box
                     sx={{
-                      bgcolor: 'rgba(0, 0, 0, 0.8)',
-                      p: '6px 16px',
-                      borderRadius: '20px',
-                      border: `2px solid ${gameState === GameState.LastCall ? '#FFA500' : '#4CAF50'}`,
-                      boxShadow: `0 0 15px ${gameState === GameState.LastCall ? 'rgba(255, 165, 0, 0.7)' : 'rgba(76, 175, 80, 0.7)'}`,
-                      minWidth: 120,
-                      animation: gameState === GameState.LastCall ? 'pulseWarning 1s infinite' : 'none',
+                      bgcolor: '#0a1929',
+                      p: '4px 12px',
+                      borderRadius: '12px',
+                      border: `2px solid ${gameState === GameState.LastCall ? '#ff9a3c' : '#06d6a0'}`,
+                      boxShadow: `0 0 10px ${gameState === GameState.LastCall ? 'rgba(255, 154, 60, 0.6)' : 'rgba(6, 214, 160, 0.6)'}`,
+                      minWidth: 110,
+                      animation: gameState === GameState.LastCall ? 'pulseWarning 1.2s infinite' : 'none',
                       '@keyframes pulseWarning': {
-                        '0%': { boxShadow: '0 0 15px rgba(255, 165, 0, 0.7)' },
-                        '50%': { boxShadow: '0 0 25px rgba(255, 165, 0, 0.9)' },
-                        '100%': { boxShadow: '0 0 15px rgba(255, 165, 0, 0.7)' }
+                        '0%': { boxShadow: '0 0 10px rgba(255, 154, 60, 0.5)' },
+                        '50%': { boxShadow: '0 0 18px rgba(255, 154, 60, 0.8)' },
+                        '100%': { boxShadow: '0 0 10px rgba(255, 154, 60, 0.5)' }
                       }
                     }}
                   >
-                    <Typography variant="h6" sx={{ 
-                      color: gameState === GameState.LastCall ? '#FFA500' : '#4CAF50',
-                      fontWeight: 'bold',
-                      textShadow: `0 0 8px ${gameState === GameState.LastCall ? 'rgba(255, 165, 0, 0.9)' : 'rgba(76, 175, 80, 0.9)'}`,
-                      letterSpacing: '1px'
+                    <Typography sx={{ 
+                      color: gameState === GameState.LastCall ? '#ff9a3c' : '#06d6a0',
+                      fontFamily: "'Bebas Neue', sans-serif",
+                      fontSize: '1.1rem',
+                      textShadow: `0 0 6px ${gameState === GameState.LastCall ? 'rgba(255, 154, 60, 0.7)' : 'rgba(6, 214, 160, 0.7)'}`,
+                      letterSpacing: '1px',
+                      lineHeight: 1.1
                     }}>
                       {gameState === GameState.LastCall ? 'LAST CALL!' : 'BETTING OPEN!'}
                     </Typography>
-                    <Typography variant="h5" sx={{ 
-                      color: '#FFD700',
-                      fontWeight: 'bold',
-                      textShadow: '0 0 10px rgba(255, 215, 0, 0.9)',
-                      mt: 0.5
+                    <Typography sx={{ 
+                      color: 'yellow',
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontWeight: 600,
+                      fontSize: '1rem',
+                      textShadow: '0 0 8px rgba(233, 69, 96, 0.7)',
+                      mt: 0.3,
+                      lineHeight: 1
                     }}>
                       {formatTime(countdown)}
                     </Typography>
@@ -1759,13 +2447,19 @@ const createRaceTrack = () => {
               <Typography 
                 variant="h6" 
                 sx={{ 
-                  color: '#FFD700',
+                  color: '#FFA500',  // Orange instead of gold
                   fontWeight: 'bold',
-                  mr: 2
+                  mr: 2,
+                  fontFamily: '"Oswald", sans-serif',  // Bold, impactful font
+                  backgroundColor: 'rgba(0,100,0,0.2)',  // Light green backdrop
+                  px: 1.5,  // Horizontal padding
+                  borderRadius: '4px',  // Rounded corners
+                  borderLeft: '3px solid skyblue'  // Accent border
                 }}
               >
                 Balance: ${balance}
               </Typography>
+
             </Box>
             
             {/* Action Buttons */}
@@ -1792,6 +2486,40 @@ const createRaceTrack = () => {
               >
                 Place Bet
               </Button>
+              
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  variant="contained"
+                  onClick={() => setHistoryDialogOpen(true)}
+                  startIcon={<HistoryIcon />}
+                  sx={{ 
+                    bgcolor: '#3b82f6', 
+                    color: '#FFF',
+                    fontWeight: 'bold',
+                    '&:hover': { bgcolor: '#2563eb' },
+                    flex: 1,
+                    py: 1.5
+                  }}
+                >
+                  History
+                </Button>
+                
+                <Button
+                  variant="contained"
+                  onClick={() => setHelpDialogOpen(true)}
+                  startIcon={<HelpIcon />}
+                  sx={{ 
+                    bgcolor: '#ef476f', 
+                    color: '#FFF',
+                    fontWeight: 'bold',
+                    '&:hover': { bgcolor: '#d43d63' },
+                    flex: 1,
+                    py: 1.5
+                  }}
+                >
+                  Help
+                </Button>
+              </Box>
             </Box>
             
             {/* {gameFinished && renderWinnerAnnouncement()} */}

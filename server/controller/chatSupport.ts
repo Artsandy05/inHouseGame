@@ -1496,6 +1496,28 @@ const updateConversationConcern = async (request, reply) => {
     }
   };
 
+  const getGameHistory = async (request, reply) => {
+    try {
+        const { game } = request.query;
+
+        // Validate input
+        if (!game) {
+            return errorResponse("Missing required field: game", reply);
+        }
+
+        // Find all winning balls for the specified game
+        const winningBalls = await WinningBall.findAll({
+            where: {
+                game: game
+            },
+        });
+
+        return successResponse({ winningBalls }, "Winning balls retrieved successfully!", reply);
+    } catch (error) {
+        return errorResponse(`Error retrieving winning balls: ${error.message}`, reply, 'custom');
+    }
+  };
+
   const getTransactionStatistics2 = async (request, reply) => {
     try {
       let query = `
@@ -1810,6 +1832,6 @@ export default {
   claimRepresentativePlayerTransactions,
   getOverallTopGiversRanking,
   login,
-  getGames
-  //getBadgeByUserId
+  getGames,
+  getGameHistory
 };

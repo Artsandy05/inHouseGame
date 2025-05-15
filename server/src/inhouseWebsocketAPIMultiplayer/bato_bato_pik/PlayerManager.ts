@@ -51,9 +51,7 @@ export class PlayerManager implements Plugin {
     gameData.games.forEach(gameName => {
       game.view(gameName === 'bbp' ? BBPGameStateChanged : null, Output).each((entity, stateChanged, output) => {
         const convertedAllBets = {bbp:[]};
-
         
-
         for (let key in convertedAllBets) {
           const slots = gameData.slotBets[key];
           const walkinSlots = gameData.slotBetsWalkin[key];
@@ -379,7 +377,6 @@ function before(game: Game) {
 async function requestInit(game: Game, entity, gameData, msg, output, player, userData) {
 	if (hasValue(msg.cmd) && msg.cmd === ClientCommands.Init) {
     const topPlayers = gameData.winners[msg.game].slice(0, 3);
-    console.log(userData);
     gameData.topPlayers[msg.game] = topPlayers;
     const convertedOdds = {bbp:[]};
     const convertedAllBets = {bbp:[]};

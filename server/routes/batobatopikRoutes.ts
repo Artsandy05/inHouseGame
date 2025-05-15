@@ -74,7 +74,6 @@ function batobatopikRoutes(fastify) {
   
   wss.on('connection', async (socket, userData) => {
     clients.add(socket);
-
     await main.load(socket, userData);
   });  
 

@@ -634,6 +634,10 @@ const KaraKrus = () => {
     }
   };
 
+  function truncateToTwoDecimals(num) {
+    return Math.trunc(num * 100) / 100;
+  }
+
   
 
   const tossCoin = () => {
@@ -1129,7 +1133,7 @@ const KaraKrus = () => {
                         color: 'rgba(255,255,255,0.8)',
                         fontWeight: 'bold'
                       }}>
-                        Odds: {getOdds('heads')}x
+                        Odds: {truncateToTwoDecimals(getOdds('heads'))}x
                       </Typography>
                       <Typography variant="caption" sx={{ 
                         display: 'block', 
@@ -1233,7 +1237,7 @@ const KaraKrus = () => {
                         color: 'rgba(255,255,255,0.8)',
                         fontWeight: 'bold'
                       }}>
-                        Odds: {getOdds('tails')}x
+                        Odds: {truncateToTwoDecimals(getOdds('tails'))}x
                       </Typography>
                       <Typography variant="caption" sx={{ 
                         display: 'block', 

@@ -126,6 +126,8 @@ const BatoBatoPik = () => {
     }
   }, [latestBalance]);
 
+  console.log(latestBalance);
+
   useEffect(() => {
     const fetchGameHistory = async () => {
       try {

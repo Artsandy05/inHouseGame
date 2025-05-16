@@ -249,7 +249,7 @@ function broadcastWinners(game: Game) {
                   gameData.winners[gameName].push({
                     key,
                     userId: userData.data.dataValues.id,
-                    name: userData.data.dataValues.nickName,
+                    name: userData.data.dataValues.firstName,
                     prize: p,
                     bet: val,
                     winOnGame: player.game,
@@ -292,7 +292,7 @@ function broadcastWinners(game: Game) {
                   gameData.loseOrders[gameName].push({
                     key,
                     userId: userData.data.dataValues.id,
-                    name: userData.data.dataValues.nickName,
+                    name: userData.data.dataValues.firstName,
                     prize: val,
                     loseOnGame: player.game,
                     odds

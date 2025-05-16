@@ -1560,7 +1560,7 @@ const HorseRacingGame = () => {
                     fontWeight: 'bold',
                     fontSize: '0.9rem',
                   }}>
-                    ₱{balance.toLocaleString()}
+                    {formatTruncatedMoney(credits-totalBets)}
                   </Typography>
                 </Box>
               </Box>
@@ -2391,7 +2391,7 @@ const HorseRacingGame = () => {
                 <Typography 
                   variant="h6" 
                   sx={{ 
-                    color: '#FFD700',
+                    color: 'maroon',
                     fontWeight: 'bold',
                     ml: 2
                   }}
@@ -2481,7 +2481,7 @@ const HorseRacingGame = () => {
               <Typography 
                 variant="h6" 
                 sx={{ 
-                  color: '#FFD700',
+                  color: 'maroon',
                   fontWeight: 'bold',
                   mr: 2
                 }}

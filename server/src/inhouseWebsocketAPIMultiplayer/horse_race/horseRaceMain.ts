@@ -74,7 +74,7 @@ export class Main {
     });
 
     if (create) {
-      const d = await User.findByUUID(data.id);
+      const d = await User.findByPk(data.id);
 
       let components = [
         new Input,

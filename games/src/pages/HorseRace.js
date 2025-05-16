@@ -1031,7 +1031,7 @@ const HorseRacingGame = () => {
     
     const chipValue = chipValues[selectedChip];
 
-    if ((userInfo.userData.data.wallet.balance - parseFloat(chipValue)) < 0) {
+    if (((credits-totalBets) - parseFloat(chipValue)) < 0) {
       alert("Insufficient Balance");
       return;
     }

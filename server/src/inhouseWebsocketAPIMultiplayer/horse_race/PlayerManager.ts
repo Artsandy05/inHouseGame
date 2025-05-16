@@ -484,6 +484,14 @@ async function requestInit(game: Game, entity, gameData, msg, output, player, us
       convertedAllBets[key] = mapToArray(combinedSlots);
     }
 
+    const callbackData = {
+      player_id: userData.data.dataValues.id,
+      action: 'get-balance',
+    };
+
+    const callbackResponse = await axios.post(process.env.KINGFISHER_API, callbackData);
+    const isTesting = process.env.IS_TESTING;
+
     //incompleteGameRound ?  JSON.parse(incompleteGameRound.dataValues.slots) : 
 		output.msg = JSON.stringify({
 			state: gameData.state,
@@ -496,6 +504,7 @@ async function requestInit(game: Game, entity, gameData, msg, output, player, us
       odds: convertedOdds,
       allBets: convertedAllBets,
       winningBall:gameData.winnerOrders,
+      latestBalance: !isTesting ? callbackResponse.data.credit : 0
 		});
 	}
 }

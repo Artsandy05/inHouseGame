@@ -2496,12 +2496,19 @@ const renderVoidDialog = () => {
                 onClick={toggleVisibility}
                 sx={{
                   position: 'absolute',
-                  bottom: '130px',
-                  left: '20px',
+                  bottom: '50px',
+                  left: visible ? '235px' : '0px',
                   zIndex: 1200,
-                  color: 'white', // This makes the arrow icons white
-                  
-                  transition: 'left 0.3s ease',
+                  color: 'white',
+                  bgcolor: 'rgba(0, 0, 0, 0.4)', // Semi-transparent background
+                  borderTopRightRadius: 12,       // Rounded right corners
+                  borderBottomRightRadius: 12,
+                  p: 0.5,                        // Padding for click area
+                  transition: 'all 0.3s ease',    // Smooth transitions
+                  '&:hover': {
+                    bgcolor: 'rgba(0, 0, 0, 0.7)', // Darker on hover
+                    transform: 'scale(1.05)'       // Slight zoom effect
+                  }
                 }}
               >
                 {visible ? <ArrowLeftIcon /> : <ArrowRightIcon />}

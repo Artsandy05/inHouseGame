@@ -35,6 +35,7 @@ export class PlayerManager implements Plugin {
 			gameData = g;
 		});
 
+    
     if(gameData.state.horseRace === GameState.Closed) {
       game.view(Player, Input, Output, UserData).each((entity, player, input, output, userData) => {
         if(hasValue(output.msg) && typeof output.msg === 'string'){

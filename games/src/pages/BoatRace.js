@@ -110,6 +110,7 @@ const BoatRacingGame = () => {
   const [credits, setCredits] = useState(0);
   const [visible, setVisible] = useState(true);
   const [leftPosition, setLeftPosition] = useState('20px');
+  const updatedBalance = Number(credits) - Number(totalBets);
   // Refs
   const canvasRef = useRef(null);
   const sceneRef = useRef(null);
@@ -196,12 +197,8 @@ const BoatRacingGame = () => {
       setTotalBets(0);
     }
   }, [gameState]);
+
   
-  useEffect(() => {
-    console.log(credits)
-    console.log(totalBets)
-    console.log(credits-totalBets);
-  }, []);
 
   
 
@@ -970,8 +967,7 @@ const createRaceTrack = () => {
     if (!selectedChip) return;
     
     const chipValue = chipValues[selectedChip];
-
-    if (((credits-totalBets) - parseFloat(chipValue)) < 0) {
+    if ((updatedBalance - parseFloat(chipValue)) < 0) {
       alert("Insufficient Balance");
       return;
     }
@@ -1537,7 +1533,7 @@ const renderBetPanel = () => {
                   fontWeight: 600,
                   fontSize: '0.85rem',
                 }}>
-                  {formatTruncatedMoney(credits-totalBets)}
+                  {formatTruncatedMoney(updatedBalance)}
                 </Typography>
               </Box>
             </Box>
@@ -2493,7 +2489,7 @@ const renderVoidDialog = () => {
                   borderLeft: '3px solid skyblue'  // Accent border
                 }}
               >
-                Balance: {formatTruncatedMoney(credits-totalBets)}
+                Balance: {formatTruncatedMoney(updatedBalance)}
               </Typography>
 
             </Box>

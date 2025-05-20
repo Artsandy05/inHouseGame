@@ -63,6 +63,7 @@ const BatoBatoPik = () => {
   const [gameHistory, setGameHistory] = useState([]);
   const [credits, setCredits] = useState(0);
   const [totalBet, setTotalBet] = useState(0);
+  const updatedBalance = Number(credits) - Number(totalBet);
   
   const { gameState, setPlayerInfo, sendMessage, countdown, slots,setSlots,odds, allBets, winningBall, setUserInfo, topPlayers, juanChoice, pedroChoice, voidMessage, latestBalance } = playerStore();
   const { connect } = playerStore.getState();
@@ -303,7 +304,7 @@ const BatoBatoPik = () => {
         alert("Minimum bet amount is 5");
         return;
       }
-      if (((credits-totalBet) - parseFloat(betAmount)) < 0) {
+      if ((updatedBalance - parseFloat(betAmount)) < 0) {
         alert("Insufficient Balance");
         return;
       }
@@ -804,7 +805,7 @@ const BatoBatoPik = () => {
             fontFamily: "'Roboto', sans-serif",
             whiteSpace: 'nowrap'
           }}>
-            {formatTruncatedMoney(credits-totalBet) === NaN ? 0 : formatTruncatedMoney(credits-totalBet)}
+            {formatTruncatedMoney(updatedBalance)}
           </Typography>
         </Box>
       </Box>

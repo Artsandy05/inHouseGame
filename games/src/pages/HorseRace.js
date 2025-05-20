@@ -118,6 +118,7 @@ const HorseRacingGame = () => {
   const [totalBets, setTotalBets] = useState(0);
   const [visible, setVisible] = useState(true);
   const [leftPosition, setLeftPosition] = useState('20px');
+  const updatedBalance = Number(credits) - Number(totalBets);
   // Refs
   const canvasRef = useRef(null);
   const sceneRef = useRef(null);
@@ -1038,7 +1039,7 @@ const HorseRacingGame = () => {
     
     const chipValue = chipValues[selectedChip];
 
-    if (((credits-totalBets) - parseFloat(chipValue)) < 0) {
+    if ((updatedBalance - parseFloat(chipValue)) < 0) {
       alert("Insufficient Balance");
       return;
     }
@@ -1567,7 +1568,7 @@ const HorseRacingGame = () => {
                     fontWeight: 'bold',
                     fontSize: '0.9rem',
                   }}>
-                    {formatTruncatedMoney(credits-totalBets) === NaN ? 0 : formatTruncatedMoney(credits-totalBets)}
+                    {formatTruncatedMoney(updatedBalance)}
                   </Typography>
                 </Box>
               </Box>
@@ -2504,7 +2505,7 @@ const HorseRacingGame = () => {
                   textShadow: '0px 1px 2px rgba(0, 0, 0, 0.2)' // Optional depth
                 }}
               >
-                Balance: {formatTruncatedMoney(credits-totalBets) === NaN ? 0 : formatTruncatedMoney(credits-totalBets)}
+                Balance: {formatTruncatedMoney(updatedBalance)}
               </Typography>
             </Box>
             

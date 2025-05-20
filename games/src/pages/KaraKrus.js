@@ -36,6 +36,7 @@ const KaraKrus = () => {
   const [showControls, setShowControls] = useState(false);
   const [totalBet, setTotalBet] = useState(0);
   const [credits, setCredits] = useState(0);
+  const updatedBalance = Number(credits) - Number(totalBet);
   let decrypted;
 
   const [showBettingSection, setShowBettingSection] = useState(true);
@@ -782,7 +783,7 @@ const KaraKrus = () => {
         alert("Minimum bet amount is 5");
         return;
       }
-      if (((credits-totalBet) - parseFloat(betAmount)) < 0) {
+      if ((updatedBalance - parseFloat(betAmount)) < 0) {
         alert("Insufficient Balance");
         return;
       }
@@ -1003,7 +1004,7 @@ const KaraKrus = () => {
             mb: 2 
           }}>
             <Chip 
-              label={`${userInfo.userData.data.user.firstName.toUpperCase()} - BALANCE: ${formatTruncatedMoney(credits-totalBet) === NaN ? 0 : formatTruncatedMoney(credits-totalBet)}`} 
+              label={`${userInfo.userData.data.user.firstName.toUpperCase()} - BALANCE: ${formatTruncatedMoney(updatedBalance)}`} 
               sx={{ 
                 background: 'rgba(0,0,0,0.5)',
                 color: '#ffeb3b',

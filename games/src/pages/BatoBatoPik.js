@@ -804,7 +804,7 @@ const BatoBatoPik = () => {
             fontFamily: "'Roboto', sans-serif",
             whiteSpace: 'nowrap'
           }}>
-            {formatTruncatedMoney(credits-totalBet)}
+            {formatTruncatedMoney(credits-totalBet) === NaN ? 0 : formatTruncatedMoney(credits-totalBet)}
           </Typography>
         </Box>
       </Box>

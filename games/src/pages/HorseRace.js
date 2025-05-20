@@ -1567,7 +1567,7 @@ const HorseRacingGame = () => {
                     fontWeight: 'bold',
                     fontSize: '0.9rem',
                   }}>
-                    {formatTruncatedMoney(credits-totalBets)}
+                    {formatTruncatedMoney(credits-totalBets) === NaN ? 0 : formatTruncatedMoney(credits-totalBets)}
                   </Typography>
                 </Box>
               </Box>
@@ -2504,7 +2504,7 @@ const HorseRacingGame = () => {
                   textShadow: '0px 1px 2px rgba(0, 0, 0, 0.2)' // Optional depth
                 }}
               >
-                Balance: {formatTruncatedMoney(credits-totalBets)}
+                Balance: {formatTruncatedMoney(credits-totalBets) === NaN ? 0 : formatTruncatedMoney(credits-totalBets)}
               </Typography>
             </Box>
             

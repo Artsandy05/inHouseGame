@@ -1003,7 +1003,7 @@ const KaraKrus = () => {
             mb: 2 
           }}>
             <Chip 
-              label={`${userInfo.userData.data.user.firstName.toUpperCase()} - BALANCE: ${formatTruncatedMoney(credits-totalBet)}`} 
+              label={`${userInfo.userData.data.user.firstName.toUpperCase()} - BALANCE: ${formatTruncatedMoney(credits-totalBet) === NaN ? 0 : formatTruncatedMoney(credits-totalBet)}`} 
               sx={{ 
                 background: 'rgba(0,0,0,0.5)',
                 color: '#ffeb3b',

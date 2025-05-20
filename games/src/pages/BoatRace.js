@@ -1529,7 +1529,7 @@ const renderBetPanel = () => {
                   fontWeight: 600,
                   fontSize: '0.85rem',
                 }}>
-                  {formatTruncatedMoney(credits-totalBets)}
+                  {formatTruncatedMoney(credits-totalBets) === NaN ? 0 : formatTruncatedMoney(credits-totalBets)}
                 </Typography>
               </Box>
             </Box>
@@ -2485,7 +2485,7 @@ const renderVoidDialog = () => {
                   borderLeft: '3px solid skyblue'  // Accent border
                 }}
               >
-                Balance: {formatTruncatedMoney(credits-totalBets)}
+                Balance: {formatTruncatedMoney(credits-totalBets) === NaN ? 0 : formatTruncatedMoney(credits-totalBets)}
               </Typography>
 
             </Box>

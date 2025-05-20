@@ -101,7 +101,7 @@ const BatoBatoPik = () => {
     }
   };
 
-  console.log(userInfo)
+  
 
   useEffect(() => {
     if(userInfo){

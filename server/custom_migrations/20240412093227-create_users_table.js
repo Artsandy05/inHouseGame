@@ -72,31 +72,11 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: false,
         defaultValue: "",
-        validate: {
-          isValidRegex(value) {
-            // Custom validation function to check if the value is either null or matches the regex pattern
-            if (value !== null && value !== "" && !/^[a-zA-Z\s]+$/.test(value)) {
-              throw new Error(
-                "First name must be a valid string, empty, or null"
-              );
-            }
-          },
-        },
       },
       lastName: {
         type: Sequelize.STRING,
         allowNull: false,
         defaultValue: "",
-        validate: {
-          isValidRegex(value) {
-            // Custom validation function to check if the value is either null or matches the regex pattern
-            if (value !== null && value !== "" && !/^[a-zA-Z\s]+$/.test(value)) {
-              throw new Error(
-                "First name must be a valid string, empty, or null"
-              );
-            }
-          },
-        },
       },
       nickName: {
         type: Sequelize.STRING,

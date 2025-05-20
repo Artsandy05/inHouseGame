@@ -196,6 +196,14 @@ const BoatRacingGame = () => {
       setTotalBets(0);
     }
   }, [gameState]);
+  
+  useEffect(() => {
+    console.log(credits)
+    console.log(totalBets)
+    console.log(credits-totalBets);
+  }, []);
+
+  
 
   useEffect(() => {
     const fetchGameHistory = async () => {
@@ -1529,7 +1537,7 @@ const renderBetPanel = () => {
                   fontWeight: 600,
                   fontSize: '0.85rem',
                 }}>
-                  {formatTruncatedMoney(credits-totalBets) === NaN ? 0 : formatTruncatedMoney(credits-totalBets)}
+                  {formatTruncatedMoney(credits-totalBets)}
                 </Typography>
               </Box>
             </Box>
@@ -2485,7 +2493,7 @@ const renderVoidDialog = () => {
                   borderLeft: '3px solid skyblue'  // Accent border
                 }}
               >
-                Balance: {formatTruncatedMoney(credits-totalBets) === NaN ? 0 : formatTruncatedMoney(credits-totalBets)}
+                Balance: {formatTruncatedMoney(credits-totalBets)}
               </Typography>
 
             </Box>

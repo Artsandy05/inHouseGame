@@ -107,13 +107,7 @@ function jsonToMap(json) {
   return map;
 }
 
-export function formatMoney(amount) {
-  // Convert to number if it's a string
-  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-  
-  // Format with 2 decimal places, comma separators, and ₱ symbol
-  return `₱${num.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}`;
-}
+
 
 export function formatWinnerAmount(amount: any) {
   if (amount >= 1_000_000_000) {
@@ -132,26 +126,21 @@ export function formatWinnerAmount(amount: any) {
   return Math.floor(amount).toString(); // Format for less than thousand
 }
 
+export function formatMoney(amount) {
+  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+
+  if (isNaN(num)) return '₱0.00';
+
+  return `₱${num.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}`;
+}
+
 export function formatTruncatedMoney(credits) {
-  // Convert to string to handle decimal places
-  const creditsStr = parseFloat(credits).toString();
-  
-  // Find the decimal point
-  const decimalIndex = creditsStr.indexOf('.');
-  
-  let truncatedStr;
-  if (decimalIndex === -1) {
-    // No decimal places, just add .00
-    truncatedStr = creditsStr + '.00';
-  } else {
-    // Truncate to exactly 2 decimal places
-    truncatedStr = creditsStr.substring(0, decimalIndex + 3);
-    
-    // If there was only 1 decimal digit, add a 0
-    if (truncatedStr.length === decimalIndex + 2) {
-      truncatedStr += '0';
-    }
-  }
-  
-  return formatMoney(truncatedStr);
+  const num = parseFloat(credits);
+
+  if (isNaN(num)) return '₱0.00';
+
+  // Truncate to 2 decimal places without rounding
+  const truncated = Math.trunc(num * 100) / 100;
+
+  return formatMoney(truncated);
 }

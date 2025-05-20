@@ -783,6 +783,10 @@ const KaraKrus = () => {
         alert("Minimum bet amount is 5");
         return;
       }
+      if(!credits){
+        alert("No Credits");
+        return;
+      }
       if ((updatedBalance - parseFloat(betAmount)) < 0) {
         alert("Insufficient Balance");
         return;

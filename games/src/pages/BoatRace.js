@@ -965,9 +965,13 @@ const createRaceTrack = () => {
 
   const placeBetOnBoat = (boatId) => {
     if (!selectedChip) return;
+    if(!credits){
+      alert("No Credits");
+      return;
+    }
     
     const chipValue = chipValues[selectedChip];
-    if ((updatedBalance - parseFloat(chipValue)) < 0) {
+    if ((updatedBalance - Number(chipValue)) < 0) {
       alert("Insufficient Balance");
       return;
     }

@@ -267,7 +267,7 @@ function broadcastWinners(game: Game) {
                   action: 'bet',
                   round_id: gameData.gameId[gameName],
                   amount: totalBet,
-                  game_uuid: `KFH-${gameData.gamesTableId[gameName]}`,
+                  game_uuid: '6',
                   transaction_id: `KFH-${betTransactionNo}`
                 };
             
@@ -305,7 +305,7 @@ function broadcastWinners(game: Game) {
                     action: 'win',
                     round_id: gameData.gameId[gameName],
                     amount: totalWin,
-                    game_uuid: `KFH-${gameData.gamesTableId[gameName]}`,
+                    game_uuid: '6',
                     transaction_id: `KFH-${transactionNo}`,
                     transaction_bet_id: `KFH-${betTransactionNo}`
                   };
@@ -335,7 +335,7 @@ function broadcastWinners(game: Game) {
                     action: 'lose',
                     round_id: gameData.gameId[gameName],
                     amount: 0,
-                    game_uuid: `KFH-${gameData.gamesTableId[gameName]}`,
+                    game_uuid: '6',
                     transaction_id: `KFH-${transactionNo}`,
                     transaction_bet_id: `KFH-${betTransactionNo}`
                   };

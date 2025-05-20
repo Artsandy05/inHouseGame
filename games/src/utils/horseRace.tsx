@@ -332,6 +332,10 @@ async function update(set, eventData) {
   if ((hasValue(meta.latestBalance))) {
     set({ latestBalance: meta.latestBalance });
   }
+  if (typeof meta === 'string' && meta.includes('latestBalance')) {
+    const latestBalance = typeof meta ==='string' ? JSON.parse(meta) : meta;
+    set({ latestBalance: latestBalance.latestBalance });
+  }
   if ((hasValue(meta.horseStats))) {
     set({ horseStats: meta.horseStats });
   }

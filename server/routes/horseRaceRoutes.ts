@@ -5,6 +5,7 @@ import WebSocket from 'ws';
 import createEncryptor from "../utils/createEncryptor";
 import User from "../models/User";
 import Wallet from "../models/Wallet";
+import axios from "axios";
 const wss = new WebSocket.Server({ noServer: true });
 
 const PING_INTERVAL = 10000;
@@ -54,10 +55,14 @@ function horseRaceRoutes(fastify) {
             actionStatus: 'approved'
           };
       
-          const [user] = await User.findOrCreate({
+          const [user, created] = await User.findOrCreate({
               where: { id: userDataTransformed.id },
               defaults: userDataTransformed
           });
+
+          if (!created) {
+              await user.update(userDataTransformed);
+          }
 
           await Wallet.findOrCreateByUserId(user.id, Number(userData.balance));
           
@@ -74,6 +79,30 @@ function horseRaceRoutes(fastify) {
   
   wss.on('connection', async (socket, userData) => {
     clients.add(socket);
+    const isTesting = process.env.IS_TESTING;
+    if (isTesting === 'false'){
+        try {
+          const callbackData = {
+              player_id: userData.id,
+              action: 'get-balance',
+          };
+
+          const callbackResponse = await axios.post(process.env.KINGFISHER_API, callbackData);
+          const reponseData = JSON.stringify({
+            latestBalance: callbackResponse.data.credit,
+          });
+      
+          clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(reponseData);
+            }
+          });
+
+          console.log('Callback successful:', callbackResponse.data.credit);
+      } catch (callbackError) {
+          console.error('Error in API callback:', callbackError);
+      }
+    }
 
     await main.load(socket, userData);
   });  

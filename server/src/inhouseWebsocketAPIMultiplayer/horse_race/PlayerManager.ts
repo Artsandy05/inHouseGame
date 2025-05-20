@@ -47,47 +47,70 @@ export class PlayerManager implements Plugin {
       });
     }
 
-    if(isTesting === 'false'){
-      game.view(Player, Input, Output, UserData).each((entity, player, input, output, userData) => {
+    // if(isTesting === 'false'){
+    //   game.view(Player, Input, Output, UserData).each((entity, player, input, output, userData) => {
+    //     const callbackData = {
+    //       player_id: userData.data.dataValues.id,
+    //       action: 'get-balance',
+    //     };
+    //     // if(input.msg){
+    //     //   axios.post(process.env.KINGFISHER_API, callbackData)
+    //     //     .then(callbackResponse => {
+    //     //       console.log(callbackResponse.data.credit);
+    //     //       if (hasValue(output.msg) && typeof output.msg === 'string') {
+    //     //         let newOutPut = JSON.parse(output.msg);
+    //     //         newOutPut.latestBalance = callbackResponse.data.credit;
+    //     //         output.msg = JSON.stringify(newOutPut);
+    //     //       } else {
+    //     //         output.insert("latestBalance", callbackResponse.data.credit);
+    //     //       }
+    //     //     })
+    //     //     .catch(error => {
+    //     //       console.error('Error while fetching balance:', error);
+    //     //   });
+    //     // }
+    //     // if(gameData.state.horseRace === GameState.WinnerDeclared){
+    //     //   axios.post(process.env.KINGFISHER_API, callbackData)
+    //     //     .then(callbackResponse => {
+    //     //       console.log(callbackResponse.data.credit);
+    //     //       if (hasValue(output.msg) && typeof output.msg === 'string') {
+    //     //         let newOutPut = JSON.parse(output.msg);
+    //     //         newOutPut.latestBalance = callbackResponse.data.credit;
+    //     //         output.msg = JSON.stringify(newOutPut);
+    //     //       } else {
+    //     //         output.insert("latestBalance", callbackResponse.data.credit);
+    //     //       }
+    //     //     })
+    //     //     .catch(error => {
+    //     //       console.error('Error while fetching balance:', error);
+    //     //   });
+    //     // }
+    //     axios.post(process.env.KINGFISHER_API, callbackData)
+    //         .then(callbackResponse => {
+    //           //console.log(callbackResponse.data.credit);
+    //           if (hasValue(output.msg) && typeof output.msg === 'string') {
+    //             let newOutPut = JSON.parse(output.msg);
+    //             newOutPut.latestBalance = callbackResponse.data.credit;
+    //             output.msg = JSON.stringify(newOutPut);
+    //           } else {
+    //             output.insert("latestBalance", callbackResponse.data.credit);
+    //           }
+    //         })
+    //         .catch(error => {
+    //           console.error('Error while fetching balance:', error);
+    //       });
+    //   });
+    // }
+
+    gameData.games.forEach(gameName => {
+      game.view(gameName === 'horseRace' ? HorseRaceGameStateChanged : null, Output, UserData).each((entity, stateChanged, output, userData) => {
         const callbackData = {
           player_id: userData.data.dataValues.id,
           action: 'get-balance',
         };
-        // if(input.msg){
-        //   axios.post(process.env.KINGFISHER_API, callbackData)
-        //     .then(callbackResponse => {
-        //       console.log(callbackResponse.data.credit);
-        //       if (hasValue(output.msg) && typeof output.msg === 'string') {
-        //         let newOutPut = JSON.parse(output.msg);
-        //         newOutPut.latestBalance = callbackResponse.data.credit;
-        //         output.msg = JSON.stringify(newOutPut);
-        //       } else {
-        //         output.insert("latestBalance", callbackResponse.data.credit);
-        //       }
-        //     })
-        //     .catch(error => {
-        //       console.error('Error while fetching balance:', error);
-        //   });
-        // }
-        // if(gameData.state.horseRace === GameState.WinnerDeclared){
-        //   axios.post(process.env.KINGFISHER_API, callbackData)
-        //     .then(callbackResponse => {
-        //       console.log(callbackResponse.data.credit);
-        //       if (hasValue(output.msg) && typeof output.msg === 'string') {
-        //         let newOutPut = JSON.parse(output.msg);
-        //         newOutPut.latestBalance = callbackResponse.data.credit;
-        //         output.msg = JSON.stringify(newOutPut);
-        //       } else {
-        //         output.insert("latestBalance", callbackResponse.data.credit);
-        //       }
-        //     })
-        //     .catch(error => {
-        //       console.error('Error while fetching balance:', error);
-        //   });
-        // }
-        axios.post(process.env.KINGFISHER_API, callbackData)
+        if(isTesting === 'false'){
+          axios.post(process.env.KINGFISHER_API, callbackData)
             .then(callbackResponse => {
-              console.log(callbackResponse.data.credit);
               if (hasValue(output.msg) && typeof output.msg === 'string') {
                 let newOutPut = JSON.parse(output.msg);
                 newOutPut.latestBalance = callbackResponse.data.credit;
@@ -99,15 +122,8 @@ export class PlayerManager implements Plugin {
             .catch(error => {
               console.error('Error while fetching balance:', error);
           });
-      });
-    }
-
-    gameData.games.forEach(gameName => {
-      game.view(gameName === 'horseRace' ? HorseRaceGameStateChanged : null, Output).each((entity, stateChanged, output) => {
+        }
         const convertedAllBets = {horseRace:[]};
-
-        
-
         for (let key in convertedAllBets) {
           const slots = gameData.slotBets[key];
           const walkinSlots = gameData.slotBetsWalkin[key];
@@ -266,10 +282,7 @@ function broadcastWinners(game: Game) {
                   
                   // end of process bet
                   await WinningBets.new(transaction.id, key, val, p);
-                  await Wallet.update(
-                    { balance: finalWinPrize - val },
-                    { where: { user_id: userData.data.dataValues.id } }
-                  );
+                  
                   
                   if(hasValue(output.msg) && typeof output.msg === 'string'){
                     let newOutPut = JSON.parse(output.msg);

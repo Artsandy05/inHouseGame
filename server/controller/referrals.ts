@@ -65,7 +65,7 @@ const getAllReferrals = async (request: any, reply: any) => {
         whereConditionsUser["mobile"] = { [Op.like]: `%${decodedValue}%` };
       } else if (columnFilter === "createdAt") {
         const [startDateTime, endDateTime] = decodedValue.split(",");
-        console.log({ startDateTime, endDateTime });
+        //console.log({ startDateTime, endDateTime });
         whereConditions["createdAt"] = {
           [Op.between]: [startDateTime, endDateTime],
         };

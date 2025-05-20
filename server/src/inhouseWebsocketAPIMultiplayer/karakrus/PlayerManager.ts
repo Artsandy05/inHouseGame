@@ -13,7 +13,9 @@ import { UserData } from "./UserData";
 import WinningBets from "../../../models/WinningBets";
 import WinningBall from "../../../models/WinningBall";
 import LosingBets from "../../../models/LosingBets";
-
+import axios from "axios";
+import { randomBytes } from "crypto";
+const isTesting = process.env.IS_TESTING;
 
 export class PlayerManager implements Plugin {
 	build(game: Game): void {
@@ -46,6 +48,8 @@ export class PlayerManager implements Plugin {
         }
       });
     }
+
+    
     
     gameData.games.forEach(gameName => {
       game.view(gameName === 'karakrus' ? KaraKrusGameStateChanged : null, Output).each((entity, stateChanged, output) => {
@@ -165,54 +169,200 @@ function broadcastWinners(game: Game) {
         
         const winner = gameName === 'karakrus' && gameData.winnerOrders[gameName];
         if(player.game === gameName){
-          player.slots.forEach(async (val, key:any) => {
-            if (winner === key && gameName === prize.game) {
-              const p = prize.values.get(key);
-              const odds = gameData.odds[gameName].get(key);
-              gameData.winners[gameName].push({
-                key,
-                userId: userData.data.dataValues.id,
-                name: userData.data.dataValues.nickName,
-                prize: p,
-                bet:val,
-                winOnGame: player.game,
-                odds,
-                uuid: userData.data.dataValues.uuid
-              });
-              const wallet = await getWallet(userData.data.dataValues.id);
-              let finalWinPrize = Number(wallet.balance) + Number(p);
-              const transaction = await Transaction.new(wallet.id, gameData.gamesTableId[gameName], p, "wonprize", odds, gameData.gameId[gameName]);
-              await processBet(userData.data.dataValues.id, val, odds, gameName, gameData, key, transaction);
-              await WinningBets.new(transaction.id, key, val, p);
-              await Wallet.update(
-                { balance: finalWinPrize - val },
-                { where: { user_id: userData.data.dataValues.id } }
-              );
-              if(hasValue(output.msg) && typeof output.msg === 'string'){
-                let newOutPut = JSON.parse(output.msg);
-                newOutPut.prize = p;
-                output.msg = JSON.stringify(newOutPut);
-              }else{
-                output.insert("prize", p);
-              }
-              
-            }else{
-              const p = prize.values.get(key);
-              const odds = gameData.odds[gameName].get(key);
-              gameData.loseOrders[gameName].push({
-                key,
-                userId: userData.data.dataValues.id,
-                name: userData.data.dataValues.nickName,
-                prize: val,
-                loseOnGame:player.game,
-                odds
-              });
-              const wallet = await getWallet(userData.data.dataValues.id);
-              const transaction = await Transaction.new(wallet.id, gameData.gamesTableId[gameName], val, "losebet", odds, gameData.gameId[gameName]);
-              await processBet(userData.data.dataValues.id, val, odds, gameName, gameData, key, transaction);
-              await LosingBets.new(transaction.id, key, val, 0);
+          let totalWin = 0;
+          let totalBet = 0;
+          const betTransactionNo = `KFH-${randomBytes(10).toString('hex')}`;
+          const transactionNo = `KFH-${randomBytes(10).toString('hex')}`;
+          
+          // Convert forEach to a proper async function with Promise.all to handle all bets
+          const processBets = async () => {
+            const betPromises = [];
+            
+            // First calculate totalBet from all slots
+            for (const [key, val] of player.slots.entries()) {
+              totalBet += Number(val);
             }
-          });
+            
+            // Process each bet
+            for (const [key, val] of player.slots.entries()) {
+              const processPromise = (async () => {
+                if (String(winner) === String(key) && gameName === prize.game) {
+                  const p = prize.values.get(key);
+                  const odds = gameData.odds[gameName].get(key);
+                  gameData.winners[gameName].push({
+                    key,
+                    userId: userData.data.dataValues.id,
+                    name: userData.data.dataValues.firstName,
+                    prize: p,
+                    bet: val,
+                    winOnGame: player.game,
+                    odds,
+                    uuid: userData.data.dataValues.uuid
+                  });
+                  
+                  const wallet = await getWallet(userData.data.dataValues.id);
+                  let finalWinPrize = Number(wallet.balance) + Number(p);
+                  const transaction = await Transaction.new(wallet.id, gameData.gamesTableId[gameName], p, "wonprize", odds, gameData.gameId[gameName]);
+                  
+                  //process bet part
+                  const w = await Wallet.findByUserId(userData.data.dataValues.id);
+                  const companyCommission = Number(val * (gameData.karakrusCommission));
+                  await Transaction.new(w.id, gameData.gamesTableId[gameName], val, "bet", odds, gameData.gameId[gameName]);
+                  const config = await Config.findOne({ where: { id: 3} });
+                  const overAllCommission = Number(val * config.fee);
+                  await BetModel.new(gameData.gamesTableId[gameName], transaction.id, key, gameData.gameId[gameName], companyCommission, overAllCommission);
+                  
+                  // end of process bet
+                  await WinningBets.new(transaction.id, key, val, p);
+                  
+                  if(hasValue(output.msg) && typeof output.msg === 'string'){
+                    let newOutPut = JSON.parse(output.msg);
+                    newOutPut.prize = p;
+                    output.msg = JSON.stringify(newOutPut);
+                  }else{
+                    output.insert("prize", p);
+                  }
+                  
+                  // Add to the total win amount
+                  totalWin += Number(p);
+                }else{
+                  const p = prize.values.get(key);
+                  const odds = gameData.odds[gameName].get(key);
+                  gameData.loseOrders[gameName].push({
+                    key,
+                    userId: userData.data.dataValues.id,
+                    name: userData.data.dataValues.firstName,
+                    prize: val,
+                    loseOnGame: player.game,
+                    odds
+                  });
+                  
+                  const wallet = await getWallet(userData.data.dataValues.id);
+                  const transaction = await Transaction.new(wallet.id, gameData.gamesTableId[gameName], val, "losebet", odds, gameData.gameId[gameName]);
+        
+                  // start of process bet
+                  const w = await Wallet.findByUserId(userData.data.dataValues.id);
+                  const companyCommission = Number(val * (gameData.karakrusCommission));
+                  await Transaction.new(w.id, gameData.gamesTableId[gameName], val, "bet", odds, gameData.gameId[gameName]);
+                  const config = await Config.findOne({ where: { id: 3} });
+                  const overAllCommission = Number(val * config.fee);
+                  await BetModel.new(gameData.gamesTableId[gameName], transaction.id, key, gameData.gameId[gameName], companyCommission, overAllCommission);
+                  
+                  // end of process bet
+                  await LosingBets.new(transaction.id, key, val, 0);
+                }
+              })();
+              
+              betPromises.push(processPromise);
+            }
+            
+            // Wait for all bet processing to complete
+            await Promise.all(betPromises);
+            
+            // Log final totals after all processing is complete
+            if (isTesting === 'false' && totalBet) {
+              try {
+                const callbackData = {
+                  player_id: userData.data.dataValues.id,
+                  action: 'bet',
+                  round_id: gameData.gameId[gameName],
+                  amount: totalBet,
+                  game_uuid: `KFH-${gameData.gamesTableId[gameName]}`,
+                  transaction_id: `KFH-${betTransactionNo}`
+                };
+            
+                axios.post(process.env.KINGFISHER_API, callbackData)
+                  .then((callbackResponse) => {
+                    if (hasValue(output.msg) && typeof output.msg === 'string') {
+                      let newOutPut = JSON.parse(output.msg);
+                      newOutPut.latestBalance = callbackResponse.data.credit;
+                      output.msg = JSON.stringify(newOutPut);
+                    } else {
+                      output.insert("latestBalance", callbackResponse.data.credit);
+                    }
+                  })
+                  .catch((callbackError) => {
+                    console.error('Error in API callback:', callbackError);
+                  });
+              } catch (callbackError) {
+                console.error('Error in API callback:', callbackError);
+              }
+            }
+            
+            // Add this function to create delay
+            const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+            
+            // Wrap in an async IIFE to use await
+            (async () => {
+              if (isTesting === 'false' && totalBet) {
+                await delay(1000); // Delay 1 second before processing win/lose
+              }
+            
+              if (isTesting === 'false' && totalWin > 0) {
+                try {
+                  const callbackData = {
+                    player_id: userData.data.dataValues.id,
+                    action: 'win',
+                    round_id: gameData.gameId[gameName],
+                    amount: totalWin,
+                    game_uuid: `KFH-${gameData.gamesTableId[gameName]}`,
+                    transaction_id: `KFH-${transactionNo}`,
+                    transaction_bet_id: `KFH-${betTransactionNo}`
+                  };
+            
+                  axios.post(process.env.KINGFISHER_API, callbackData)
+                    .then((callbackResponse) => {
+                      if (hasValue(output.msg) && typeof output.msg === 'string') {
+                        let newOutPut = JSON.parse(output.msg);
+                        newOutPut.latestBalance = callbackResponse.data.credit;
+                        output.msg = JSON.stringify(newOutPut);
+                      } else {
+                        output.insert("latestBalance", callbackResponse.data.credit);
+                      }
+                    })
+                    .catch((callbackError) => {
+                      console.error('Error in API callback:', callbackError);
+                    });
+                } catch (callbackError) {
+                  console.error('Error in API callback:', callbackError);
+                }
+              }
+            
+              if (isTesting === 'false' && totalWin === 0) {
+                try {
+                  const callbackData = {
+                    player_id: userData.data.dataValues.id,
+                    action: 'lose',
+                    round_id: gameData.gameId[gameName],
+                    amount: 0,
+                    game_uuid: `KFH-${gameData.gamesTableId[gameName]}`,
+                    transaction_id: `KFH-${transactionNo}`,
+                    transaction_bet_id: `KFH-${betTransactionNo}`
+                  };
+            
+                  axios.post(process.env.KINGFISHER_API, callbackData)
+                    .then((callbackResponse) => {
+                      if (hasValue(output.msg) && typeof output.msg === 'string') {
+                        let newOutPut = JSON.parse(output.msg);
+                        newOutPut.latestBalance = callbackResponse.data.credit;
+                        output.msg = JSON.stringify(newOutPut);
+                      } else {
+                        output.insert("latestBalance", callbackResponse.data.credit);
+                      }
+                    })
+                    .catch((callbackError) => {
+                      console.error('Error in API callback:', callbackError);
+                    });
+                } catch (callbackError) {
+                  console.error('Error in API callback:', callbackError);
+                }
+              }
+            })();
+            
+          };
+          
+          // Execute the async function
+          processBets();
         }
       }
     });
@@ -276,7 +426,6 @@ async function requestInit(game: Game, entity, gameData, msg, output, player, us
       convertedAllBets[key] = mapToArray(combinedSlots);
     }
 
-    //incompleteGameRound ?  JSON.parse(incompleteGameRound.dataValues.slots) : 
 		output.msg = JSON.stringify({
 			state: gameData.state,
       topPlayers:gameData.topPlayers,

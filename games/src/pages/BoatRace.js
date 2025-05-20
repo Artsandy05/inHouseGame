@@ -10,19 +10,22 @@ import {
   Typography,
   Grid,
   IconButton,
-  Divider
+  Divider,
 } from '@mui/material';
 import Confetti from 'react-confetti';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import createEncryptor from '../utils/createEncryptor';
 import { playerStore } from '../utils/boatRace';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { GameState, mapToArray } from '../utils/gameutils';
+import { formatTruncatedMoney, GameState, mapToArray } from '../utils/gameutils';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import HistoryIcon from '@mui/icons-material/History';
 import HelpIcon from '@mui/icons-material/Help';
 import CloseIcon from '@mui/icons-material/Close';
 import { getAllGameHistory, getGameHistory } from '../services/gameService';
+import ArrowLeftIcon from '@mui/icons-material/ChevronLeft';
+import ArrowRightIcon from '@mui/icons-material/ChevronRight';
+import { Collapse } from '@mui/material';
 
 // Custom theme with Keania One font
 const theme = createTheme({
@@ -81,16 +84,7 @@ const boatColor = {
   yellow: '#FFD700',
 };
 
-// const sampleGameHistory = [
-//   { id: 1, winner: 'red', date: '2023-05-15 14:30' },
-//   { id: 2, winner: 'blue', date: '2023-05-15 14:15' },
-//   { id: 3, winner: 'yellow', date: '2023-05-15 14:00'},
-//   { id: 4, winner: 'green', date: '2023-05-15 13:45' },
-//   { id: 5, winner: 'red', date: '2023-05-15 13:30' },
-//   { id: 6, winner: 'blue', date: '2023-05-15 13:15' },
-//   { id: 7, winner: 'yellow', date: '2023-05-15 13:00'},
-//   { id: 8, winner: 'green', date: '2023-05-15 12:45' },
-// ];
+
 
 const encryptor = createEncryptor(process.env.REACT_APP_DECRYPTION_KEY);
 
@@ -112,6 +106,10 @@ const BoatRacingGame = () => {
   const [helpDialogOpen, setHelpDialogOpen] = useState(false);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [gameHistory, setGameHistory] = useState(null);
+  const [totalBets, setTotalBets] = useState(0);
+  const [credits, setCredits] = useState(0);
+  const [visible, setVisible] = useState(true);
+  const [leftPosition, setLeftPosition] = useState('20px');
   // Refs
   const canvasRef = useRef(null);
   const sceneRef = useRef(null);
@@ -127,7 +125,7 @@ const BoatRacingGame = () => {
   const floatingObjectsRef = useRef([]);
   const lastTimeRef = useRef(0);
 
-  const { gameState, setPlayerInfo, sendMessage, countdown, slots,setSlots,odds, allBets, winningBall, setUserInfo, topPlayers, voidMessage, boatStats } = playerStore();
+  const { gameState, setPlayerInfo, sendMessage, countdown, slots,setSlots,odds, allBets, winningBall, setUserInfo, topPlayers, voidMessage, boatStats, latestBalance } = playerStore();
   const { connect } = playerStore.getState();
   const [searchParams] = useSearchParams();
   const userDetailsParam = searchParams.get('data');
@@ -160,7 +158,10 @@ const BoatRacingGame = () => {
   };
   
 
-  
+  const toggleVisibility = () => {
+    setVisible(!visible);
+    setLeftPosition(visible ? '-250px' : '20px');
+  };
   
 
   useEffect(() => {
@@ -168,6 +169,33 @@ const BoatRacingGame = () => {
       setUserInfo(userInfo.userData.data.user);
     }
   }, []);
+
+  useEffect(() => {
+    if(latestBalance){
+      setCredits(latestBalance);
+    }else{
+      setCredits(urlUserDetails?.credits || localStorageUser?.userData?.data?.wallet?.balance);
+    }
+  }, [latestBalance]);
+
+  useEffect(() => {
+    if (slots.size > 0) {
+      let total = 0;
+  
+      slots.forEach(value => {
+        total += value;
+      });
+      setTotalBets(total);
+    }else{
+      setTotalBets(0);
+    }
+  }, [slots]);
+
+  useEffect(() => {
+    if (gameState === GameState.NewGame || gameState === GameState.WinnerDeclared) {
+      setTotalBets(0);
+    }
+  }, [gameState]);
 
   useEffect(() => {
     const fetchGameHistory = async () => {
@@ -935,7 +963,7 @@ const createRaceTrack = () => {
     
     const chipValue = chipValues[selectedChip];
 
-    if ((userInfo.userData.data.wallet.balance - parseFloat(chipValue)) < 0) {
+    if (((credits-totalBets) - parseFloat(chipValue)) < 0) {
       alert("Insufficient Balance");
       return;
     }
@@ -1501,7 +1529,7 @@ const renderBetPanel = () => {
                   fontWeight: 600,
                   fontSize: '0.85rem',
                 }}>
-                  ₱{balance.toLocaleString()}
+                  {formatTruncatedMoney(credits-totalBets)}
                 </Typography>
               </Box>
             </Box>
@@ -2457,70 +2485,92 @@ const renderVoidDialog = () => {
                   borderLeft: '3px solid skyblue'  // Accent border
                 }}
               >
-                Balance: ${balance}
+                Balance: {formatTruncatedMoney(credits-totalBets)}
               </Typography>
 
             </Box>
             
             {/* Action Buttons */}
-            <Box
-              sx={{
-                position: 'absolute',
-                bottom: '20px',
-                left: '20px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 1
-              }}
-            >
-              <Button
-                variant="contained"
-                onClick={openBetDialog}
-                sx={{ 
-                  bgcolor: '#4CAF50', 
-                  color: '#FFF',
-                  fontWeight: 'bold',
-                  '&:hover': { bgcolor: '#45a049' },
-                  py: 1.5
+            <>
+              <Box
+                onClick={toggleVisibility}
+                sx={{
+                  position: 'absolute',
+                  bottom: '130px',
+                  left: '20px',
+                  zIndex: 1200,
+                  color: 'white', // This makes the arrow icons white
+                  
+                  transition: 'left 0.3s ease',
                 }}
               >
-                Place Bet
-              </Button>
-              
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
-                  variant="contained"
-                  onClick={() => setHistoryDialogOpen(true)}
-                  startIcon={<HistoryIcon />}
-                  sx={{ 
-                    bgcolor: '#3b82f6', 
-                    color: '#FFF',
-                    fontWeight: 'bold',
-                    '&:hover': { bgcolor: '#2563eb' },
-                    flex: 1,
-                    py: 1.5
-                  }}
-                >
-                  History
-                </Button>
-                
-                <Button
-                  variant="contained"
-                  onClick={() => setHelpDialogOpen(true)}
-                  startIcon={<HelpIcon />}
-                  sx={{ 
-                    bgcolor: '#ef476f', 
-                    color: '#FFF',
-                    fontWeight: 'bold',
-                    '&:hover': { bgcolor: '#d43d63' },
-                    flex: 1,
-                    py: 1.5
-                  }}
-                >
-                  Help
-                </Button>
+                {visible ? <ArrowLeftIcon /> : <ArrowRightIcon />}
               </Box>
-            </Box>
+
+              <Box
+                sx={{
+                  position: 'absolute',
+                  bottom: '20px',
+                  left: leftPosition,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 1,
+                  transition: 'left 0.3s ease',
+                }}
+              >
+                <Collapse in={visible} orientation="horizontal">
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Button
+                      variant="contained"
+                      onClick={openBetDialog}
+                      sx={{ 
+                        bgcolor: '#4CAF50', 
+                        color: '#FFF',
+                        fontWeight: 'bold',
+                        '&:hover': { bgcolor: '#45a049' },
+                        py: 1.5
+                      }}
+                    >
+                      Place Bet
+                    </Button>
+                    
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button
+                        variant="contained"
+                        onClick={() => setHistoryDialogOpen(true)}
+                        startIcon={<HistoryIcon />}
+                        sx={{ 
+                          bgcolor: '#3b82f6', 
+                          color: '#FFF',
+                          fontWeight: 'bold',
+                          '&:hover': { bgcolor: '#2563eb' },
+                          flex: 1,
+                          py: 1.5
+                        }}
+                      >
+                        History
+                      </Button>
+                      
+                      <Button
+                        variant="contained"
+                        onClick={() => setHelpDialogOpen(true)}
+                        startIcon={<HelpIcon />}
+                        sx={{ 
+                          bgcolor: '#ef476f', 
+                          color: '#FFF',
+                          fontWeight: 'bold',
+                          '&:hover': { bgcolor: '#d43d63' },
+                          flex: 1,
+                          py: 1.5
+                        }}
+                      >
+                        Help
+                      </Button>
+                    </Box>
+                  </Box>
+                </Collapse>
+              </Box>
+            </>
             
             {/* {gameFinished && renderWinnerAnnouncement()} */}
             

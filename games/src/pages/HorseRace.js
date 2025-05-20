@@ -23,7 +23,9 @@ import HistoryIcon from '@mui/icons-material/History';
 import HelpIcon from '@mui/icons-material/Help';
 import CloseIcon from '@mui/icons-material/Close';
 import { getGameHistory } from '../services/gameService';
-
+import ArrowLeftIcon from '@mui/icons-material/ChevronLeft';
+import ArrowRightIcon from '@mui/icons-material/ChevronRight';
+import { Collapse } from '@mui/material';
 // Custom theme with Keania One font
 const theme = createTheme({
   typography: {
@@ -114,6 +116,8 @@ const HorseRacingGame = () => {
   const [gameHistory, setGameHistory] = useState(null);
   const [credits, setCredits] = useState(0);
   const [totalBets, setTotalBets] = useState(0);
+  const [visible, setVisible] = useState(true);
+  const [leftPosition, setLeftPosition] = useState('20px');
   // Refs
   const canvasRef = useRef(null);
   const sceneRef = useRef(null);
@@ -157,7 +161,10 @@ const HorseRacingGame = () => {
     }
   };
   
-
+  const toggleVisibility = () => {
+    setVisible(!visible);
+    setLeftPosition(visible ? '-250px' : '20px');
+  };
   
   useEffect(() => {
     if (slots.size > 0) {
@@ -2388,12 +2395,17 @@ const HorseRacingGame = () => {
                 >
                   <ArrowBackIcon />
                 </IconButton>
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    color: 'maroon',
+                <Typography
+                  variant="h6"
+                  sx={{
                     fontWeight: 'bold',
-                    ml: 2
+                    ml: 2,
+                    background: 'linear-gradient(135deg, #D4AF37 0%, #F5D073 50%, #D4AF37 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    textFillColor: 'transparent',
+                    display: 'inline-block'
                   }}
                 >
                   {userInfo?.userData?.data?.user?.firstName}
@@ -2478,12 +2490,18 @@ const HorseRacingGame = () => {
                 )}
               </Box>
               
-              <Typography 
-                variant="h6" 
-                sx={{ 
-                  color: 'maroon',
+              <Typography
+                variant="h6"
+                sx={{
                   fontWeight: 'bold',
-                  mr: 2
+                  mr: 2,
+                  background: 'linear-gradient(135deg, #D4AF37 0%, #F5D073 50%, #B8860B 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  textFillColor: 'transparent',
+                  display: 'inline-block',
+                  textShadow: '0px 1px 2px rgba(0, 0, 0, 0.2)' // Optional depth
                 }}
               >
                 Balance: {formatTruncatedMoney(credits-totalBets)}
@@ -2491,63 +2509,93 @@ const HorseRacingGame = () => {
             </Box>
             
             {/* Action Buttons */}
+            <>
             <Box
+              onClick={toggleVisibility}
               sx={{
                 position: 'absolute',
-                bottom: '20px',
-                left: '20px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 1
+                bottom: '50px',
+                left: visible ? '235px' : '0px',
+                zIndex: 1200,
+                color: 'white',
+                bgcolor: 'rgba(0, 0, 0, 0.4)', // Semi-transparent background
+                borderTopRightRadius: 12,       // Rounded right corners
+                borderBottomRightRadius: 12,
+                p: 0.5,                        // Padding for click area
+                transition: 'all 0.3s ease',    // Smooth transitions
+                '&:hover': {
+                  bgcolor: 'rgba(0, 0, 0, 0.7)', // Darker on hover
+                  transform: 'scale(1.05)'       // Slight zoom effect
+                }
               }}
             >
-              <Button
-                variant="contained"
-                onClick={openBetDialog}
-                sx={{ 
-                  bgcolor: '#4CAF50', 
-                  color: '#FFF',
-                  fontWeight: 'bold',
-                  '&:hover': { bgcolor: '#45a049' },
-                  py: 1.5
+              {visible ? <ArrowLeftIcon /> : <ArrowRightIcon />}
+            </Box>
+
+              <Box
+                sx={{
+                  position: 'absolute',
+                  bottom: '20px',
+                  left: leftPosition,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 1,
+                  transition: 'left 0.3s ease',
                 }}
               >
-                Place Bet
-              </Button>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
-                  variant="contained"
-                  onClick={() => setHistoryDialogOpen(true)}
-                  startIcon={<HistoryIcon />}
-                  sx={{ 
-                    bgcolor: '#3b82f6', 
-                    color: '#FFF',
-                    fontWeight: 'bold',
-                    '&:hover': { bgcolor: '#2563eb' },
-                    flex: 1,
-                    py: 1.5
-                  }}
-                >
-                  History
-                </Button>
-                
-                <Button
-                  variant="contained"
-                  onClick={() => setHelpDialogOpen(true)}
-                  startIcon={<HelpIcon />}
-                  sx={{ 
-                    bgcolor: '#ef476f', 
-                    color: '#FFF',
-                    fontWeight: 'bold',
-                    '&:hover': { bgcolor: '#d43d63' },
-                    flex: 1,
-                    py: 1.5
-                  }}
-                >
-                  Help
-                </Button>
+                <Collapse in={visible} orientation="horizontal">
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Button
+                      variant="contained"
+                      onClick={openBetDialog}
+                      sx={{ 
+                        bgcolor: '#4CAF50', 
+                        color: '#FFF',
+                        fontWeight: 'bold',
+                        '&:hover': { bgcolor: '#45a049' },
+                        py: 1.5
+                      }}
+                    >
+                      Place Bet
+                    </Button>
+                    
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button
+                        variant="contained"
+                        onClick={() => setHistoryDialogOpen(true)}
+                        startIcon={<HistoryIcon />}
+                        sx={{ 
+                          bgcolor: '#3b82f6', 
+                          color: '#FFF',
+                          fontWeight: 'bold',
+                          '&:hover': { bgcolor: '#2563eb' },
+                          flex: 1,
+                          py: 1.5
+                        }}
+                      >
+                        History
+                      </Button>
+                      
+                      <Button
+                        variant="contained"
+                        onClick={() => setHelpDialogOpen(true)}
+                        startIcon={<HelpIcon />}
+                        sx={{ 
+                          bgcolor: '#ef476f', 
+                          color: '#FFF',
+                          fontWeight: 'bold',
+                          '&:hover': { bgcolor: '#d43d63' },
+                          flex: 1,
+                          py: 1.5
+                        }}
+                      >
+                        Help
+                      </Button>
+                    </Box>
+                  </Box>
+                </Collapse>
               </Box>
-            </Box>
+            </>
             
             {/* {gameFinished && renderWinnerAnnouncement()} */}
             

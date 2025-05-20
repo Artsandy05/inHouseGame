@@ -169,11 +169,7 @@ const KaraKrus = () => {
     }
   }, [gameState, coinResult, animationDuration]);
 
-  // useEffect(() => {
-  //   if(coinResult){
-  //     console.log(coinResult)
-  //   }
-  // }, [coinResult]);
+ 
 
   useEffect(() => {
     if (gameState === GameState.WinnerDeclared) {
@@ -786,7 +782,7 @@ const KaraKrus = () => {
         alert("Minimum bet amount is 5");
         return;
       }
-      if ((userInfo.userData.data.wallet.balance - parseFloat(betAmount)) < 0) {
+      if (((credits-totalBet) - parseFloat(betAmount)) < 0) {
         alert("Insufficient Balance");
         return;
       }

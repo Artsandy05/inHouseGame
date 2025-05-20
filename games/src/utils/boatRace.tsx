@@ -56,6 +56,7 @@ type State = {
   isHostGifted: boolean;
   userInfo: any;
   boatStats: any;
+  latestBalance: number;
 };
 
 export const playerStore = create<State>((set) => ({
@@ -72,6 +73,10 @@ export const playerStore = create<State>((set) => ({
   userInfo: null,
   setUserInfo: (g) => {
     set({ userInfo: g });
+  },
+  latestBalance: 0,
+  setLatestBalance: (g) => {
+    set({ latestBalance: g });
   },
   boatStats: false,
   setBoatStats: (g) => {
@@ -323,6 +328,13 @@ async function update(set, eventData) {
   let meta = JSON.parse(eventData);
   //console.log(meta)
   
+  if ((hasValue(meta.latestBalance))) {
+    set({ latestBalance: meta.latestBalance });
+  }
+  if (typeof meta === 'string' && meta.includes('latestBalance')) {
+    const latestBalance = typeof meta ==='string' ? JSON.parse(meta) : meta;
+    set({ latestBalance: latestBalance.latestBalance });
+  }
   if ((hasValue(meta.boatStats))) {
     set({ boatStats: meta.boatStats });
   }

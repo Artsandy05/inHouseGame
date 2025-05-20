@@ -361,7 +361,7 @@ export default async function (fastify: FastifyInstance) {
   }, async (request: FastifyRequest<{ Querystring: { start: string; end: string } }>, reply) => {
     try {
       const { start, end } = request.query;
-      console.log(start, end)
+      //console.log(start, end)
       
       if (!start || !end) {
         return reply.code(400).send({

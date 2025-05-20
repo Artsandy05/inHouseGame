@@ -897,29 +897,31 @@ function goldenGoose(fastify) {
     if(userData){
       const isTesting = process.env.IS_TESTING_GOLDEN_GOOSE;
       
-      if (isTesting === 'false'){try {
-          const callbackData = {
-              player_id: userData.id,
-              action: 'get-balance',
-          };
+      if (isTesting === 'false'){
+          try {
+            const callbackData = {
+                player_id: userData.id,
+                action: 'get-balance',
+            };
 
-          const callbackResponse = await axios.post(process.env.KINGFISHER_API, callbackData);
-          const reponseData = JSON.stringify({
-            event: 'receivedUpdatedCredits',
-            data: {updatedCredit: callbackResponse.data.credit },
-            id: userData.id
-          });
-      
-          clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-              client.send(reponseData);
-            }
-          });
+            const callbackResponse = await axios.post(process.env.KINGFISHER_API, callbackData);
+            const reponseData = JSON.stringify({
+              event: 'receivedUpdatedCredits',
+              data: {updatedCredit: callbackResponse.data.credit },
+              id: userData.id
+            });
+        
+            clients.forEach(client => {
+              if (client.readyState === WebSocket.OPEN) {
+                client.send(reponseData);
+              }
+            });
 
-          console.log('Callback successful:', callbackResponse.data.credit);
-      } catch (callbackError) {
-          console.error('Error in API callback:', callbackError);
-      }}
+            console.log('Callback successful:', callbackResponse.data.credit);
+        } catch (callbackError) {
+            console.error('Error in API callback:', callbackError);
+        }
+      }
     }
 
     if(instantPrizePool){

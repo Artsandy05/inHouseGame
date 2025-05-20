@@ -2372,7 +2372,7 @@ const renderVoidDialog = () => {
                     letterSpacing: '1px'  // More elegant spacing
                   }}
                 >
-                  NotAVeryLongName
+                  {userInfo?.userData?.data?.user?.firstName}
                 </Typography>
               </Box>
               

@@ -66,7 +66,8 @@ function karakrusRoutes(fastify) {
           await Wallet.findOrCreateByUserId(user.id, Number(userData.balance));
           
           wss.handleUpgrade(request, socket, head, async (ws) => {
-            wss.emit('connection', ws, userData);
+            (ws as any).userData = userData;
+            wss.emit('connection', ws);
           });
         }
       } catch (err) {
@@ -76,7 +77,8 @@ function karakrusRoutes(fastify) {
     }
   });
   
-  wss.on('connection', async (socket, userData) => {
+  wss.on('connection', async (socket: WebSocket) => {
+    const userData = (socket as any).userData;
     clients.add(socket);
     await main.load(socket, userData);
     if (isTesting === 'false'){

@@ -79,7 +79,7 @@ function boatRaceRoutes(fastify) {
   
   wss.on('connection', async (socket, userData) => {
     clients.add(socket);
-
+    await main.load(socket, userData);
     const isTesting = process.env.IS_TESTING;
     if (isTesting === 'false'){
         try {
@@ -93,19 +93,13 @@ function boatRaceRoutes(fastify) {
             latestBalance: callbackResponse.data.credit,
           });
       
-          clients.forEach(client => {
-            if (client.readyState === WebSocket.OPEN) {
-              client.send(reponseData);
-            }
-          });
+          socket.send(reponseData);
 
           console.log('Callback successful:', callbackResponse.data.credit);
       } catch (callbackError) {
           console.error('Error in API callback:', callbackError);
       }
     }
-
-    await main.load(socket, userData);
   });  
 
   startPingInterval();

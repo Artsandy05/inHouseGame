@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import * as THREE from 'three';
 import { 
   Button, 
@@ -656,20 +656,25 @@ const HorseRacingGame = () => {
     });
   };
 
-  if (horseStats) {
-    horsesRef.current.forEach((horse, idx) => {
-      if(horse){
-        horse.speed = Number(horseStats[idx].speed);
-        horse.finished = horseStats[idx].finished;
-        horse.stamina = Number(horseStats[idx].stamina);
-        horse.fatigue = (horseStats[idx].fatigue);
-        horse.animationSpeed = horseStats[idx].animationSpeed;
-        horse.baseSpeed = horseStats[idx].baseSpeed;
-        horse.position = horseStats[idx].position;
-        horse.baseAnimationSpeed = horseStats[idx].baseAnimationSpeed;
+  useEffect(() => {
+    if (horseStats && horsesRef.current) {
+      for (let i = 0; i < horsesRef.current.length; i++) {
+        const horse = horsesRef.current[i];
+        const stats = horseStats[i];
+        if (horse && stats) {
+          horse.speed = +stats.speed;
+          horse.finished = stats.finished;
+          horse.stamina = +stats.stamina;
+          horse.fatigue = stats.fatigue;
+          horse.animationSpeed = stats.animationSpeed;
+          horse.baseSpeed = stats.baseSpeed;
+          horse.position = stats.position;
+          horse.baseAnimationSpeed = stats.baseAnimationSpeed;
+        }
       }
-    });
-  }
+    }
+  }, [horseStats]);
+  
   function truncateToTwoDecimals(num) {
       return Math.trunc(num * 100) / 100;
   }

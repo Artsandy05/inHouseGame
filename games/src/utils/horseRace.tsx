@@ -326,7 +326,7 @@ function open(set, socket) {
 
 async function update(set, eventData) {
   let meta = JSON.parse(eventData);
-  //console.log(meta)
+  console.log(meta)
   
   if ((hasValue(meta.latestBalance))) {
     set({ latestBalance: meta.latestBalance });

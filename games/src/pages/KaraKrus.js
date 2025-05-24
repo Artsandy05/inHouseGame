@@ -787,6 +787,7 @@ const KaraKrus = () => {
         alert("No Credits");
         return;
       }
+      
       if ((updatedBalance - parseFloat(betAmount)) < 0) {
         alert("Insufficient Balance");
         return;

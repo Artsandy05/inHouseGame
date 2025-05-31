@@ -285,7 +285,7 @@ const Moderator = () => {
     if(horseRaceGameState === GameState.WinnerDeclared){
       setTimeout(() => {
         newHorseRaceGame();
-      }, 8000);
+      }, 6000);
     }
     if(horseRaceGameState === GameState.Closed){
       startRace();
@@ -543,9 +543,10 @@ useEffect(() => {
   
     const updateRace = () => {
       frameCount++;
-  
+      
       // Speed adjustments every 30 frames (0.5 seconds at 60fps)
       if (frameCount % 30 === 0 && raceActive) {
+        
         let leaderPosition = Math.max(...horsesRef.current.map(h => h?.position || 0));
         let lastPlacePosition = Math.min(...horsesRef.current
           .filter(h => h && !h.finished)
@@ -651,9 +652,7 @@ useEffect(() => {
       });
   
       // Throttled update: send stats every 5 frames (~12fps)
-      if (frameCount % 5 === 0) {
-        updateHorseStatsToClients();
-      }
+      updateHorseStatsToClients();
   
       // Continue animation if not all horses finished
       if (!allFinished) {

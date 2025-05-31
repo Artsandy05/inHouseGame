@@ -429,6 +429,10 @@ async function update(set, eventData) {
     set({ prize: meta.prize });
     set({ prize: prize.prize });
   }
+
+  if (hasValue(meta.state)) {
+    set({ gameState:meta.state.horseRace});
+  }
   
   if (hasValue(meta.state) || (typeof meta === 'string' && meta.includes('state'))) {
     const state = typeof meta === 'string' ? JSON.parse(meta) : meta;

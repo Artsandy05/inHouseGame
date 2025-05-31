@@ -98,14 +98,10 @@ const encryptor = createEncryptor(process.env.REACT_APP_DECRYPTION_KEY);
 
 const HorseRacingGame = () => {
   // Game states
-  const [gameStarted, setGameStarted] = useState(false);
   //const [gameFinished, setGameFinished] = useState(false);
   const [isLandscape, setIsLandscape] = useState(false);
-  const [balance, setBalance] = useState(1000);
+  const [raceStarted, setRaceStarted] = useState(false);
   const [betDialogOpen, setBetDialogOpen] = useState(false);
-  const [selectedHorses, setSelectedHorses] = useState({});
-  const [winner, setWinner] = useState(null);
-  const [playerWon, setPlayerWon] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [raceTime, setRaceTime] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
@@ -113,6 +109,7 @@ const HorseRacingGame = () => {
   const [showVoidDialog, setShowVoidDialog] = useState(false);
   const [helpDialogOpen, setHelpDialogOpen] = useState(false);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [raceFinished, setRaceFinished] = useState(false);
   const [gameHistory, setGameHistory] = useState(null);
   const [credits, setCredits] = useState(0);
   const [totalBets, setTotalBets] = useState(0);
@@ -225,11 +222,10 @@ const HorseRacingGame = () => {
 
   
   useEffect(() => {
-    if(gameState === GameState.WinnerDeclared){
+    if(gameState === 'WinnerDeclared'){
       setTimerActive(false);
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
+      setRaceStarted(false);
+      setRaceTime(0);
     }
   }, [gameState]);
 
@@ -249,13 +245,46 @@ const HorseRacingGame = () => {
     if(gameState === GameState.Closed){
       startRace();
     }
-  }, [gameState, horsesRef.current]);
+  }, [gameState]);
 
   useEffect(() => {
-    if(gameState === GameState.Open || gameState === GameState.NewGame){
-      nextRound();
+    if(raceStarted && horseStats && gameState === GameState.Closed){
+      animateRace();
     }
-  }, [gameState]);
+  }, [raceStarted, horseStats, gameState]);
+
+
+  useEffect(() => {
+    if(gameState === GameState.NewGame && !raceStarted && !horseStats){
+      // Reset camera to starting position IMMEDIATELY
+      if (cameraRef.current) {
+        cameraRef.current.position.x = 0;
+      }
+      
+      // Reset all race states
+      setRaceStarted(false);
+      setRaceFinished(false);
+      setTimerActive(false);
+      setRaceTime(0);
+      
+      // Reset horses to starting positions
+      if (horsesRef.current && horsesRef.current.length > 0) {
+        horsesRef.current.forEach((horse, index) => {
+          if (horse && horse.sprite) {
+            horse.sprite.position.x = -9; // Reset to starting position
+            horse.position = -9;
+            horse.finished = false;
+            horse.currentFrame = 0;
+            horse.fatigue = 0;
+          }
+        });
+      }
+
+      const scene = sceneRef.current;
+    }
+  }, [gameState, raceStarted, horseStats]);
+
+  
 
   const getOdds = (horseId) => {
     let str = "0.00";
@@ -656,145 +685,133 @@ const HorseRacingGame = () => {
     });
   };
 
-  useEffect(() => {
-    if (horseStats && horsesRef.current) {
-      for (let i = 0; i < horsesRef.current.length; i++) {
-        const horse = horsesRef.current[i];
-        const stats = horseStats[i];
-        if (horse && stats) {
-          horse.speed = +stats.speed;
-          horse.finished = stats.finished;
-          horse.stamina = +stats.stamina;
-          horse.fatigue = stats.fatigue;
-          horse.animationSpeed = stats.animationSpeed;
-          horse.baseSpeed = stats.baseSpeed;
-          horse.position = stats.position;
-          horse.baseAnimationSpeed = stats.baseAnimationSpeed;
-        }
-      }
-    }
-  }, [horseStats]);
   
   function truncateToTwoDecimals(num) {
       return Math.trunc(num * 100) / 100;
   }
 
   
+  
   // Start the race
   const startRace = () => {
-    setGameStarted(true);
-    setRaceTime(0);
-    setTimerActive(true);
-    
-    const scene = sceneRef.current;
-    const gatesToOpen = [];
-    
-    scene.traverse((object) => {
-      if (object.userData && object.userData.isGate) {
-        gatesToOpen.push(object);
+      if (gameState === GameState.NewGame) {
+        return;
       }
-    });
-    
-    const openGates = () => {
-      let allGatesOpen = false;
-      let openingFrames = 0;
-      const maxOpeningFrames = 15; // Complete animation in 15 frames (1/4 second)
+      setTimerActive(true);
+      setRaceStarted(true);
       
-      const animateGateOpening = () => {
-        openingFrames++;
-        
-        gatesToOpen.forEach(gate => {
-          // Rotate gate to open position
-          gate.rotation.y -= 0.15; // Each frame rotate a bit more
-          
-          // Also move slightly to simulate swinging open
-          gate.position.x -= 0.005;
-        });
-        
-        if (openingFrames < maxOpeningFrames) {
-          requestAnimationFrame(animateGateOpening);
-        } else {
-          allGatesOpen = true;
-          // After gates are open, remove them for cleaner scene
-          setTimeout(() => {
-            gatesToOpen.forEach(gate => {
-              scene.remove(gate);
-            });
-            
-            // Remove all gate parts with delay for a cleaner scene
-            setTimeout(() => {
-              const partsToRemove = [];
-              scene.traverse((object) => {
-                if (object.userData && object.userData.isGatePart) {
-                  partsToRemove.push(object);
-                }
-              });
-              partsToRemove.forEach(part => scene.remove(part));
-            }, 10); // Remove parts after 2 seconds
-          }, 50); // Remove gates after half second
+      const scene = sceneRef.current;
+      const gatesToOpen = [];
+      
+      scene.traverse((object) => {
+        if (object.userData && object.userData.isGate) {
+          gatesToOpen.push(object);
         }
+      });
+      
+      const openGates = () => {
+        let allGatesOpen = false;
+        let openingFrames = 0;
+        const maxOpeningFrames = 15; // Complete animation in 15 frames (1/4 second)
+        
+        const animateGateOpening = () => {
+          openingFrames++;
+          
+          gatesToOpen.forEach(gate => {
+            // Rotate gate to open position
+            gate.rotation.y -= 0.15; // Each frame rotate a bit more
+            
+            // Also move slightly to simulate swinging open
+            gate.position.x -= 0.005;
+          });
+          
+          if (openingFrames < maxOpeningFrames) {
+            requestAnimationFrame(animateGateOpening);
+          } else {
+            allGatesOpen = true;
+            // After gates are open, remove them for cleaner scene
+            setTimeout(() => {
+              gatesToOpen.forEach(gate => {
+                scene.remove(gate);
+              });
+              
+              // Remove all gate parts with delay for a cleaner scene
+              setTimeout(() => {
+                const partsToRemove = [];
+                scene.traverse((object) => {
+                  if (object.userData && object.userData.isGatePart) {
+                    partsToRemove.push(object);
+                  }
+                });
+                partsToRemove.forEach(part => scene.remove(part));
+              }, 10); // Remove parts after 2 seconds
+            }, 50); // Remove gates after half second
+          }
+        };
+        
+        // Start the gate opening animation
+        animateGateOpening();
       };
       
-      // Start the gate opening animation
-      animateGateOpening();
-    };
-    
-    openGates();
-
-    animateRace();
+      openGates();
   };
+
+  if(gameState === "NewGame"){
+    console.log(cameraRef.current.position);
+  }
   
   // Animate the race
   const animateRace = () => {
+    console.log(gameState)
     const startPosition = -9;
     const finishLine = 7 + 101.9;
     let allFinished = true;
     let raceActive = true;
-    let raceFinished = false; 
   
     const updateRace = () => {
-      allFinished = true;
+      if (gameState === GameState.NewGame && !horseStats) {
+        return; 
+      }
+      
       let maxPosition = 0;
   
       // First check if any horse has finished the race
       horsesRef.current.forEach(horse => {
         if (horse && horse.position >= finishLine && !raceFinished) {
-          raceFinished = true;
-          // When one horse finishes, we'll stop animation updates for all horses
+          setRaceFinished(true);
         }
       });
   
       horsesRef.current.forEach((horse, idx) => {
-        if(horse){
+        const stats = horseStats[idx];
+        if(horse && stats){
+          horse.speed = Number(stats.speed);
+          horse.finished = stats.finished;
+          horse.stamina = Number(stats.stamina);
+          horse.fatigue = stats.fatigue;
+          horse.animationSpeed = stats.animationSpeed;
+          horse.baseSpeed = stats.baseSpeed;
+          horse.position = stats.position;
+          horse.baseAnimationSpeed = stats.baseAnimationSpeed;
+          horse.currentFrame = stats.currentFrame;
+          
           // Update position tracking for camera
           if (horse.position > maxPosition && !horse.finished) {
             maxPosition = horse.position;
           }
   
-          // Check if horse reached finish line
-          if (horse.position >= finishLine) {
-            horse.finished = true;
-            horse.sprite.position.x = finishLine;
-          }
-  
           // Only animate if the race is still active (no horse has finished)
-          if (!raceFinished) {
+          if (!raceFinished && gameState === GameState.Closed) {
             // Update animation frame based on current speed
-            if(horse.animationSpeed){
-              horse.currentFrame = (horse.currentFrame + horse.animationSpeed * 1) % horse.frameCount;
-            }
-            
             const frameIndex = Math.floor(horse.currentFrame);
             const frames = spriteFramesRef.current[horses[idx]?.id];
             if (frames && frameIndex < frames.length) {
               horse.sprite.material.map = frames[frameIndex];
             }
-    
+  
             // Move horse if not finished
             if (!horse.finished) {
-              if(horse.position) {
-                horse.sprite.position.x = horse.position; 
-              }
+              horse.sprite.position.x = horse.position; 
             }
           }
   
@@ -806,17 +823,17 @@ const HorseRacingGame = () => {
       });
   
       // Smooth camera follow - adjust the lerp factor (0.1) for faster/slower follow
-      if (raceActive) {
+      if (raceActive && gameState === GameState.Closed) {
         const targetX = maxPosition;
         cameraRef.current.position.x += (targetX - cameraRef.current.position.x) * 0.1;
         
-        // Keep camera within reasonable bounds (optional)
+        // Keep camera within reasonable bounds
         cameraRef.current.position.x = Math.max(startPosition, cameraRef.current.position.x);
-        cameraRef.current.position.x = Math.min(finishLine - 5, cameraRef.current.position.x); // Keep some space at finish line
+        cameraRef.current.position.x = Math.min(finishLine - 5, cameraRef.current.position.x);
       }
   
-      // End the race if all horses finished
-      if (allFinished) {
+      // End the race if all horses finished or game state changed
+      if (allFinished || gameState === GameState.NewGame) {
         raceActive = false;
       } else {
         // Continue animation if not all horses finished
@@ -826,6 +843,9 @@ const HorseRacingGame = () => {
   
     animationFrameRef.current = requestAnimationFrame(updateRace);
   };
+  
+
+  
   
  
   
@@ -1000,37 +1020,9 @@ const HorseRacingGame = () => {
     window.userData = { isGatePart: true };
   };
   
-  const nextRound = () => {
-    setGameStarted(false);
-    setWinner(null);
-    setPlayerWon(false);
-    setRaceTime(0);
-
-    if(cameraRef.current){
-      cameraRef.current.position.x = 0;
-    }
+  // const nextRound = () => {
     
-    if (horsesRef.current) {
-      horsesRef.current.forEach((horse) => {
-        if (!horse) return;
-        
-        horse.position = -9;
-        if (horse.sprite) {
-          horse.sprite.position.x = -9;
-        }
-        horse.finished = false;
-        horse.fatigue = 0;
-        horse.raceProgress = 0;
-        horse.stamina = 0;
-        horse.speed = 0;
-        horse.animationSpeed = 0;
-        horse.currentFrame = 0;
-      });
-    }
-    
-    const scene = sceneRef.current;
-    createStartGates();
-  };
+  // };
   
   // Format time as MM:SS
   const formatTime = (seconds) => {

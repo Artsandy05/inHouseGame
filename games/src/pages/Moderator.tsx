@@ -285,7 +285,7 @@ const Moderator = () => {
     if(horseRaceGameState === GameState.WinnerDeclared){
       setTimeout(() => {
         newHorseRaceGame();
-      }, 6000);
+      }, 8000);
     }
     if(horseRaceGameState === GameState.Closed){
       startRace();
@@ -610,7 +610,7 @@ useEffect(() => {
           horse.speed = Math.max(0.025, Math.min(0.05, newSpeed));
   
           // Animation speed sync
-          horse.animationSpeed = horse.baseAnimationSpeed * ((horse.speed * 1.1) / 0.015);
+          horse.animationSpeed = horse.baseAnimationSpeed * ((horse.speed * 1.1) / 0.025);
         });
       }
   

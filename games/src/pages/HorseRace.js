@@ -63,10 +63,10 @@ const chipValues = {
 
 // Horse sprite sheets
 const horseSpriteSheets = {
-  thunder: '/assets/blueHorse.png',
-  lightning: '/assets/greenHorse.png',
-  storm: '/assets/redHorse.png',
-  blaze: '/assets/yellowHorse.png',
+  thunder: '/assets/blueHorse.webp',
+  lightning: '/assets/greenHorse.webp',
+  storm: '/assets/redHorse.webp',
+  blaze: '/assets/yellowHorse.webp',
 };
 
 // Horse names and colors

@@ -277,17 +277,19 @@ const Moderator = () => {
         startHorseRaceGame();
       }, 4000);
     }
+    
     if(horseRaceGameState === 'Void'){
       setTimeout(() => {
         newHorseRaceGame();
       }, 1500);
     }
+
     if(horseRaceGameState === GameState.WinnerDeclared){
       setTimeout(() => {
         newHorseRaceGame();
-      }, 40000);
+      }, 6000);
     }
-    
+
     if(horseRaceGameState === GameState.Closed){
       startRace();
     }

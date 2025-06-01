@@ -344,56 +344,7 @@ const HorseRacingGame = () => {
     };
   }, [raceStarted, animateRace]);
 
-  // useEffect(() => {
-  //   if (raceStarted) {
-  //     const startPosition = -9;
-  //     const finishLine = 7 + 101.9;
-  //     let maxPosition = 0;
-  //     let raceFinished = false;
-      
-  //     // Check if any horse has finished the race
-  //     horsesRef.current.forEach(horse => {
-  //       if (horse && horse.position >= finishLine && !raceFinished) {
-  //         raceFinished = true;
-  //       }
-  //     });
-      
-  //     horsesRef.current.forEach((horse, idx) => {
-  //       if (horse) {
   
-  //         // Update position tracking for camera
-  //         if (horse.position > maxPosition && !horse.finished) {
-  //           maxPosition = horse.position;
-  //         }
-  
-  //         // Only animate if the race is still active (no horse has finished)
-  //         if (!raceFinished) {
-  //           // Update animation frame based on current speed
-  //           const frameIndex = Math.floor(horse.currentFrame);
-  //           const frames = spriteFramesRef.current[horses[idx]?.id];
-  //           if (frames && frameIndex < frames.length) {
-  //             horse.sprite.material.map = frames[frameIndex];
-  //           }
-  
-  //           // Move horse if not finished
-  //           if (!horse.finished) {
-  //             horse.sprite.position.x = horse.position; 
-  //           }
-  //         }
-  //       }
-  //     });
-  
-  //     // Update camera position based on leading horse
-  //     if (cameraRef.current) {
-  //       const targetX = maxPosition;
-  //       cameraRef.current.position.x += (targetX - cameraRef.current.position.x) * 0.1;
-  
-  //       // Keep camera within reasonable bounds
-  //       cameraRef.current.position.x = Math.max(startPosition, cameraRef.current.position.x);
-  //       cameraRef.current.position.x = Math.min(finishLine - 5, cameraRef.current.position.x);
-  //     }
-  //   }
-  // }, [raceStarted, horseStats]);
 
   useEffect(() => {
     if(gameState === GameState.NewGame){

@@ -793,20 +793,23 @@ const createRaceTrack = () => {
     });
   };
 
-  if (boatStats) {
-    boatsRef.current.forEach((boat, idx) => {
-      if(boat){
-        boat.speed = Number(boatStats[idx].speed);
-        boat.finished = boatStats[idx].finished;
-        boat.stamina = Number(boatStats[idx].stamina);
-        boat.fatigue = (boatStats[idx].fatigue);
-        boat.animationSpeed = boatStats[idx].animationSpeed;
-        boat.baseSpeed = boatStats[idx].baseSpeed;
-        boat.position = boatStats[idx].position;
-        boat.baseAnimationSpeed = boatStats[idx].baseAnimationSpeed;
-      }
-    });
-  }
+  useEffect(() => {
+    if (boatStats) {
+      boatsRef.current.forEach((boat, idx) => {
+        if(boat){
+          boat.speed = Number(boatStats[idx].speed);
+          boat.finished = boatStats[idx].finished;
+          boat.stamina = Number(boatStats[idx].stamina);
+          boat.fatigue = (boatStats[idx].fatigue);
+          boat.animationSpeed = boatStats[idx].animationSpeed;
+          boat.baseSpeed = boatStats[idx].baseSpeed;
+          boat.position = boatStats[idx].position;
+          boat.baseAnimationSpeed = boatStats[idx].baseAnimationSpeed;
+        }
+      });
+    }
+  }, [boatStats]);
+  
 
   function truncateToTwoDecimals(num) {
       return Math.trunc(num * 100) / 100;

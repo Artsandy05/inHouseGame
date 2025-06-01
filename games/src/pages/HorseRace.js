@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import * as THREE from 'three';
 import { 
   Button, 
@@ -247,6 +247,153 @@ const HorseRacingGame = () => {
       startRace();
     }
   }, [gameState]);
+
+  useEffect(() => {
+    if(horseStats){
+      horsesRef.current.forEach((horse, idx) => {
+        const stats = horseStats[idx];
+        if (horse && stats) {
+          // Update horse properties from WebSocket data
+          horse.speed = Number(stats.speed);
+          horse.finished = stats.finished;
+          horse.stamina = Number(stats.stamina);
+          horse.fatigue = stats.fatigue;
+          horse.animationSpeed = stats.animationSpeed;
+          horse.baseSpeed = stats.baseSpeed;
+          horse.position = stats.position;
+          horse.baseAnimationSpeed = stats.baseAnimationSpeed;
+          horse.currentFrame = stats.currentFrame;
+        }
+      });
+    }
+  }, [horseStats]);
+
+  
+
+  const animationIdRef = useRef(null);
+  const lastFrameTimeRef = useRef(0);
+
+  const animateRace = useCallback((currentTime) => {
+    if (!raceStarted) return;
+  
+    // Throttle to ~60fps to avoid excessive calculations
+    if (currentTime - lastFrameTimeRef.current < 16) {
+      animationIdRef.current = requestAnimationFrame(animateRace);
+      return;
+    }
+    lastFrameTimeRef.current = currentTime;
+  
+    const startPosition = -9;
+    const finishLine = 7 + 101.9;
+    let maxPosition = 0;
+    let raceFinished = false;
+    
+    // Single loop to check everything
+    horsesRef.current.forEach((horse, idx) => {
+      if (!horse) return;
+  
+      // Check if race is finished
+      if (horse.position >= finishLine) {
+        raceFinished = true;
+      }
+  
+      // Update max position for camera
+      if (horse.position > maxPosition && !horse.finished) {
+        maxPosition = horse.position;
+      }
+  
+      // Only animate if race is still active
+      if (!raceFinished && !horse.finished) {
+        // Update sprite frame
+        const frameIndex = Math.floor(horse.currentFrame);
+        const frames = spriteFramesRef.current[horses[idx]?.id];
+        if (frames && frameIndex < frames.length) {
+          horse.sprite.material.map = frames[frameIndex];
+        }
+  
+        // Update position
+        horse.sprite.position.x = horse.position;
+      }
+    });
+  
+    // Update camera with smooth interpolation
+    if (cameraRef.current && maxPosition > 0) {
+      const targetX = Math.max(startPosition, Math.min(finishLine - 5, maxPosition));
+      cameraRef.current.position.x += (targetX - cameraRef.current.position.x) * 0.1;
+    }
+  
+    // Continue animation loop if race is not finished
+    if (!raceFinished) {
+      animationIdRef.current = requestAnimationFrame(animateRace);
+    }
+  }, [raceStarted, horses]);
+
+  useEffect(() => {
+    if (raceStarted) {
+      animationIdRef.current = requestAnimationFrame(animateRace);
+    } else {
+      if (animationIdRef.current) {
+        cancelAnimationFrame(animationIdRef.current);
+      }
+    }
+  
+    return () => {
+      if (animationIdRef.current) {
+        cancelAnimationFrame(animationIdRef.current);
+      }
+    };
+  }, [raceStarted, animateRace]);
+
+  // useEffect(() => {
+  //   if (raceStarted) {
+  //     const startPosition = -9;
+  //     const finishLine = 7 + 101.9;
+  //     let maxPosition = 0;
+  //     let raceFinished = false;
+      
+  //     // Check if any horse has finished the race
+  //     horsesRef.current.forEach(horse => {
+  //       if (horse && horse.position >= finishLine && !raceFinished) {
+  //         raceFinished = true;
+  //       }
+  //     });
+      
+  //     horsesRef.current.forEach((horse, idx) => {
+  //       if (horse) {
+  
+  //         // Update position tracking for camera
+  //         if (horse.position > maxPosition && !horse.finished) {
+  //           maxPosition = horse.position;
+  //         }
+  
+  //         // Only animate if the race is still active (no horse has finished)
+  //         if (!raceFinished) {
+  //           // Update animation frame based on current speed
+  //           const frameIndex = Math.floor(horse.currentFrame);
+  //           const frames = spriteFramesRef.current[horses[idx]?.id];
+  //           if (frames && frameIndex < frames.length) {
+  //             horse.sprite.material.map = frames[frameIndex];
+  //           }
+  
+  //           // Move horse if not finished
+  //           if (!horse.finished) {
+  //             horse.sprite.position.x = horse.position; 
+  //           }
+  //         }
+  //       }
+  //     });
+  
+  //     // Update camera position based on leading horse
+  //     if (cameraRef.current) {
+  //       const targetX = maxPosition;
+  //       cameraRef.current.position.x += (targetX - cameraRef.current.position.x) * 0.1;
+  
+  //       // Keep camera within reasonable bounds
+  //       cameraRef.current.position.x = Math.max(startPosition, cameraRef.current.position.x);
+  //       cameraRef.current.position.x = Math.min(finishLine - 5, cameraRef.current.position.x);
+  //     }
+  //   }
+  // }, [raceStarted, horseStats]);
 
   useEffect(() => {
     if(gameState === GameState.NewGame){
@@ -752,166 +899,11 @@ const HorseRacingGame = () => {
       };
       
       openGates();
-
-      animateRace();
   };
 
-  // const animateRace = () => {
-  //   const startPosition = -9;
-  //   const finishLine = 7 + 101.9;
-  //   let allFinished = false;
-  //   let raceActive = true;
-  //   let raceFinished = false;
   
-  //   const updateRace = () => {
-  //     let maxPosition = 0;
-  //     let anyHorseFinished = false;
-  //     const currentHorseStats = playerStore.getState().horseStats;
-    
-  //     if (currentHorseStats) {
-  //       // Single loop instead of multiple forEach calls
-  //       for (let idx = 0; idx < horsesRef.current.length; idx++) {
-  //         const horse = horsesRef.current[idx];
-  //         const stats = currentHorseStats[idx];
-          
-  //         if (!horse || !stats) continue;
-    
-  //         // Check finish condition
-  //         if (horse.position >= finishLine && !raceFinished) {
-  //           anyHorseFinished = true;
-  //         }
-    
-  //         // Batch property updates
-  //         Object.assign(horse, {
-  //           speed: stats.speed,
-  //           finished: stats.finished,
-  //           stamina: stats.stamina,
-  //           fatigue: stats.fatigue,
-  //           animationSpeed: stats.animationSpeed,
-  //           baseSpeed: stats.baseSpeed,
-  //           position: stats.position,
-  //           baseAnimationSpeed: stats.baseAnimationSpeed,
-  //           currentFrame: stats.currentFrame
-  //         });
-    
-  //         // Update max position
-  //         if (horse.position > maxPosition && !horse.finished) {
-  //           maxPosition = horse.position;
-  //         }
-    
-  //         // Animation updates only if race active
-  //         if (!raceFinished && !horse.finished) {
-  //           const frameIndex = Math.floor(horse.currentFrame);
-  //           const frames = spriteFramesRef.current[horses[idx]?.id];
-  //           if (frames?.[frameIndex]) {
-  //             horse.sprite.material.map = frames[frameIndex];
-  //           }
-  //           horse.sprite.position.x = horse.position;
-  //         }
-  //       }
-  //     }
-    
-  //     // Move state update outside of loop
-  //     if (anyHorseFinished && !raceFinished) {
-  //       raceFinished = true;
-  //     }
-    
-  //     // Camera update
-  //     if (raceActive) {
-  //       const targetX = maxPosition;
-  //       const camera = cameraRef.current;
-  //       camera.position.x += (targetX - camera.position.x) * 0.1;
-  //       camera.position.x = Math.max(startPosition, Math.min(finishLine - 5, camera.position.x));
-  //     }
-    
-  //     if (!raceFinished) {
-  //       animationFrameRef.current = requestAnimationFrame(updateRace);
-  //     }
-  //   };
+
   
-  //   animationFrameRef.current = requestAnimationFrame(updateRace);
-  // };
-
-  const animateRace = () => {
-    const startPosition = -9;
-    const finishLine = 7 + 101.9;
-    let allFinished = false;
-    let raceActive = true;
-    let raceFinished = false;
-
-    const updateRace = () => {
-      let maxPosition = 0;
-      const currentHorseStats = playerStore.getState().horseStats;
-      // First check if any horse has finished the race
-      horsesRef.current.forEach(horse => {
-        if (horse && horse.position >= finishLine && !raceFinished) {
-          raceFinished = true;
-        }
-      });
-
-      if(currentHorseStats){
-        horsesRef.current.forEach((horse, idx) => {
-          const stats = currentHorseStats[idx];
-          if(horse && stats){
-            horse.speed = Number(stats.speed);
-            horse.finished = stats.finished;
-            horse.stamina = Number(stats.stamina);
-            horse.fatigue = stats.fatigue;
-            horse.animationSpeed = stats.animationSpeed;
-            horse.baseSpeed = stats.baseSpeed;
-            horse.position = stats.position;
-            horse.baseAnimationSpeed = stats.baseAnimationSpeed;
-            horse.currentFrame = stats.currentFrame;
-
-            // Update position tracking for camera
-            if (horse.position > maxPosition && !horse.finished) {
-              maxPosition = horse.position;
-            }
-
-            // Only animate if the race is still active (no horse has finished)
-            if (!raceFinished) {
-              // Update animation frame based on current speed
-              const frameIndex = Math.floor(horse.currentFrame);
-              const frames = spriteFramesRef.current[horses[idx]?.id];
-              if (frames && frameIndex < frames.length) {
-                horse.sprite.material.map = frames[frameIndex];
-              }
-
-              // Move horse if not finished
-              if (!horse.finished) {
-                horse.sprite.position.x = horse.position; 
-              }
-            }
-
-            // Track if all horses have finished
-            if (!horse.finished) {
-              allFinished = false;
-            }
-          }
-        });
-      }
-
-      // Smooth camera follow - adjust the lerp factor (0.1) for faster/slower follow
-      if (raceActive) {
-        const targetX = maxPosition;
-        cameraRef.current.position.x += (targetX - cameraRef.current.position.x) * 0.1;
-
-        // Keep camera within reasonable bounds
-        cameraRef.current.position.x = Math.max(startPosition, cameraRef.current.position.x);
-        cameraRef.current.position.x = Math.min(finishLine - 5, cameraRef.current.position.x);
-      }
-
-      // End the race if all horses finished or game state changed
-      if (raceFinished) {
-        raceActive = false;
-      } else {
-        // Continue animation if not all horses finished
-        animationFrameRef.current = requestAnimationFrame(updateRace);
-      }
-    };
-
-    animationFrameRef.current = requestAnimationFrame(updateRace);
-  };
 
 
   

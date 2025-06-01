@@ -444,7 +444,7 @@ const HorseRacingGame = () => {
     cameraRef.current = camera;
     
     // Setup renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true,powerPreference: "low-power" });
     renderer.setSize(window.innerWidth, window.innerHeight);
     // Set the correct color space for accurate color reproduction
     renderer.outputColorSpace = THREE.SRGBColorSpace;

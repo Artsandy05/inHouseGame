@@ -2355,10 +2355,9 @@ const HorseRacingGame = () => {
         
         <Box ref={canvasRef} sx={{ width: '100%', height: '100%' }} />
         
-        {showConfetti && <Confetti width={window.innerWidth} height={window.innerHeight} />}
-        {renderVoidDialog()}
-        {renderHelpDialog()}
-        {gameHistory && renderHistoryPanel()}
+        {voidMessage && renderVoidDialog()}
+        {helpDialogOpen && renderHelpDialog()}
+        {(gameHistory && historyDialogOpen) && renderHistoryPanel()}
         
         {isLandscape && (
           <>
@@ -2590,7 +2589,7 @@ const HorseRacingGame = () => {
             
             {/* {gameFinished && renderWinnerAnnouncement()} */}
             
-            {renderBetPanel()}
+            {(gameState === GameState.Open || gameState === GameState.LastCall) && renderBetPanel()}
           </>
         )}
         {countdown <= 5 && countdown > 0 && (

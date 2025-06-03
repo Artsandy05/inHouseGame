@@ -2356,8 +2356,8 @@ const HorseRacingGame = () => {
         <Box ref={canvasRef} sx={{ width: '100%', height: '100%' }} />
         
         {voidMessage && renderVoidDialog()}
-        {helpDialogOpen && renderHelpDialog()}
-        {(gameHistory && historyDialogOpen) && renderHistoryPanel()}
+        {(helpDialogOpen && gameState !== GameState.Closed) && renderHelpDialog()}
+        {(gameHistory && gameState !== GameState.Closed) && renderHistoryPanel()}
         
         {isLandscape && (
           <>

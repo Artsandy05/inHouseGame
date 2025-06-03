@@ -83,16 +83,6 @@ const horseColor = {
   blaze: '#FFD700',
 };
 
-const sampleGameHistory = [
-  { id: 1, winner: 'storm', date: '2023-05-15 14:30' },
-  { id: 2, winner: 'thunder', date: '2023-05-15 14:15' },
-  { id: 3, winner: 'blaze', date: '2023-05-15 14:00'},
-  { id: 4, winner: 'lightning', date: '2023-05-15 13:45' },
-  { id: 5, winner: 'storm', date: '2023-05-15 13:30' },
-  { id: 6, winner: 'thunder', date: '2023-05-15 13:15' },
-  { id: 7, winner: 'blaze', date: '2023-05-15 13:00'},
-  { id: 8, winner: 'lightning', date: '2023-05-15 12:45' },
-];
 
 const encryptor = createEncryptor(process.env.REACT_APP_DECRYPTION_KEY);
 
@@ -467,7 +457,6 @@ const HorseRacingGame = () => {
     // Create race track
     createRaceTrack(textureLoader);
     
-    // Load horse sprite sheets
     loadHorseSprites(textureLoader);
     
     // Handle window resize
@@ -853,11 +842,6 @@ const HorseRacingGame = () => {
   };
 
   
-
-  
-
-
-  
   // Handle placing bets
   const openBetDialog = () => {
     setBetDialogOpen(true);
@@ -866,7 +850,6 @@ const HorseRacingGame = () => {
   const closeBetDialog = () => {
     setBetDialogOpen(false);
   };
-  
   
 
   // Create improved start gates
@@ -1029,9 +1012,7 @@ const HorseRacingGame = () => {
     window.userData = { isGatePart: true };
   };
   
-  // const nextRound = () => {
-    
-  // };
+  
   
   // Format time as MM:SS
   const formatTime = (seconds) => {

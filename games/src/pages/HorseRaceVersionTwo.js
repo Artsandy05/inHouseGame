@@ -11,6 +11,12 @@ import {
   Alert
 } from '@mui/material';
 import Phaser from 'phaser';
+import { playerStore } from '../utils/horseRace';
+import { GameState } from '../utils/gameutils';
+import { useSearchParams } from 'react-router-dom';
+import createEncryptor from '../utils/createEncryptor';
+
+const encryptor = createEncryptor(process.env.REACT_APP_DECRYPTION_KEY);
 
 const HorseRacingGameVersionTwo = () => {
   const gameRef = useRef(null);
@@ -22,6 +28,88 @@ const HorseRacingGameVersionTwo = () => {
   const [leader, setLeader] = useState('-');
   const [raceStatus, setRaceStatus] = useState('Ready to Start');
   const [showWinnerDialog, setShowWinnerDialog] = useState(false);
+  const [totalBets, setTotalBets] = useState(0);
+  const [credits, setCredits] = useState(0);
+
+  const { gameState, setPlayerInfo, sendMessage, countdown, slots,setSlots,odds, allBets, winningBall, setUserInfo, topPlayers, voidMessage, horseStats, latestBalance } = playerStore();
+  const { connect } = playerStore.getState();
+  const [searchParams] = useSearchParams();
+  const userDetailsParam = searchParams.get('data');
+  let decrypted;
+
+  if(userDetailsParam){
+    decrypted = encryptor.decryptParams(userDetailsParam);
+  }
+  const urlUserDetails = decrypted ? decrypted : null;
+  const localStorageUser = JSON.parse(localStorage.getItem('user') || 'null');
+  const userInfo = {
+    userData: {
+      data: {
+        user: {
+          id: Number(urlUserDetails?.id) || localStorageUser?.userData?.data?.user?.id || 0,
+          firstName: urlUserDetails?.first_name || localStorageUser?.userData?.data?.user?.firstName || 'Guest',
+          lastName: urlUserDetails?.last_name || localStorageUser?.userData?.data?.user?.lastName || 'Guest',
+          balance: urlUserDetails?.credits || localStorageUser?.userData?.data?.wallet?.balance || 0,
+          mobile: urlUserDetails?.mobile || localStorageUser?.userData?.data?.user?.mobile || 'N/A',
+          uuid: urlUserDetails?.uuid || localStorageUser?.userData?.data?.user?.uuid || '0',
+          email: urlUserDetails?.email || localStorageUser?.userData?.data?.user?.email || 'test@gmail.com',
+          role: 'player',
+        },
+        wallet: {
+          balance: urlUserDetails?.credits || localStorageUser?.userData?.data?.wallet?.balance || 0
+        }
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (slots.size > 0) {
+      let total = 0;
+  
+      slots.forEach(value => {
+        total += value;
+      });
+      setTotalBets(total);
+    }else{
+      setTotalBets(0);
+    }
+  }, [slots]);
+
+  useEffect(() => {
+    if (gameState === GameState.NewGame || gameState === GameState.WinnerDeclared) {
+      setTotalBets(0);
+    }
+  }, [gameState]);
+
+  useEffect(() => {
+    if(userInfo){
+      setUserInfo(userInfo.userData.data.user);
+    }
+  }, []);
+
+  useEffect(() => {
+    if(latestBalance){
+      setCredits(latestBalance);
+    }else{
+      setCredits(urlUserDetails?.credits || localStorageUser?.userData?.data?.wallet?.balance);
+    }
+  }, [latestBalance]);
+
+  useEffect(() => {
+    connect();
+
+    return () => {
+      const { socket } = playerStore.getState();
+      if (socket) {
+        socket.close();
+      }
+    };
+  }, []);
+
+  // if(horseStats){
+  //   console.log(horseStats)
+  // }
+  
 
   // Game constants
   const horses = [
@@ -46,15 +134,16 @@ const HorseRacingGameVersionTwo = () => {
       requestAnimationFrame(() => initGame()); // Delay Phaser init
     }
   };
-  
 
+  
   // Phaser Game Scene
   class RaceScene extends Phaser.Scene {
     constructor() {
       super({ key: 'RaceScene' });
       this.horses = [];
       this.gates = [];
-      this.raceDistance = 1200;
+      this.raceDistance = 3500;
+      this.finishLinePosition = 109; // When position reaches this value in horseStats (7 + 101.9)
       this.leadingHorse = null;
       this.cameraFollowSpeed = 0.05;
       this.trees = [];
@@ -109,7 +198,7 @@ const HorseRacingGameVersionTwo = () => {
       this.physics.world.setBounds(0, 0, this.raceDistance + 400, 600);
       
       // Create background
-      this.add.rectangle(this.raceDistance / 2, 300, this.raceDistance + 400, 600, 0x87CEEB);
+      this.add.rectangle(this.raceDistance / 2, 300, this.raceDistance + 800, 600, 0x87CEEB);
       
       // Create race track
       this.createRaceTrack();
@@ -132,7 +221,7 @@ const HorseRacingGameVersionTwo = () => {
     }
 
     createRaceTrack() {
-      const trackWidth = this.raceDistance + 200;
+      const trackWidth = this.raceDistance + 500;
       const trackHeight = 400;
       
       // Ground/grass
@@ -144,7 +233,7 @@ const HorseRacingGameVersionTwo = () => {
         const laneColor = horse.laneColor === '#A0522D' ? 0xA0522D : 0xdba556;
         
         // Create lane
-        this.add.rectangle(trackWidth / 2, laneY, trackWidth, 60, laneColor);
+        this.add.rectangle(trackWidth / 2, laneY, trackWidth, 80, laneColor);
         
         // Create lane dividers
         if (index < horses.length - 1) {
@@ -154,29 +243,29 @@ const HorseRacingGameVersionTwo = () => {
       
       // Track fences
       this.add.rectangle(trackWidth / 2, 120, trackWidth, 8, 0x808080);
-      this.add.rectangle(trackWidth / 2, 480, trackWidth, 8, 0x808080);
+      this.add.rectangle(trackWidth / 2, 430, trackWidth, 8, 0x808080);
       
       // Fence posts
       for (let i = 0; i < trackWidth / 40; i++) {
-        this.add.rectangle(i * 40 + 20, 110, 4, 20, 0x808080);
-        this.add.rectangle(i * 40 + 20, 490, 4, 20, 0x808080);
+        this.add.rectangle(i * 40 + 20, 130, 4, 20, 0x808080);
+        this.add.rectangle(i * 40 + 20, 440, 4, 20, 0x808080);
       }
     }
 
     createEnvironment() {
       // Create trees
-      const treeCount = 60;
-      const trackLength = this.raceDistance + 200;
+      const treeCount = 50;
+      const trackLength = this.raceDistance + 500;
       
       for (let i = 0; i < treeCount; i++) {
         const treeType = Phaser.Math.Between(1, 6);
         const treeX = Phaser.Math.Between(50, trackLength - 50);
-        const treeY = Math.random() > 0.5 ? 50 : 550;
-        const treeScale = 0.1 + Math.random() * 0.4;
+        const treeY = Math.random() > 0.5 ? 50 : 500;
+        const treeScale = 0.2 * Math.random() *1.2;
         
         const tree = this.add.image(treeX, treeY, `tree${treeType}`);
         tree.setScale(treeScale);
-        tree.setDepth(treeY > 300 ? 10 : -10);
+        tree.setDepth(treeY > 300 ? 10 : 1);
         this.trees.push(tree);
       }
       
@@ -185,8 +274,8 @@ const HorseRacingGameVersionTwo = () => {
       for (let i = 0; i < cloudCount; i++) {
         const cloudType = Phaser.Math.Between(1, 3);
         const cloudX = Phaser.Math.Between(0, trackLength);
-        const cloudY = Phaser.Math.Between(30, 30);
-        const cloudScale = 0.1 + Math.random() * 0.5;
+        const cloudY = Phaser.Math.Between(0, 10);
+        const cloudScale = 0.005 + Math.random() * 0.2;
         
         const cloud = this.add.image(cloudX, cloudY, `cloud${cloudType}`);
         cloud.setScale(cloudScale);
@@ -198,11 +287,11 @@ const HorseRacingGameVersionTwo = () => {
 
     createHorses() {
       horses.forEach((horse, index) => {
-        const laneY = 180 + (index * 80);
+        const laneY = 140 + (index * 80);
         
         // Create horse sprite
-        const horseSprite = this.physics.add.sprite(80, laneY, horse.id);
-        horseSprite.setScale(0.8);
+        const horseSprite = this.physics.add.sprite(50, laneY, horse.id);
+        horseSprite.setScale(1.4);
         horseSprite.setCollideWorldBounds(true);
         
         // Create running animation
@@ -216,22 +305,14 @@ const HorseRacingGameVersionTwo = () => {
           repeat: -1
         });
 
-        // Horse stats for realistic racing
+        // Horse data structure - simplified since we'll use horseStats
         const horseData = {
           sprite: horseSprite,
           id: horse.id,
           name: horse.name,
-          speed: 1.2 + Math.random() * 0.8,
-          stamina: 0.7 + Math.random() * 0.3,
-          acceleration: 0.02 + Math.random() * 0.02,
-          currentSpeed: 0,
-          fatigue: 0,
-          burstChance: 0.003 + Math.random() * 0.002,
-          slowChance: 0.002 + Math.random() * 0.002,
           finished: false,
-          position: index + 1,
           lane: index,
-          performance: Math.random() < 0.33 ? 'early' : Math.random() < 0.5 ? 'consistent' : 'late',
+          statsId: index + 1, // Map to horseStats id (1-4)
           distanceTraveled: 0
         };
 
@@ -240,7 +321,7 @@ const HorseRacingGameVersionTwo = () => {
     }
 
     createStartGates() {
-      const startX = 70;
+      const startX = 90;
       
       // Main gate structure
       const gateHeight = 320;
@@ -293,9 +374,9 @@ const HorseRacingGameVersionTwo = () => {
       });
       
       // Control tower
-      const towerBase = this.add.rectangle(startX - 30, 120, 25, 40, 0x555555);
-      const towerTop = this.add.rectangle(startX - 30, 90, 35, 25, 0x777777);
-      const towerWindow = this.add.rectangle(startX - 30, 120, 15, 12, 0xAADDFF);
+      const towerBase = this.add.rectangle(startX-30, 120-25, 25, 40, 0x555555);
+      const towerTop = this.add.rectangle(startX-30, 90-25, 35, 25, 0x777777);
+      const towerWindow = this.add.rectangle(startX-30, 120-25, 15, 12, 0xAADDFF);
       
       towerBase.setDepth(5);
       towerTop.setDepth(5);
@@ -316,13 +397,13 @@ const HorseRacingGameVersionTwo = () => {
       
       // Flag poles
       const topPole = this.add.rectangle(finishX, 120, 3, 60, 0xC0C0C0);
-      const bottomPole = this.add.rectangle(finishX, 480, 3, 60, 0xC0C0C0);
+      const bottomPole = this.add.rectangle(finishX, 420, 3, 60, 0xC0C0C0);
       topPole.setDepth(5);
       bottomPole.setDepth(5);
       
       // Flags
-      const topFlag = this.add.rectangle(finishX + 15, 90, 25, 20, 0xFF0000);
-      const bottomFlag = this.add.rectangle(finishX + 15, 510, 25, 20, 0xFF0000);
+      const topFlag = this.add.rectangle(finishX + 15, 100, 25, 20, 0xFF0000);
+      const bottomFlag = this.add.rectangle(finishX + 15, 400, 25, 20, 0xFF0000);
       topFlag.setDepth(6);
       bottomFlag.setDepth(6);
     }
@@ -331,7 +412,7 @@ const HorseRacingGameVersionTwo = () => {
       // Animate gate opening
       this.openGates();
       
-      // Start horse animations and movement
+      // Start horse animations
       this.horses.forEach(horse => {
         horse.sprite.play(`${horse.id}_run`);
       });
@@ -344,7 +425,7 @@ const HorseRacingGameVersionTwo = () => {
         targets: gateObjects,
         rotation: -1.5,
         x: '+=20',
-        duration: 250,
+        duration: 1300,
         ease: 'Power2.easeOut',
         onComplete: () => {
           // Remove gates after opening
@@ -356,16 +437,30 @@ const HorseRacingGameVersionTwo = () => {
       });
     }
 
+    // Convert horseStats position to Phaser x coordinate
+    convertStatsPositionToX(statsPosition) {
+      // When statsPosition reaches finishLinePosition (109), horse should be at finish line
+      const progress = Math.min(statsPosition / this.finishLinePosition, 1);
+      const startX = 50;
+      const finishX = this.raceDistance + 20;
+      return startX + (progress * (finishX - startX));
+    }
+
     update() {
       if (!this.gameComponent) return;
       const { raceStarted, raceFinished } = this.gameComponent.state;
       
       if (!raceStarted || raceFinished) return;
       
-      // Update horses
-      this.horses.forEach(horse => {
-        this.updateHorse(horse);
-      });
+      // Get current horseStats from the component
+      const currentHorseStats = this.gameComponent.getHorseStats();
+      
+      if (currentHorseStats && Array.isArray(currentHorseStats)) {
+        // Update horses based on real-time stats
+        this.horses.forEach(horse => {
+          this.updateHorseFromStats(horse, currentHorseStats);
+        });
+      }
       
       // Update camera to follow leading horse
       this.updateCamera();
@@ -374,52 +469,77 @@ const HorseRacingGameVersionTwo = () => {
       this.updateUI();
       
       // Check for race finish
-      this.checkRaceFinish();
+      this.checkRaceFinish(currentHorseStats);
     }
 
-    updateHorse(horse) {
-      // Calculate current speed based on performance characteristics
-      const distanceRatio = horse.distanceTraveled / this.raceDistance;
+    updateHorseFromStats(horse, horseStats) {
+      // Find corresponding stats for this horse
+      const stats = horseStats.find(stat => stat.id === horse.statsId);
       
-      // Apply performance pattern
-      let speedMultiplier = 1;
-      if (horse.performance === 'early') {
-        speedMultiplier = 1.3 - (distanceRatio * 0.5);
-      } else if (horse.performance === 'late') {
-        speedMultiplier = 0.8 + (distanceRatio * 0.6);
+      if (!stats) return;
+    
+      // Update horse position based on stats
+      const newX = this.convertStatsPositionToX(stats.position);
+      horse.distanceTraveled = newX;
+      
+      // Handle animation based on horse movement and stats
+      const isMoving = newX >= 50; // Horse starts moving when x >= 50
+      
+      if (isMoving && !horse.finished) {
+        horse.sprite.x = newX;
+        // Start animation if not already playing
+        if (!horse.sprite.anims.isPlaying) {
+          horse.sprite.play(`${horse.id}_run`);
+        }
+        
+        // Update animation using currentFrame from horseStats
+        if (horse.sprite.anims.currentAnim && stats.currentFrame !== undefined) {
+          // Calculate frame rate based on animationSpeed (convert to reasonable range)
+          const frameRate = Math.max(5, Math.min(20, stats.animationSpeed * 60));
+          horse.sprite.anims.currentAnim.frameRate = frameRate;
+          
+          // Use currentFrame from stats for precise animation sync
+          // Ensure frame is within valid range (0-10 for 11 frames)
+          const targetFrame = Math.floor(stats.currentFrame) % 11;
+          
+          // Only update frame if it's different to avoid constant frame jumping
+          const currentFrameIndex = horse.sprite.anims.currentFrame ? horse.sprite.anims.currentFrame.index : 0;
+          if (Math.abs(currentFrameIndex - targetFrame) > 1) {
+            // Set the specific frame from horseStats
+            if (horse.sprite.anims.currentAnim.frames[targetFrame]) {
+              horse.sprite.anims.setCurrentFrame(horse.sprite.anims.currentAnim.frames[targetFrame]);
+            }
+          }
+        }
+      } else if (!isMoving) {
+        // Stop animation if horse hasn't started moving yet
+        if (horse.sprite.anims.isPlaying) {
+          horse.sprite.stop();
+          // Set to first frame when stopped
+          if (horse.sprite.anims.currentAnim && horse.sprite.anims.currentAnim.frames[0]) {
+            horse.sprite.anims.setCurrentFrame(horse.sprite.anims.currentAnim.frames[0]);
+          }
+        }
       }
       
-      // Random speed variations
-      if (Math.random() < horse.burstChance) {
-        speedMultiplier *= 1.4;
-      }
-      if (Math.random() < horse.slowChance) {
-        speedMultiplier *= 0.7;
-      }
+      // Update finished status
+      horse.finished = stats.finished || stats.position >= this.finishLinePosition;
       
-      // Apply acceleration
-      horse.currentSpeed = Math.min(
-        horse.speed * speedMultiplier,
-        horse.currentSpeed + horse.acceleration
-      );
-      
-      // Apply fatigue
-      horse.fatigue += 0.0001;
-      horse.currentSpeed *= (1 - horse.fatigue);
-      
-      // Move horse
-      horse.sprite.x += horse.currentSpeed;
-      horse.distanceTraveled = horse.sprite.x;
-      
-      // Update animation speed based on current speed
-      const animSpeed = Math.max(5, Math.min(15, horse.currentSpeed * 8));
-      if (horse.sprite.anims.currentAnim) {
-        horse.sprite.anims.currentAnim.frameRate = animSpeed;
+      // Stop animation if finished
+      if (horse.finished && horse.sprite.anims.isPlaying) {
+        horse.sprite.stop();
+        // Set to last frame when finished
+        if (horse.sprite.anims.currentAnim) {
+          const lastFrameIndex = horse.sprite.anims.currentAnim.frames.length - 1;
+          if (horse.sprite.anims.currentAnim.frames[lastFrameIndex]) {
+            horse.sprite.anims.setCurrentFrame(horse.sprite.anims.currentAnim.frames[lastFrameIndex]);
+          }
+        }
       }
     }
 
     updateCamera() {
-      // Find leading horse
+      // Find leading horse based on current position
       let leadingHorse = this.horses[0];
       this.horses.forEach(horse => {
         if (horse.distanceTraveled > leadingHorse.distanceTraveled) {
@@ -443,28 +563,28 @@ const HorseRacingGameVersionTwo = () => {
       }
     }
 
-    checkRaceFinish() {
-      const finishLine = this.raceDistance + 50;
+    checkRaceFinish(horseStats) {
+      if (!horseStats) return;
       
-      this.horses.forEach(horse => {
-        if (!horse.finished && horse.sprite.x >= finishLine) {
-          horse.finished = true;
-          horse.sprite.stop();
-          
-          if (this.gameComponent && !this.gameComponent.state.winner) {
-            this.gameComponent.endRace(horse);
-          }
+      // Check if any horse has finished based on horseStats
+      const finishedHorse = horseStats.find(stats => 
+        stats.finished || stats.position >= this.finishLinePosition
+      );
+      
+      if (finishedHorse && this.gameComponent && !this.gameComponent.state.winner) {
+        // Find the corresponding horse object
+        const winnerHorse = this.horses.find(horse => horse.statsId === finishedHorse.id);
+        if (winnerHorse) {
+          this.gameComponent.endRace(winnerHorse);
         }
-      });
+      }
     }
 
     resetRace() {
-      // Reset horses
+      // Reset horses to starting positions
       this.horses.forEach((horse, index) => {
-        horse.sprite.x = 80;
+        horse.sprite.x = 50;
         horse.sprite.y = 180 + (index * 80);
-        horse.currentSpeed = 0;
-        horse.fatigue = 0;
         horse.finished = false;
         horse.distanceTraveled = 0;
         horse.sprite.stop();
@@ -509,6 +629,7 @@ const HorseRacingGameVersionTwo = () => {
         scene.gameComponent = {
           state: { raceStarted, raceFinished, winner },
           updateLeader: (leaderName) => setLeader(leaderName),
+          getHorseStats: () => horseStats, // Provide access to current horseStats
           endRace: (winnerHorse) => {
             setWinner(winnerHorse);
             setRaceFinished(true);
@@ -517,10 +638,21 @@ const HorseRacingGameVersionTwo = () => {
           }
         };
       }
-    }, 100);
+    }, 50);
   };
-  
 
+  useEffect(() => {
+    if(gameState === GameState.Closed){
+      startRace();
+    }
+  }, [gameState]);
+
+  useEffect(() => {
+    if(gameState === GameState.NewGame){
+      resetRace();
+    }
+  }, [gameState]);
+  
   const startRace = () => {
     if (raceStarted || raceFinished) return;
     
@@ -572,17 +704,17 @@ const HorseRacingGameVersionTwo = () => {
         phaserGameRef.current = null;
       }
   
-      gameRef.current = null; // optional, ensures full reset
+      gameRef.current = null;
     };
   }, []);
   
-
   // Update the scene component reference when state changes
   useEffect(() => {
     if (phaserGameRef.current && phaserGameRef.current.scene.scenes[0]) {
       phaserGameRef.current.scene.scenes[0].gameComponent = {
         state: { raceStarted, raceFinished, winner },
         updateLeader: (leaderName) => setLeader(leaderName),
+        getHorseStats: () => horseStats, // Always provide current horseStats
         endRace: (winnerHorse) => {
           setWinner(winnerHorse);
           setRaceFinished(true);
@@ -591,7 +723,7 @@ const HorseRacingGameVersionTwo = () => {
         }
       };
     }
-  }, [raceStarted, raceFinished, winner]);
+  }, [raceStarted, raceFinished, winner, horseStats]); 
 
   if (!isLandscape) {
     return (
@@ -624,54 +756,9 @@ const HorseRacingGameVersionTwo = () => {
       <Box ref={gameRef} sx={{ width: '100%', height: '100%' }} />
       
       {/* Race Info Panel */}
-      <Paper
-        elevation={3}
-        sx={{
-          position: 'absolute',
-          top: 16,
-          left: 16,
-          p: 2,
-          bgcolor: 'rgba(0, 0, 0, 0.8)',
-          color: 'white',
-          minWidth: 200
-        }}
-      >
-        <Typography variant="h6" gutterBottom>
-          🏇 Race Info
-        </Typography>
-        <Typography>
-          Status: <strong>{raceStatus}</strong>
-        </Typography>
-        <Typography>
-          Leader: <strong>{leader}</strong>
-        </Typography>
-      </Paper>
-
-      {/* Control Button */}
-      <Button
-        variant="contained"
-        size="large"
-        onClick={raceFinished ? resetRace : startRace}
-        disabled={raceStarted && !raceFinished}
-        sx={{
-          position: 'absolute',
-          bottom: 16,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          px: 4,
-          py: 2,
-          fontSize: '1.2rem',
-          bgcolor: raceFinished ? '#ff9800' : '#4caf50',
-          '&:hover': {
-            bgcolor: raceFinished ? '#f57c00' : '#45a049'
-          }
-        }}
-      >
-        {raceFinished ? '🔄 Reset Race' : '🏁 Start Race'}
-      </Button>
-
+      
       {/* Winner Announcement Dialog */}
-      <Dialog
+      {/* <Dialog
         open={showWinnerDialog}
         onClose={handleCloseWinnerDialog}
         maxWidth="sm"
@@ -731,9 +818,10 @@ const HorseRacingGameVersionTwo = () => {
             Race Again
           </Button>
         </DialogActions>
-      </Dialog>
+      </Dialog> */}
     </Box>
   );
+
 };
 
 export default HorseRacingGameVersionTwo;

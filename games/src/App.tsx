@@ -33,7 +33,7 @@ const App = () => {
           <Route path="/pigeon_race" element={<PigeonRace />} />
           <Route path="/horse_race" element={<HorseRacingGame />} />
           <Route path="/boat_race" element={<BoatRacingGame />} />
-          <Route path="/horse_race_v2" element={<HorseRacingGameVersionTwo />} />
+          {/* <Route path="/horse_race_v2" element={<HorseRacingGameVersionTwo />} /> */}
         </Routes>
       </Router>
     </PlayerStoreProvider>

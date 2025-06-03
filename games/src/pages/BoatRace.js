@@ -2340,10 +2340,9 @@ const renderVoidDialog = () => {
         
         <Box ref={canvasRef} sx={{ width: '100%', height: '100%' }} />
         
-        {showConfetti && <Confetti width={window.innerWidth} height={window.innerHeight} />}
-        {renderVoidDialog()}
-        {renderHelpDialog()}
-        {gameHistory && renderHistoryPanel()}
+        {voidMessage && renderVoidDialog()}
+        {(helpDialogOpen && gameState !== GameState.Closed) && renderHelpDialog()}
+        {(gameHistory && gameState !== GameState.Closed) && renderHistoryPanel()}
         
         {isLandscape && (
           <>
@@ -2592,7 +2591,7 @@ const renderVoidDialog = () => {
             
             {/* {gameFinished && renderWinnerAnnouncement()} */}
             
-            {renderBetPanel()}
+            {(gameState === GameState.Open || gameState === GameState.LastCall) && renderBetPanel()}
           </>
         )}
         {countdown <= 5 && countdown > 0 && (

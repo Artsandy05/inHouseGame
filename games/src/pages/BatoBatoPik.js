@@ -1092,7 +1092,7 @@ const BatoBatoPik = () => {
       </Box>
 
       {/* Bet Dialog */}
-      <Dialog
+      {gameState !== 'Closed' && <Dialog
         open={openBetDialog}
         onClose={handleDialogClose}
         PaperProps={{
@@ -1304,10 +1304,10 @@ const BatoBatoPik = () => {
             </Button>
           </Box>
         </DialogContent>
-      </Dialog>
+      </Dialog>}
 
       {/* Add this dialog component near your other dialogs */}
-      <Dialog
+      {gameState !== 'Closed' && <Dialog
         open={openMechanicsDialog}
         onClose={() => setOpenMechanicsDialog(false)}
         PaperProps={{
@@ -1421,10 +1421,10 @@ const BatoBatoPik = () => {
             GOT IT!
           </Button>
         </DialogActions>
-      </Dialog>
+      </Dialog>}
 
       {/* Void Game Dialog - Pure inline styles */}
-      <Dialog
+      {gameState !== 'Closed' && <Dialog
         open={voidMessageDialogOpen}
         onClose={() => setVoidMessageDialogOpen(false)}
         PaperProps={{
@@ -1575,10 +1575,10 @@ const BatoBatoPik = () => {
             Understood
           </Button>
         </DialogContent>
-      </Dialog>
+      </Dialog>}
 
       {/* Fixed Position Buttons at Bottom */}
-      <GameHistoryPanel gameHistory={gameHistory}/>
+      {gameState !== 'Closed' && <GameHistoryPanel gameHistory={gameHistory}/>}
     </Container>
   );
 };

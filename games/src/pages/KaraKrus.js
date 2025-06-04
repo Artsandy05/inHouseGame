@@ -1348,7 +1348,7 @@ const KaraKrus = () => {
         </Paper>
 
         {/* History Panel Toggle Button - Always visible on the right edge */}
-        <Box
+        {gameState !== 'Closed' && <Box
           sx={{
             position: 'fixed',
             right: historyPanelOpen ? '280px' : 0,
@@ -1380,10 +1380,10 @@ const KaraKrus = () => {
           >
             {historyPanelOpen ? <ChevronRight /> : <ChevronLeft />}
           </Button>
-        </Box>
+        </Box>}
         
         {/* Sliding History Panel */}
-        <Box
+        {gameState !== 'Closed' && <Box
           sx={{
             position: 'fixed',
             right: historyPanelOpen ? 0 : '-300px',
@@ -1685,7 +1685,7 @@ const KaraKrus = () => {
               MY GAME HISTORY
             </Button>
           </Box>
-        </Box>
+        </Box>}
 
 
         {/* Announcement Dialog (keep existing) */}
@@ -1970,7 +1970,7 @@ const KaraKrus = () => {
         )}
 
         {/* Bet Amount Dialog (keep existing but style it) */}
-        <Dialog 
+        {gameState !== 'Closed' && <Dialog 
           open={openBetDialog} 
           onClose={handleDialogClose}
           PaperProps={{
@@ -2116,9 +2116,9 @@ const KaraKrus = () => {
               Place Bet
             </Button>
           </DialogActions>
-        </Dialog>
+        </Dialog>}
         {/* Void Game Dialog */}
-        <Dialog
+        {gameState !== 'Closed' && <Dialog
           open={voidMessageDialogOpen}
           onClose={() => setVoidMessageDialogOpen(false)}
           PaperProps={{
@@ -2282,9 +2282,9 @@ const KaraKrus = () => {
               UNDERSTOOD
             </Button>
           </DialogActions>
-        </Dialog>
+        </Dialog>}
 
-        <Dialog
+        {gameState !== 'Closed' && <Dialog
           open={showMechanics}
           onClose={() => setShowMechanics(false)}
           PaperProps={{
@@ -2413,7 +2413,7 @@ const KaraKrus = () => {
               GOT IT!
             </Button>
           </DialogActions>
-        </Dialog>
+        </Dialog>}
       </Container>
     </Box>
   );

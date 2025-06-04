@@ -83,6 +83,9 @@ const horseColor = {
   blaze: '#FFD700',
 };
 
+const startRaceSound = '/assets/sounds/horseRaceBgMusic.mp3';
+const horseRunningSound = '/assets/sounds/HorseRunning.mp3';
+
 
 const encryptor = createEncryptor(process.env.REACT_APP_DECRYPTION_KEY);
 
@@ -116,6 +119,8 @@ const HorseRacingGame = () => {
   const texturesRef = useRef({});
   const spriteFramesRef = useRef({});
   const timerRef = useRef(null);
+  const horseRunningAudioRef = useRef(null);
+  const startRaceAudioRef = useRef(null);
 
   const { gameState, setPlayerInfo, sendMessage, countdown, slots,setSlots,odds, allBets, winningBall, setUserInfo, topPlayers, voidMessage, horseStats, latestBalance } = playerStore();
   const { connect } = playerStore.getState();
@@ -146,6 +151,85 @@ const HorseRacingGame = () => {
           balance: urlUserDetails?.credits || localStorageUser?.userData?.data?.wallet?.balance || 0
         }
       }
+    }
+  };
+
+  const playStartRaceSound = () => {
+    try {
+      // Stop any currently playing start race sound
+      if (startRaceAudioRef.current) {
+        startRaceAudioRef.current.pause();
+        startRaceAudioRef.current.currentTime = 0;
+      }
+      
+      // Create new audio instance
+      startRaceAudioRef.current = new Audio(startRaceSound);
+      
+      // Load the audio
+      startRaceAudioRef.current.load();
+      
+      // Handle autoplay with promise
+      const playPromise = startRaceAudioRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.error("Start race sound playback failed:", error);
+        });
+      }
+      
+      // Clean up when audio ends
+      startRaceAudioRef.current.addEventListener('ended', () => {
+        startRaceAudioRef.current = null;
+      });
+      
+    } catch (error) {
+      console.error("Error playing start race sound:", error);
+    }
+  };
+  const stopStartRaceSound = () => {
+    try {
+      if (startRaceAudioRef.current) {
+        startRaceAudioRef.current.pause();
+        startRaceAudioRef.current.currentTime = 0;
+        startRaceAudioRef.current = null;
+      }
+    } catch (error) {
+      console.error("Error stopping start race sound:", error);
+    }
+  };
+  const playHorseRunningSound = () => {
+    try {
+      if (!horseRunningAudioRef.current) {
+        horseRunningAudioRef.current = new Audio(horseRunningSound);
+        horseRunningAudioRef.current.loop = true;
+        
+        horseRunningAudioRef.current.load();
+        
+        const playPromise = horseRunningAudioRef.current.play();
+        
+        if (playPromise !== undefined) {
+          playPromise.catch(error => {
+            console.error("Playback failed:", error);
+          });
+        }
+      } else {
+        horseRunningAudioRef.current.currentTime = 0;
+        horseRunningAudioRef.current.play();
+      }
+    } catch (error) {
+      console.error("Error playing sound:", error);
+    }
+  };
+  
+  const stopHorseRunningSound = () => {
+    try {
+      if (horseRunningAudioRef.current) {
+        horseRunningAudioRef.current.pause();
+        horseRunningAudioRef.current.currentTime = 0;
+        horseRunningAudioRef.current = null;
+      }
+    } catch (error) {
+      console.error("Error stopping sound:", error);
     }
   };
   
@@ -180,6 +264,19 @@ const HorseRacingGame = () => {
       setTotalBets(0);
     }
   }, [gameState]);
+
+  useEffect(() => {
+    if (countdown === 10 && slots.size > 0) {
+      playStartRaceSound();
+    }
+  }, [countdown, slots]);
+
+  useEffect(() => {
+    if (!raceStarted) {
+      stopHorseRunningSound();
+      stopStartRaceSound();
+    }
+  }, [raceStarted]);
 
   useEffect(() => {
     if(userInfo){
@@ -782,6 +879,7 @@ const HorseRacingGame = () => {
       if (gameState === GameState.NewGame) {
         return;
       }
+      playHorseRunningSound();
       setTimerActive(true);
       setRaceStarted(true);
       

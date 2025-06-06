@@ -84,6 +84,31 @@ const boatColor = {
   yellow: '#FFD700',
 };
 
+const startRaceSound = '/assets/sounds/horseRaceBgMusic.mp3';
+const tenSecondsCountdown = '/assets/sounds/10scountdown.mp3';
+const bgmusic = '/assets/sounds/boatRaceBgMusic.mp3';
+const boatStarting = '/assets/sounds/boatStarting.mp3';
+const boatRunning = '/assets/sounds/boatRunning.mp3';
+const raceAnnouncement = '/assets/sounds/horseRaceAnnouncement.mp3';
+
+const useBackgroundAudio = (audioSrc) => {
+  useEffect(() => {
+    const audio = new Audio(audioSrc);
+    audio.loop = true;
+    
+    const unlockAudio = () => {
+      audio.play().catch(e => console.log("Audio play error:", e));
+      document.removeEventListener('click', unlockAudio);
+    };
+
+    document.addEventListener('click', unlockAudio);
+    
+    return () => {
+      document.removeEventListener('click', unlockAudio);
+      audio.pause();
+    };
+  }, [audioSrc]);
+};
 
 
 const encryptor = createEncryptor(process.env.REACT_APP_DECRYPTION_KEY);
@@ -125,6 +150,11 @@ const BoatRacingGame = () => {
   const rippleObjectsRef = useRef([]);
   const floatingObjectsRef = useRef([]);
   const lastTimeRef = useRef(0);
+  const startRaceAudioRef = useRef(null);
+  const tenSecondssCountdownRef = useRef(null);
+  const raceAnnouncementRef = useRef(null);
+  const boatStartingRef = useRef(null);
+  const boatRunningRef = useRef(null);
 
   const { gameState, setPlayerInfo, sendMessage, countdown, slots,setSlots,odds, allBets, winningBall, setUserInfo, topPlayers, voidMessage, boatStats, latestBalance } = playerStore();
   const { connect } = playerStore.getState();
@@ -155,6 +185,209 @@ const BoatRacingGame = () => {
           balance: urlUserDetails?.credits || localStorageUser?.userData?.data?.wallet?.balance || 0
         }
       }
+    }
+  };
+
+  const playStartRaceSound = () => {
+    try {
+      // Stop any currently playing start race sound
+      if (startRaceAudioRef.current) {
+        startRaceAudioRef.current.pause();
+        startRaceAudioRef.current.currentTime = 0;
+      }
+      
+      // Create new audio instance
+      startRaceAudioRef.current = new Audio(startRaceSound);
+      
+      // Load the audio
+      startRaceAudioRef.current.load();
+      
+      // Handle autoplay with promise
+      const playPromise = startRaceAudioRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.error("Start race sound playback failed:", error);
+        });
+      }
+      
+      // Clean up when audio ends
+      startRaceAudioRef.current.addEventListener('ended', () => {
+        startRaceAudioRef.current = null;
+      });
+      
+    } catch (error) {
+      console.error("Error playing start race sound:", error);
+    }
+  };
+
+  const playBoatStarting = () => {
+    try {
+      // Stop any currently playing start race sound
+      if (boatStartingRef.current) {
+        boatStartingRef.current.pause();
+        boatStartingRef.current.currentTime = 0;
+      }
+      
+      // Create new audio instance
+      boatStartingRef.current = new Audio(boatStarting);
+      
+      // Load the audio
+      boatStartingRef.current.load();
+      
+      // Handle autoplay with promise
+      const playPromise = boatStartingRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.error("Start race sound playback failed:", error);
+        });
+      }
+      
+      // Clean up when audio ends
+      boatStartingRef.current.addEventListener('ended', () => {
+        boatStartingRef.current = null;
+      });
+      
+    } catch (error) {
+      console.error("Error playing start race sound:", error);
+    }
+  };
+
+  const playBoatRunning = () => {
+    try {
+      // Stop any currently playing start race sound
+      if (boatRunningRef.current) {
+        boatRunningRef.current.pause();
+        boatRunningRef.current.currentTime = 0;
+      }
+      
+      // Create new audio instance
+      boatRunningRef.current = new Audio(boatRunning);
+      boatRunningRef.current.loop = true;
+      
+      // Load the audio
+      boatRunningRef.current.load();
+      
+      // Handle autoplay with promise
+      const playPromise = boatRunningRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.error("Start race sound playback failed:", error);
+        });
+      }
+      
+      // Clean up when audio ends
+      boatRunningRef.current.addEventListener('ended', () => {
+        boatRunningRef.current = null;
+      });
+      
+    } catch (error) {
+      console.error("Error playing start race sound:", error);
+    }
+  };
+
+  const play10sCountdown = () => {
+    try {
+      // Stop any currently playing start race sound
+      if (tenSecondssCountdownRef.current) {
+        tenSecondssCountdownRef.current.pause();
+        tenSecondssCountdownRef.current.currentTime = 0;
+      }
+      
+      // Create new audio instance
+      tenSecondssCountdownRef.current = new Audio(tenSecondsCountdown);
+      
+      // Load the audio
+      tenSecondssCountdownRef.current.load();
+      
+      // Handle autoplay with promise
+      const playPromise = tenSecondssCountdownRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.error("Start race sound playback failed:", error);
+        });
+      }
+      
+      // Clean up when audio ends
+      tenSecondssCountdownRef.current.addEventListener('ended', () => {
+        tenSecondssCountdownRef.current = null;
+      });
+      
+    } catch (error) {
+      console.error("Error playing start race sound:", error);
+    }
+  };
+
+  const playRaceAnnouncement = () => {
+    try {
+      // Stop any currently playing start race sound
+      if (raceAnnouncementRef.current) {
+        raceAnnouncementRef.current.pause();
+        raceAnnouncementRef.current.currentTime = 0;
+      }
+      
+      // Create new audio instance
+      raceAnnouncementRef.current = new Audio(raceAnnouncement);
+      raceAnnouncementRef.current.loop = true;
+      
+      // Load the audio
+      raceAnnouncementRef.current.load();
+      
+      // Handle autoplay with promise
+      const playPromise = raceAnnouncementRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.error("Start race sound playback failed:", error);
+        });
+      }
+      
+      // Clean up when audio ends
+      raceAnnouncementRef.current.addEventListener('ended', () => {
+        raceAnnouncementRef.current = null;
+      });
+      
+    } catch (error) {
+      console.error("Error playing start race sound:", error);
+    }
+  };
+
+  const stopStartRaceSound = () => {
+    try {
+      if (startRaceAudioRef.current) {
+        startRaceAudioRef.current.pause();
+        startRaceAudioRef.current.currentTime = 0;
+        startRaceAudioRef.current = null;
+      }
+    } catch (error) {
+      console.error("Error stopping start race sound:", error);
+    }
+  };
+
+  const stopBoatRunningSound = () => {
+    try {
+      if (boatRunningRef.current) {
+        boatRunningRef.current.pause();
+        boatRunningRef.current.currentTime = 0;
+        boatRunningRef.current = null;
+      }
+    } catch (error) {
+      console.error("Error stopping start race sound:", error);
+    }
+  };
+
+  const stopRaceAnnouncementSound = () => {
+    try {
+      if (raceAnnouncementRef.current) {
+        raceAnnouncementRef.current.pause();
+        raceAnnouncementRef.current.currentTime = 0;
+        raceAnnouncementRef.current = null;
+      }
+    } catch (error) {
+      console.error("Error stopping start race sound:", error);
     }
   };
   
@@ -198,9 +431,24 @@ const BoatRacingGame = () => {
     }
   }, [gameState]);
 
-  
+  useEffect(() => {
+    if(countdown === 11){
+      play10sCountdown();
+    }
+    if(countdown === 5){
+      playBoatStarting();
+    }
+  }, [countdown]);
 
-  
+  useBackgroundAudio(bgmusic);
+
+  useEffect(() => {
+    if (!gameStarted) {
+      stopStartRaceSound();
+      stopRaceAnnouncementSound();
+      stopBoatRunningSound();
+    }
+  }, [gameStarted]);
 
   useEffect(() => {
     const fetchGameHistory = async () => {
@@ -818,6 +1066,9 @@ const createRaceTrack = () => {
   
   // Start the race
   const startRace = () => {
+    playRaceAnnouncement();
+    playBoatRunning();
+    playStartRaceSound();
     setGameStarted(true);
     setRaceTime(0);
     setTimerActive(true);

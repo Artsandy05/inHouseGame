@@ -46,7 +46,7 @@ export class ModeratorManager implements Plugin {
         selectHost(gameData, input.msg, output);
 				requestIdle(gameData, input.msg, output);
 				requestNewGame(gameData, input.msg, output);
-				requestOpen(gameData, input.msg, output);
+				requestOpen(game, gameDataEntity, gameData, input.msg, output);
 				requestWinnerDeclared(game, gameDataEntity, gameData, input.msg, output);
         requestRollingState(gameData, input.msg, output);
         requestCoinResult(gameData, input.msg, output);
@@ -59,7 +59,7 @@ export class ModeratorManager implements Plugin {
 			});
 
 			if (input.msg !== undefined) {
-				requestOpen(gameData, input.msg, output);
+				requestOpen(game, gameDataEntity, gameData, input.msg, output);
 			}
 		});
 
@@ -69,7 +69,7 @@ export class ModeratorManager implements Plugin {
 			});
 
 			if (input.msg !== undefined) {
-				requestOpen(gameData, input.msg, output);
+				requestOpen(game, gameDataEntity, gameData, input.msg, output);
 			}
 		});
 
@@ -79,7 +79,7 @@ export class ModeratorManager implements Plugin {
 			});
 
 			if (input.msg !== undefined) {
-				requestOpen(gameData, input.msg, output);
+				requestOpen(game, gameDataEntity, gameData, input.msg, output);
 			}
 		});
     
@@ -185,7 +185,7 @@ async function getKaraKrusCommission(){
 
 // }
 
-async function requestOpen(gameData, msg, output) {
+async function requestOpen(game, gameDataEntity,gameData, msg, output) {
   
   const isOpenCommand = msg.cmd === GameState.Open;
   const isIdleOrNewGame = gameData.state[msg.game] === GameState.Idle || gameData.state[msg.game] === GameState.NewGame;
@@ -232,18 +232,129 @@ async function requestOpen(gameData, msg, output) {
               output.msg = {
                 state: gameData.state
               }
+
+              setTimeout(() => {
+                gameData.setState(GameState.NewGame, 'karakrus');
+                output.msg = {
+                  state: gameData.state
+                }
+                setTimeout(() => {
+                  autoOpen(game,gameDataEntity, gameData, output);
+                }, 4000);
+              }, 1500);
+
+
               clearInterval(timer);
               return;
             }
             gameData.setState(GameState.Closed, msg.game);
             output.msg = { state: gameData.state };
             clearInterval(timer);
+            startGame(game, gameDataEntity,gameData,output);
         }
       }, 1000);
     
   }
 }
   
+async function autoOpen(game, gameDataEntity, gameData, output) {
+  const gameKey = 'karakrus';
+  const isIdleOrNewGame = gameData.state[gameKey] === GameState.Idle || gameData.state[gameKey] === GameState.NewGame;
+
+  if (isIdleOrNewGame) {
+      gameData.setState(GameState.Open, gameKey);
+      output.msg = { state: gameData.state };
+      gameData.setCountdownState(30, gameKey);
+      gameData.isInsertGameDatabase = {game: gameKey, state: true};
+      
+      const timer = setInterval(() => {
+        if (gameData.countdown[gameKey] > 0) {
+            gameData.countdown[gameKey] -= 1;
+            output.msg = { countdown: gameData.countdown };
+            if(gameData.countdown[gameKey] === 10){
+              gameData.setState(GameState.LastCall, gameKey);
+              output.msg = { state: gameData.state };
+            }
+        } else {
+            const odds = gameData.odds[gameKey];
+            const invalidRound = [...odds.values()].some(value => value < 1);
+            const slots = gameData.slotBets[gameKey];
+            const walkinSlots = gameData.slotBetsWalkin[gameKey];
+            let combinedSlots = new Map(walkinSlots);
+
+            // Combine the two maps (slots + walkinSlots)
+            slots.forEach((value, key) => {
+              if (combinedSlots.has(key)) {
+                combinedSlots.set(key, combinedSlots.get(key) + value);
+              } else {
+                combinedSlots.set(key, value);
+              }
+            });
+
+            if(invalidRound || combinedSlots.size === 0){
+              output.msg = { voidGameMessage: {game:gameKey, message:'Void game!'} };
+
+              // (async () => {
+              //   await WinningBall.new(gameData.gamesTableId[gameKey], 'void', gameKey);
+              // })();
+              
+              gameData.voidGame[gameKey] = true;
+              gameData.setState("Void", gameKey);
+              output.msg = {
+                state: gameData.state
+              }
+              setTimeout(() => {
+                gameData.setState(GameState.NewGame, 'karakrus');
+                output.msg = {
+                  state: gameData.state
+                }
+                setTimeout(() => {
+                  autoOpen(game, gameDataEntity, gameData, output);
+                }, 4000);
+              }, 1500);
+              
+              clearInterval(timer);
+              return;
+            }
+            gameData.setState(GameState.Closed, gameKey);
+            output.msg = { state: gameData.state };
+            clearInterval(timer);
+            startGame(game, gameDataEntity,gameData,output);
+        }
+      }, 1000);
+  }
+}
+
+
+
+const startGame = (game, gameDataEntity, gameData, output) => {
+  const newResult = Math.random() > 0.5 ? 'heads' : 'tails';
+  const animationDuration = 5000 + Math.random() * 1000;
+  gameData.setCoinResult(newResult);
+  gameData.setAnimationDuration(animationDuration);
+
+  setTimeout(() => {
+    gameData.setState(GameState.WinnerDeclared, 'karakrus');
+    output.msg = {
+      state: gameData.state,
+      winnerDeclareStatus: {game:'karakrus', value:'Success'}  // Notify that the declaration was successful
+    };
+    gameData.winnerOrders['karakrus'] = newResult;  // Store the winner orders in the game data
+
+    game.emplace(gameDataEntity, new GameDb());
+
+    setTimeout(() => {
+      gameData.setState(GameState.NewGame, 'karakrus');
+      
+      output.msg = {
+        state: gameData.state
+      }
+      setTimeout(() => {
+        autoOpen(game, gameDataEntity, gameData, output);
+      }, 2000);
+    }, 4000);
+  }, 5000);
+};
 
 function selectHost(gameData, msg, output) {
 	if (hasValue(msg.selectedHost)) {

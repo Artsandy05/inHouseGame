@@ -183,6 +183,8 @@ function broadcastWinners(game: Game) {
       if (gameData.state[gameName] === GameState.WinnerDeclared) {
         
         const winner = gameName === 'horseRace' && gameData.winnerOrders[gameName];
+
+        
         if(player.game === gameName){
           let totalWin = 0;
           let totalBet = 0;
@@ -192,7 +194,7 @@ function broadcastWinners(game: Game) {
           // Convert forEach to a proper async function with Promise.all to handle all bets
           const processBets = async () => {
             const betPromises = [];
-            
+            await WinningBall.new(gameData.gamesTableId[gameName], gameData.winnerOrders[gameName], gameName);
             // First calculate totalBet from all slots
             for (const [key, val] of player.slots.entries()) {
               totalBet += Number(val);
@@ -200,8 +202,10 @@ function broadcastWinners(game: Game) {
             
             // Process each bet
             for (const [key, val] of player.slots.entries()) {
+              const isWin = String(winner) === String(key);
               const processPromise = (async () => {
-                if (String(winner) === String(key) && gameName === prize.game) {
+
+                if (isWin && gameName === prize.game) {
                   const p = prize.values.get(key);
                   const odds = gameData.odds[gameName].get(key);
                   gameData.winners[gameName].push({
@@ -270,6 +274,21 @@ function broadcastWinners(game: Game) {
               })();
               
               betPromises.push(processPromise);
+            }
+
+            if (gameData.winners[gameName].length > 0) {
+              gameData.winners[gameName].sort((a, b) => b.prize - a.prize);
+            }
+
+            const topPlayers = gameData.winners[gameName].slice(0, 3);
+            gameData.topPlayers[gameName] = topPlayers;
+
+            if(hasValue(output.msg) && typeof output.msg === 'string'){
+              let newOutPut = JSON.parse(output.msg);
+              newOutPut.topPlayers = gameData.topPlayers;
+              output.msg = JSON.stringify(newOutPut);
+            }else{
+              output.insert("topPlayers", gameData.topPlayers);
             }
             
             // Wait for all bet processing to complete
@@ -374,6 +393,7 @@ function broadcastWinners(game: Game) {
                 }
               }
             })();
+
             
           };
           
@@ -384,34 +404,6 @@ function broadcastWinners(game: Game) {
     });
   })
 
-	
-
-  gameData.games.forEach(gameName => {
-    if (gameData.winners[gameName].length > 0) {
-      gameData.winners[gameName].sort((a, b) => b.prize - a.prize);
-    }
-  });
-
-  gameData.games.forEach(gameName => {
-    game.view(gameName === 'horseRace' ? HorseRaceGameStateChanged : null, Output)
-    .each((entity, stateChanged, output) => {
-      if (gameData.state[gameName] === GameState.WinnerDeclared) {
-        const topPlayers = gameData.winners[gameName].slice(0, 3);
-
-        console.log(topPlayers)
-        gameData.topPlayers[gameName] = topPlayers;
-
-        if(hasValue(output.msg) && typeof output.msg === 'string'){
-          let newOutPut = JSON.parse(output.msg);
-          newOutPut.topPlayers = gameData.topPlayers;
-          output.msg = JSON.stringify(newOutPut);
-        }else{
-          output.insert("topPlayers", gameData.topPlayers);
-        }
-        
-      }
-    });
-  });
 }
 
 function before(game: Game) {

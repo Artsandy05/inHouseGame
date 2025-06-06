@@ -103,6 +103,8 @@ const KaraKrus = () => {
     }
   }, [slots]);
 
+  
+
   useEffect(() => {
     if (gameState === GameState.NewGame || gameState === GameState.WinnerDeclared) {
       setTotalBet(0);

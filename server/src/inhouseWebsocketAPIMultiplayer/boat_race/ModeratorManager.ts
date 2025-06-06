@@ -7,6 +7,23 @@ import { Moderator } from "./Moderator";
 import { Player } from "./Player";
 import { GameDb } from "./plugins/GameDbPlugin";
 import { UserData } from "./UserData";
+import raf from 'raf';
+
+const boats = [
+  { id: 'blue', name: 'Blue', color: '#00008B', laneColor: '#A0522D' },
+  { id: 'green', name: 'Green', color: '#006400', laneColor: '#dba556' },
+  { id: 'red', name: 'Red', color: '#8B0000', laneColor: '#A0522D' },
+  { id: 'yellow', name: 'Yellow', color: '#FFD700', laneColor: '#dba556' },
+];
+
+const boatsStats = [
+  { id: 1, name: 'Blue', position: -9, speed: 0.02, stamina: 0.7, fatigue: 0, finished: false, animationSpeed: 0.1, frameCount: 6, currentFrame: 0, raceProgress: 0, recoveryRate: 0, burstChance: 0, performanceProfile: 0, baseSpeed: 0, baseAnimationSpeed: 0 },
+  { id: 2, name: 'Green', position: -9, speed: 0.02, stamina: 0.8, fatigue: 0, finished: false, animationSpeed: 0.1, frameCount: 6, currentFrame: 0, raceProgress: 0, recoveryRate: 0, burstChance: 0, performanceProfile: 0, baseSpeed: 0, baseAnimationSpeed: 0 },
+  { id: 3, name: 'Red', position: -9, speed: 0.02, stamina: 0.6, fatigue: 0, finished: false, animationSpeed: 0.1, frameCount: 6, currentFrame: 0, raceProgress: 0, recoveryRate: 0, burstChance: 0, performanceProfile: 0, baseSpeed: 0, baseAnimationSpeed: 0 },
+  { id: 4, name: 'Yellow', position: -9, speed: 0.02, stamina: 0.75, fatigue: 0, finished: false, animationSpeed: 0.1, frameCount: 6, currentFrame: 0, raceProgress: 0, recoveryRate: 0, burstChance: 0, performanceProfile: 0, baseSpeed: 0, baseAnimationSpeed: 0 }
+];
+
+let animationFrameRef = { current: null };
 
 export class ModeratorManager implements Plugin {
 
@@ -46,7 +63,7 @@ export class ModeratorManager implements Plugin {
         selectHost(gameData, input.msg, output);
 				requestIdle(gameData, input.msg, output);
 				requestNewGame(gameData, input.msg, output);
-				requestOpen(gameData, input.msg, output);
+				requestOpen(game, gameDataEntity, gameData, input.msg, output);
 				requestWinnerDeclared(game, gameDataEntity, gameData, input.msg, output);
         requestRollingState(gameData, input.msg, output);
         requestUpdateBoatStats(gameData, input.msg, output);
@@ -59,7 +76,7 @@ export class ModeratorManager implements Plugin {
 			});
 
 			if (input.msg !== undefined) {
-				requestOpen(gameData, input.msg, output);
+				requestOpen(game, gameDataEntity,gameData, input.msg, output);
 			}
 		});
 
@@ -69,7 +86,7 @@ export class ModeratorManager implements Plugin {
 			});
 
 			if (input.msg !== undefined) {
-				requestOpen(gameData, input.msg, output);
+				requestOpen(game, gameDataEntity,gameData, input.msg, output);
 			}
 		});
 
@@ -79,7 +96,7 @@ export class ModeratorManager implements Plugin {
 			});
 
 			if (input.msg !== undefined) {
-				requestOpen(gameData, input.msg, output);
+				requestOpen(game, gameDataEntity,gameData, input.msg, output);
 			}
 		});
     
@@ -184,7 +201,7 @@ async function getBoatRaceCommission(){
 
 // }
 
-async function requestOpen(gameData, msg, output) {
+async function requestOpen(game, gameDataEntity,gameData, msg, output) {
   
   const isOpenCommand = msg.cmd === GameState.Open;
   const isIdleOrNewGame = gameData.state[msg.game] === GameState.Idle || gameData.state[msg.game] === GameState.NewGame;
@@ -231,17 +248,296 @@ async function requestOpen(gameData, msg, output) {
               output.msg = {
                 state: gameData.state
               }
+              setTimeout(() => {
+                gameData.setState(GameState.NewGame, 'boatRace');
+                output.msg = {
+                  state: gameData.state
+                }
+                setTimeout(() => {
+                  autoOpen(game,gameDataEntity, gameData, output);
+                }, 4000);
+              }, 1500);
+
               clearInterval(timer);
               return;
             }
             gameData.setState(GameState.Closed, msg.game);
             output.msg = { state: gameData.state };
             clearInterval(timer);
+            startRace(game,gameDataEntity,gameData,output)
         }
       }, 1000);
     
   }
 }
+
+async function autoOpen(game, gameDataEntity, gameData, output) {
+  const gameKey = 'boatRace';
+  const isIdleOrNewGame = gameData.state[gameKey] === GameState.Idle || gameData.state[gameKey] === GameState.NewGame;
+
+  if (isIdleOrNewGame) {
+      gameData.setState(GameState.Open, gameKey);
+      output.msg = { state: gameData.state };
+      gameData.setCountdownState(30, gameKey);
+      gameData.isInsertGameDatabase = {game: gameKey, state: true};
+      
+      const timer = setInterval(() => {
+        if (gameData.countdown[gameKey] > 0) {
+            gameData.countdown[gameKey] -= 1;
+            output.msg = { countdown: gameData.countdown };
+            if(gameData.countdown[gameKey] === 10){
+              gameData.setState(GameState.LastCall, gameKey);
+              output.msg = { state: gameData.state };
+            }
+        } else {
+            const odds = gameData.odds[gameKey];
+            const invalidRound = [...odds.values()].some(value => value < 1);
+            const slots = gameData.slotBets[gameKey];
+            const walkinSlots = gameData.slotBetsWalkin[gameKey];
+            let combinedSlots = new Map(walkinSlots);
+
+            // Combine the two maps (slots + walkinSlots)
+            slots.forEach((value, key) => {
+              if (combinedSlots.has(key)) {
+                combinedSlots.set(key, combinedSlots.get(key) + value);
+              } else {
+                combinedSlots.set(key, value);
+              }
+            });
+
+            if(invalidRound || combinedSlots.size === 0){
+              output.msg = { voidGameMessage: {game:gameKey, message:'Void game!'} };
+
+              // (async () => {
+              //   await WinningBall.new(gameData.gamesTableId[gameKey], 'void', gameKey);
+              // })();
+              
+              gameData.voidGame[gameKey] = true;
+              gameData.setState("Void", gameKey);
+              output.msg = {
+                state: gameData.state
+              }
+              setTimeout(() => {
+                gameData.setState(GameState.NewGame, 'boatRace');
+                output.msg = {
+                  state: gameData.state
+                }
+                setTimeout(() => {
+                  autoOpen(game, gameDataEntity, gameData, output);
+                }, 4000);
+              }, 1500);
+              
+              clearInterval(timer);
+              return;
+            }
+            gameData.setState(GameState.Closed, gameKey);
+            output.msg = { state: gameData.state };
+            clearInterval(timer);
+            startRace(game, gameDataEntity,gameData,output);
+        }
+      }, 1000);
+  }
+}
+
+const startRace = (game, gameDataEntity, gameData, output) => {
+  const baseSpeedMin = 0.01;
+  const baseSpeedMax = 0.03;
+  
+  boatsStats.map((boat, idx) => {
+    // Reset position and stats
+    boat.position = -9;
+    boat.finished = false;
+    boat.fatigue = 0;
+    boat.raceProgress = 0;
+    
+    // Assign randomized attributes
+    boat.speed = baseSpeedMin + (Math.random() * (baseSpeedMax - baseSpeedMin));
+    boat.stamina = 0.5 + (Math.random() * 0.4); // 0.5-0.9
+    boat.recoveryRate = 0.0003 + (Math.random() * 0.0003); // 0.0003-0.0006
+    boat.burstChance = 0.02 + (Math.random() * 0.03); // 2%-5% chance for speed burst
+    
+    // Set performance profile (0: fast starter, 1: consistent, 2: strong finisher)
+    boat.performanceProfile = Math.floor(Math.random() * 3);
+    
+    // Store base values for reference
+    boat.baseSpeed = boat.speed;
+    boat.baseAnimationSpeed = boat.animationSpeed;
+    
+    return boat;
+  });
+
+  // Send initial boat stats to players
+  gameData.setBoatStats(boatsStats);
+  animateRace(game, gameDataEntity, gameData,output);
+};
+
+const animateRace = (game, gameDataEntity, gameData, output) => {
+  const startPosition = -9;
+  const finishLine = 7 + 101.9;
+  const raceDistance = finishLine - startPosition;
+  let allFinished = true;
+  let frameCount = 0;
+  let winnerDetermined = false;
+  let raceActive = true;
+
+  // Initialize speeds with small variations
+  boatsStats.forEach(boat => {
+    if (boat) {
+      boat.speed *= 0.95 + Math.random() * 0.1;
+      boat.baseAnimationSpeed = boat.animationSpeed; // Store original animation speed
+    }
+  });
+
+  const updateRace = () => {
+    frameCount++;
+    
+    // Speed adjustments every 30 frames (0.5 seconds at 60fps)
+    if (frameCount % 30 === 0 && raceActive) {
+      
+      let leaderPosition = Math.max(...boatsStats.map(h => h?.position || 0));
+      let lastPlacePosition = Math.min(...boatsStats
+        .filter(h => h && !h.finished)
+        .map(h => h.position || 0));
+
+        boatsStats.forEach((boat, index) => {
+        if (!boat || boat.finished) return;
+
+        boat.raceProgress = (boat.position - startPosition) / raceDistance;
+        const distanceBehindLeader = leaderPosition - boat.position;
+        const prevSpeed = boat.speed;
+
+        // --- Speed variation with fatigue limit ---
+        let speedVariation = (Math.random() - 0.5) * 1.5;
+
+        // Weaken variation if boat is tired
+        const fatigueFactor = 1 - boat.fatigue * 2;
+        speedVariation *= Math.max(0.2, fatigueFactor);
+
+        // Slight rubber banding for those behind
+        if (distanceBehindLeader > 0.05 && boat.fatigue < 0.4) {
+          speedVariation += 0.03;
+        }
+
+        // Mid-race burst
+        const inBurstZone = boat.raceProgress > 0.3 && boat.raceProgress < 0.9;
+        let burstChance = 0.03 + boat.stamina * 0.001;
+
+        if (boat.position === lastPlacePosition) {
+          burstChance += 0.3;
+        }
+
+        if (
+          inBurstZone &&
+          Math.random() < burstChance &&
+          boat.fatigue < 0.25
+        ) {
+          speedVariation += 0.2 + Math.random() * 0.05;
+          boat.fatigue += 0.00005;
+        }
+
+        // Fatigue accumulation
+        const fatigueGain =
+          0.0001 + (1 - boat.stamina) * 0.0001 +
+          boat.raceProgress * 0.00003;
+
+        boat.fatigue += fatigueGain;
+
+        // Mild recovery if going slow and not near finish
+        if (prevSpeed < 0.007 && boat.fatigue > 0.01 && boat.raceProgress < 0.9) {
+          boat.fatigue -= 0.2;
+        }
+
+        // Clamp fatigue
+        boat.fatigue = Math.min(0.5, Math.max(0, boat.fatigue));
+
+        // Apply variation & fatigue to speed
+        let newSpeed = prevSpeed * (2 + speedVariation);
+        newSpeed *= (0.5 - boat.fatigue);
+
+        // Clamp speed
+        boat.speed = Math.max(0.05, Math.min(0.07, newSpeed));
+
+        // Animation speed sync
+        boat.animationSpeed = boat.baseAnimationSpeed * ((boat.speed * 1.1) / 0.015);
+      });
+    }
+
+    allFinished = true;
+    let maxPosition = 0;
+
+    boatsStats.forEach((boat, idx) => {
+      if (!boat) return;
+      if (raceActive) {
+        // Update animation frame based on current speed
+        if (boat.position > maxPosition && !boat.finished) {
+          maxPosition = boat.position;
+        }
+        boat.currentFrame = (boat.currentFrame + boat.animationSpeed * 1) % boat.frameCount;
+
+        // Move boat
+        if (!boat.finished) {
+          boat.position += boat.speed * 0.65;
+
+          // Check if boat finished
+          if (boat.position >= finishLine) {
+            boat.finished = true;
+            boat.position = finishLine;
+            boat.animationSpeed = boat.baseAnimationSpeed;
+            raceActive = false;
+            // Send winner update
+            gameData.setBoatStats(boatsStats);
+            gameData.setState(GameState.WinnerDeclared, 'boatRace');
+            output.msg = {
+              state: gameData.state,
+              winnerDeclareStatus: {game:'boatRace', value:'Success'}  // Notify that the declaration was successful
+            };
+            gameData.winnerOrders['boatRace'] = boats[idx].id;  // Store the winner orders in the game data
+
+            game.emplace(gameDataEntity, new GameDb());
+
+            setTimeout(() => {
+              gameData.setState(GameState.NewGame, 'boatRace');
+              boatsStats.forEach((boat) => {
+                if (!boat) return;
+                boat.position = -9;
+                boat.finished = false;
+                boat.fatigue = 0;
+                boat.raceProgress = 0;
+                boat.stamina = 0;
+                boat.baseSpeed = 0;
+                boat.speed = boat.baseSpeed;
+                boat.baseAnimationSpeed = 0.1;
+                boat.animationSpeed = boat.baseAnimationSpeed;
+                boat.currentFrame = 0;
+              });
+              output.msg = {
+                state: gameData.state
+              }
+              setTimeout(() => {
+                autoOpen(game, gameDataEntity, gameData, output);
+              }, 4000);
+            }, 6000);
+            raf.cancel(animationFrameRef.current);
+          }
+        }
+      }
+
+      if (!boat.finished) {
+        allFinished = false;
+      }
+    });
+
+    // Throttled update: send stats every 5 frames (~12fps)
+    gameData.setBoatStats(boatsStats);
+
+    // Continue animation if not all boats finished
+    if (!allFinished) {
+      animationFrameRef.current = raf(updateRace);
+    }
+  };
+
+  animationFrameRef.current = raf(updateRace);
+};
   
 
 function selectHost(gameData, msg, output) {

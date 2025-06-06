@@ -835,47 +835,50 @@ const createRaceTrack = () => {
     const finishLine = 7 + 101.9;
     let allFinished = true;
     let raceActive = true;
-    let raceFinished = false; 
+    let raceFinished = false;
   
-    const updateRace = () => {
+    // Much slower frame rate - try 15 FPS instead of 60
+    let lastFrameTime = 0;
+    const frameDuration = 1000 / 70; // 15 FPS = slower animation
+  
+    const updateRace = (timestamp) => {
+      if (!lastFrameTime) lastFrameTime = timestamp;
+      const deltaTime = timestamp - lastFrameTime;
+  
       allFinished = true;
       let maxPosition = 0;
   
-      // First check if any boat has finished the race
       boatsRef.current.forEach(boat => {
         if (boat && boat.position >= finishLine && !raceFinished) {
           raceFinished = true;
-          // When one boat finishes, we'll stop animation updates for all boats
         }
       });
   
       boatsRef.current.forEach((boat, idx) => {
         if(boat){
-          // Update position tracking for camera
           if (boat.position > maxPosition && !boat.finished) {
             maxPosition = boat.position;
           }
   
-          // Check if boat reached finish line
           if (boat.position >= finishLine) {
             boat.finished = true;
             boat.sprite.position.x = finishLine;
           }
   
-          // Only animate if the race is still active (no boat has finished)
           if (!raceFinished) {
-            // Update animation frame based on current speed
-            if(boat.animationSpeed){
-              boat.currentFrame = (boat.currentFrame + boat.animationSpeed * 1) % boat.frameCount;
+            // Only update frame if enough time has passed
+            if(boat.animationSpeed && deltaTime >= frameDuration){
+              // Reduce animationSpeed further - divide by 2 or more
+              const slowedSpeed = boat.animationSpeed * 0.3; // 30% of original speed
+              boat.currentFrame = (boat.currentFrame + slowedSpeed) % boat.frameCount;
             }
-            
+  
             const frameIndex = Math.floor(boat.currentFrame);
             const frames = spriteFramesRef.current[boats[idx]?.id];
             if (frames && frameIndex < frames.length) {
               boat.sprite.material.map = frames[frameIndex];
             }
-    
-            // Move boat if not finished
+  
             if (!boat.finished) {
               if(boat.position) {
                 boat.sprite.position.x = boat.position; 
@@ -883,34 +886,35 @@ const createRaceTrack = () => {
             }
           }
   
-          // Track if all boats have finished
           if (!boat.finished) {
             allFinished = false;
           }
         }
       });
   
-      // Smooth camera follow - adjust the lerp factor (0.1) for faster/slower follow
       if (raceActive) {
         const targetX = maxPosition;
         cameraRef.current.position.x += (targetX - cameraRef.current.position.x) * 0.1;
-        
-        // Keep camera within reasonable bounds (optional)
+  
         cameraRef.current.position.x = Math.max(startPosition, cameraRef.current.position.x);
-        cameraRef.current.position.x = Math.min(finishLine - 5, cameraRef.current.position.x); // Keep some space at finish line
+        cameraRef.current.position.x = Math.min(finishLine - 5, cameraRef.current.position.x);
       }
   
-      // End the race if all boats finished
+      // Update lastFrameTime only if enough time has passed
+      if(deltaTime >= frameDuration) {
+        lastFrameTime = timestamp;
+      }
+  
       if (allFinished) {
         raceActive = false;
       } else {
-        // Continue animation if not all boats finished
         animationFrameRef.current = requestAnimationFrame(updateRace);
       }
     };
   
     animationFrameRef.current = requestAnimationFrame(updateRace);
   };
+  
   
  
   

@@ -85,6 +85,8 @@ const horseColor = {
 
 const startRaceSound = '/assets/sounds/horseRaceBgMusic.mp3';
 const horseRunningSound = '/assets/sounds/HorseRunning.mp3';
+const tenSecondsCountdown = '/assets/sounds/10scountdown.mp3';
+const horseRaceAnnouncementSound = '/assets/sounds/horseRaceAnnouncement.mp3';
 
 
 const encryptor = createEncryptor(process.env.REACT_APP_DECRYPTION_KEY);
@@ -120,7 +122,12 @@ const HorseRacingGame = () => {
   const spriteFramesRef = useRef({});
   const timerRef = useRef(null);
   const horseRunningAudioRef = useRef(null);
+  const horseRunningAudioRef2 = useRef(null);
+  const horseRunningAudioRef3 = useRef(null);
+  const horseRunningAudioRef4 = useRef(null);
   const startRaceAudioRef = useRef(null);
+  const tenSecondssCountdownRef = useRef(null);
+  const horseRaceAnnouncementRef = useRef(null);
 
   const { gameState, setPlayerInfo, sendMessage, countdown, slots,setSlots,odds, allBets, winningBall, setUserInfo, topPlayers, voidMessage, horseStats, latestBalance } = playerStore();
   const { connect } = playerStore.getState();
@@ -186,6 +193,74 @@ const HorseRacingGame = () => {
       console.error("Error playing start race sound:", error);
     }
   };
+
+  const play10sCountdown = () => {
+    try {
+      // Stop any currently playing start race sound
+      if (tenSecondssCountdownRef.current) {
+        tenSecondssCountdownRef.current.pause();
+        tenSecondssCountdownRef.current.currentTime = 0;
+      }
+      
+      // Create new audio instance
+      tenSecondssCountdownRef.current = new Audio(tenSecondsCountdown);
+      
+      // Load the audio
+      tenSecondssCountdownRef.current.load();
+      
+      // Handle autoplay with promise
+      const playPromise = tenSecondssCountdownRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.error("Start race sound playback failed:", error);
+        });
+      }
+      
+      // Clean up when audio ends
+      tenSecondssCountdownRef.current.addEventListener('ended', () => {
+        tenSecondssCountdownRef.current = null;
+      });
+      
+    } catch (error) {
+      console.error("Error playing start race sound:", error);
+    }
+  };
+
+  const playHorseRaceAnnouncement = () => {
+    try {
+      // Stop any currently playing start race sound
+      if (horseRaceAnnouncementRef.current) {
+        horseRaceAnnouncementRef.current.pause();
+        horseRaceAnnouncementRef.current.currentTime = 0;
+      }
+      
+      // Create new audio instance
+      horseRaceAnnouncementRef.current = new Audio(horseRaceAnnouncementSound);
+      horseRaceAnnouncementRef.current.loop = true;
+      
+      // Load the audio
+      horseRaceAnnouncementRef.current.load();
+      
+      // Handle autoplay with promise
+      const playPromise = horseRaceAnnouncementRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.error("Start race sound playback failed:", error);
+        });
+      }
+      
+      // Clean up when audio ends
+      horseRaceAnnouncementRef.current.addEventListener('ended', () => {
+        horseRaceAnnouncementRef.current = null;
+      });
+      
+    } catch (error) {
+      console.error("Error playing start race sound:", error);
+    }
+  };
+
   const stopStartRaceSound = () => {
     try {
       if (startRaceAudioRef.current) {
@@ -197,11 +272,29 @@ const HorseRacingGame = () => {
       console.error("Error stopping start race sound:", error);
     }
   };
-  const playHorseRunningSound = () => {
+
+  const stopHorseAnnouncementSound = () => {
+    try {
+      if (horseRaceAnnouncementRef.current) {
+        horseRaceAnnouncementRef.current.pause();
+        horseRaceAnnouncementRef.current.currentTime = 0;
+        horseRaceAnnouncementRef.current = null;
+      }
+    } catch (error) {
+      console.error("Error stopping start race sound:", error);
+    }
+  };
+  
+  const playHorseRunningSound = (horseRunningAudioRef) => {
     try {
       if (!horseRunningAudioRef.current) {
         horseRunningAudioRef.current = new Audio(horseRunningSound);
         horseRunningAudioRef.current.loop = true;
+        
+        // Set volume AFTER the audio is loaded
+        horseRunningAudioRef.current.addEventListener('loadeddata', () => {
+          horseRunningAudioRef.current.volume = 0.5;
+        });
         
         horseRunningAudioRef.current.load();
         
@@ -214,6 +307,7 @@ const HorseRacingGame = () => {
         }
       } else {
         horseRunningAudioRef.current.currentTime = 0;
+        horseRunningAudioRef.current.volume = 0.7; // Ensure volume is set
         horseRunningAudioRef.current.play();
       }
     } catch (error) {
@@ -227,6 +321,21 @@ const HorseRacingGame = () => {
         horseRunningAudioRef.current.pause();
         horseRunningAudioRef.current.currentTime = 0;
         horseRunningAudioRef.current = null;
+      }
+      if(horseRunningAudioRef2.current){
+        horseRunningAudioRef2.current.pause();
+        horseRunningAudioRef2.current.currentTime = 0;
+        horseRunningAudioRef2.current = null;
+      }
+      if(horseRunningAudioRef3.current){
+        horseRunningAudioRef3.current.pause();
+        horseRunningAudioRef3.current.currentTime = 0;
+        horseRunningAudioRef3.current = null;
+      }
+      if(horseRunningAudioRef4.current){
+        horseRunningAudioRef4.current.pause();
+        horseRunningAudioRef4.current.currentTime = 0;
+        horseRunningAudioRef4.current = null;
       }
     } catch (error) {
       console.error("Error stopping sound:", error);
@@ -258,6 +367,11 @@ const HorseRacingGame = () => {
       setCredits(urlUserDetails?.credits || localStorageUser?.userData?.data?.wallet?.balance);
     }
   }, [latestBalance]);
+  useEffect(() => {
+    if(countdown === 11){
+      play10sCountdown();
+    }
+  }, [countdown]);
 
   useEffect(() => {
     if (gameState === GameState.NewGame || gameState === GameState.WinnerDeclared) {
@@ -265,16 +379,15 @@ const HorseRacingGame = () => {
     }
   }, [gameState]);
 
-  useEffect(() => {
-    if (countdown === 10 && slots.size > 0) {
-      playStartRaceSound();
-    }
-  }, [countdown, slots]);
+  
+
+  
 
   useEffect(() => {
     if (!raceStarted) {
       stopHorseRunningSound();
       stopStartRaceSound();
+      stopHorseAnnouncementSound();
     }
   }, [raceStarted]);
 
@@ -879,7 +992,21 @@ const HorseRacingGame = () => {
       if (gameState === GameState.NewGame) {
         return;
       }
-      playHorseRunningSound();
+      playStartRaceSound(horseRunningAudioRef);
+      
+      setTimeout(() => {
+        playHorseRunningSound(horseRunningAudioRef2);
+      }, 500);
+      setTimeout(() => {
+        playHorseRunningSound(horseRunningAudioRef3);
+      }, 200);
+      setTimeout(() => {
+        playHorseRunningSound(horseRunningAudioRef4);
+      }, 800);
+
+      playHorseRaceAnnouncement();
+
+      playStartRaceSound();
       setTimerActive(true);
       setRaceStarted(true);
       

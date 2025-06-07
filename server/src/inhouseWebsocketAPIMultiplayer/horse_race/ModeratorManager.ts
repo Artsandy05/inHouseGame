@@ -420,11 +420,11 @@ const animateRace = (game, gameDataEntity, gameData, output) => {
         }
 
         // Mid-race burst
-        const inBurstZone = horse.raceProgress > 0.3 && horse.raceProgress < 0.9;
+        const inBurstZone = horse.raceProgress > 0.3 && horse.raceProgress < 0.8;
         let burstChance = 0.03 + horse.stamina * 0.001;
 
         if (horse.position === lastPlacePosition) {
-          burstChance += 0.3;
+          burstChance += 0.65;
         }
 
         if (
@@ -456,10 +456,10 @@ const animateRace = (game, gameDataEntity, gameData, output) => {
         newSpeed *= (0.5 - horse.fatigue);
 
         // Clamp speed
-        horse.speed = Math.max(0.05, Math.min(0.07, newSpeed));
+        horse.speed = Math.max(0.04, Math.min(0.09, newSpeed));
 
         // Animation speed sync
-        horse.animationSpeed = horse.baseAnimationSpeed * ((horse.speed * 1.1) / 0.015);
+        horse.animationSpeed = horse.baseAnimationSpeed * ((horse.speed * 1.1) / 0.018);
       });
     }
 

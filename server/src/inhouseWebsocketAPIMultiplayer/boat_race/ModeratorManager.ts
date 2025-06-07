@@ -419,11 +419,11 @@ const animateRace = (game, gameDataEntity, gameData, output) => {
         }
 
         // Mid-race burst
-        const inBurstZone = boat.raceProgress > 0.3 && boat.raceProgress < 0.9;
+        const inBurstZone = boat.raceProgress > 0.3 && boat.raceProgress < 0.8;
         let burstChance = 0.03 + boat.stamina * 0.001;
 
         if (boat.position === lastPlacePosition) {
-          burstChance += 0.3;
+          burstChance += 0.65;
         }
 
         if (
@@ -455,10 +455,10 @@ const animateRace = (game, gameDataEntity, gameData, output) => {
         newSpeed *= (0.5 - boat.fatigue);
 
         // Clamp speed
-        boat.speed = Math.max(0.05, Math.min(0.07, newSpeed));
+        boat.speed = Math.max(0.04, Math.min(0.09, newSpeed));
 
         // Animation speed sync
-        boat.animationSpeed = boat.baseAnimationSpeed * ((boat.speed * 1.1) / 0.015);
+        boat.animationSpeed = boat.baseAnimationSpeed * ((boat.speed * 1.1) / 0.018);
       });
     }
 

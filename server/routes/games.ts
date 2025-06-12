@@ -16,6 +16,10 @@ async function gamesRoutes(fastify) {
     schema: schema2.getGameHistory,
     handler: controllers2.getGameHistory,
   });
+  fastify.post("/generate-video", {
+    schema: schema2.generateVideo,
+    handler: controllers2.generateVideo,
+  });
 }
 
 export default gamesRoutes;

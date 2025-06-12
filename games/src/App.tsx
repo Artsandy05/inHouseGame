@@ -16,6 +16,7 @@ import PigeonRace from './pages/PigeonRace';
 import HorseRacingGame from './pages/HorseRace';
 import BoatRacingGame from './pages/BoatRace';
 import HorseRacingGameVersionTwo from './pages/HorseRaceVersionTwo';
+import RecreateMemoryPage from './pages/RecreateMemoryPage';
 
 const App = () => {
   return (
@@ -33,6 +34,7 @@ const App = () => {
           <Route path="/pigeon_race" element={<PigeonRace />} />
           <Route path="/horse_race" element={<HorseRacingGame />} />
           <Route path="/boat_race" element={<BoatRacingGame />} />
+          <Route path="/recreate_memories" element={<RecreateMemoryPage />} />
           {/* <Route path="/horse_race_v2" element={<HorseRacingGameVersionTwo />} /> */}
         </Routes>
       </Router>

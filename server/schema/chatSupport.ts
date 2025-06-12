@@ -109,6 +109,101 @@ const getGameHistory = {
   },
 };
 
+const generateVideo = {
+  body: {
+    type: "object",
+    required: ["params"],
+    properties: {
+      params: {
+        type: "object",
+        required: ["images"],
+        properties: {
+          images: {
+            type: "array",
+            items: {
+              type: "string",
+              description: "Base64 encoded image data"
+            },
+            minItems: 1,
+            description: "Array of base64 encoded images"
+          },
+          prompt: {
+            type: "string",
+            description: "Text prompt for video generation",
+            default: "Generate a video from this image"
+          }
+        }
+      }
+    }
+  },
+  response: {
+    200: {
+      type: "object",
+      properties: {
+        success: {
+          type: "boolean",
+          default: true
+        },
+        data: {
+          type: "object",
+          properties: {
+            videoFile: {
+              type: "string",
+              description: "Generated video filename"
+            },
+            videoUrl: {
+              type: "string",
+              description: "Full URL to the generated video (optional)"
+            },
+            taskId: {
+              type: "string",
+              description: "RunwayML task ID for reference"
+            }
+          }
+        },
+        message: {
+          type: "string",
+          default: "Video generated successfully!"
+        }
+      }
+    },
+    400: {
+      type: "object",
+      properties: {
+        success: {
+          type: "boolean",
+          default: false
+        },
+        message: {
+          type: "string",
+          description: "Error message for bad request"
+        },
+        error: {
+          type: "string",
+          description: "Detailed error information"
+        }
+      }
+    },
+    500: {
+      type: "object",
+      properties: {
+        success: {
+          type: "boolean",
+          default: false
+        },
+        message: {
+          type: "string",
+          description: "Error message for server error"
+        },
+        error: {
+          type: "string",
+          description: "Detailed error information"
+        }
+      }
+    }
+  }
+};
+
 const loginSchema = {
   response: {
     200: {
@@ -941,5 +1036,6 @@ const claimRepresentativePlayerTransactions = {
     getOverallTopGiversRanking,
     loginSchema,
     getGames,
-    getGameHistory
+    getGameHistory,
+    generateVideo
   };

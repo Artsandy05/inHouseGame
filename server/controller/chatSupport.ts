@@ -26,6 +26,9 @@ import LoadTransaction from '../models/LoadTransaction';
 import { DEDUCTCREDITS } from '../constants';
 import GameList from '../models/GameList';
 import { userInfo } from 'os';
+import fs from 'fs';
+import path from 'path';
+import RunwayML from '@runwayml/sdk';
 
 const getAllConversations = async (request, reply) => {
   try {
@@ -1790,6 +1793,149 @@ const claimRepresentativePlayerTransactions = async (request, reply) => {
   }
 };
 
+const generateVideo = async (request, reply) => {
+  try {
+    const { images, prompt } = request.body.params;
+    
+    // Initialize RunwayML client with your API secret
+    const client = new RunwayML({
+      apiKey: process.env.RUNWAYML_API_SECRET
+    });
+
+    // Ensure the directory exists
+    const generatedVideosDir = path.join(__dirname, '../public/uploads/images/generatedVideos');
+    if (!fs.existsSync(generatedVideosDir)) {
+      fs.mkdirSync(generatedVideosDir, { recursive: true });
+    }
+    
+    const details = await client.organization.retrieve();
+    console.log('CREDIT BALANCE IS ', details.creditBalance);
+    console.log('CLIENT DETAILS ', details);
+    
+    // We'll process the first image only for this example
+    const imageData = images[0];
+    const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64Data, 'base64');
+    
+    // Create a temporary file path
+    const tempFileName = `temp_${Date.now()}.png`;
+    const tempFilePath = path.join(generatedVideosDir, tempFileName);
+    
+    // Save the temporary image file
+    fs.writeFileSync(tempFilePath, buffer);
+
+    try {
+      // Create a new image-to-video task
+      const imageToVideo = await client.imageToVideo.create({
+        model: 'gen4_turbo',
+        promptImage: `data:image/png;base64,${base64Data}`,
+        promptText: prompt || 'Generate a video from this image',
+        ratio: '1280:720',
+        duration: 10, // 10 seconds
+      });
+
+      const taskId = imageToVideo.id;
+      console.log(`Started video generation task: ${taskId}`);
+
+      // Poll the task until it's complete
+      let task;
+      let attempts = 0;
+      const maxAttempts = 30; // 30 attempts * 10 seconds = 5 minutes max
+      
+      do {
+        // Wait for ten seconds before polling
+        await new Promise(resolve => setTimeout(resolve, 10000));
+        task = await client.tasks.retrieve(taskId);
+        attempts++;
+        
+        console.log(`Task status (attempt ${attempts}): ${task.status}`);
+        
+        // ADD THIS: Log the entire task object to see its structure
+        console.log('Full task object:', JSON.stringify(task, null, 2));
+        
+        if (attempts >= maxAttempts) {
+          throw new Error('Video generation timed out');
+        }
+      } while (!['SUCCEEDED', 'FAILED'].includes(task.status));
+
+      if (task.status === 'FAILED') {
+        throw new Error('Video generation failed: ' + (task.error || 'Unknown error'));
+      }
+
+      // MODIFIED: Try different possible property names for the video URL
+      let videoUrl = null;
+      
+      // Check various possible property names
+      if (task.result) {
+        videoUrl = task.result;
+      } else if (task.output) {
+        videoUrl = task.output;
+      } else if (task.outputs && task.outputs.length > 0) {
+        videoUrl = task.outputs[0];
+      } else if (task.artifacts && task.artifacts.length > 0) {
+        videoUrl = task.artifacts[0].url || task.artifacts[0];
+      } else if (task.video) {
+        videoUrl = task.video;
+      } else if (task.videoUrl) {
+        videoUrl = task.videoUrl;
+      }
+
+      console.log('Found video URL:', videoUrl);
+
+      if (!videoUrl) {
+        console.error('Task object structure:', JSON.stringify(task, null, 2));
+        throw new Error('No video URL found in task result. Check console for task structure.');
+      }
+
+      // Download the video
+      const videoFileName = `video_${Date.now()}.mp4`;
+      const videoFilePath = path.join(generatedVideosDir, videoFileName);
+      
+      console.log('Downloading video from:', videoUrl);
+      const response = await fetch(videoUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to download video: ${response.statusText}`);
+      }
+      
+      // Use arrayBuffer() for fetch response
+      const videoArrayBuffer = await response.arrayBuffer();
+      const videoBuffer = Buffer.from(videoArrayBuffer);
+      fs.writeFileSync(videoFilePath, videoBuffer);
+
+      console.log('Video saved to:', videoFilePath);
+
+      // Clean up temporary image file
+      fs.unlinkSync(tempFilePath);
+
+      // Use your custom success response format
+      return successResponse(
+        {
+          videoFile: videoFileName,
+          message: 'Video generated successfully'
+        },
+        'Video generated successfully!',
+        reply
+      );
+
+    } catch (error) {
+      // Clean up temporary file if something went wrong
+      if (fs.existsSync(tempFilePath)) {
+        fs.unlinkSync(tempFilePath);
+      }
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error generating video:', error);
+    
+    // Use your custom error response format
+    return errorResponse(
+      `Error generating video: ${error.message}`,
+      reply,
+      'custom'
+    );
+  }
+};
+
   
 
   
@@ -1835,5 +1981,6 @@ export default {
   getOverallTopGiversRanking,
   login,
   getGames,
-  getGameHistory
+  getGameHistory,
+  generateVideo,
 };

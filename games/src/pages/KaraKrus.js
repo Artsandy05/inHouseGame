@@ -10,6 +10,57 @@ import { formatTruncatedMoney, GameState } from '../utils/gameutils';
 import createEncryptor from '../utils/createEncryptor';
 import { getGameHistory } from '../services/gameService';
 const encryptor = createEncryptor(process.env.REACT_APP_DECRYPTION_KEY);
+const bgMusic = '/assets/sounds/relaxing-guitar-loop-v5-245859.mp3';
+const start = '/assets/sounds/coin-flip-37787.mp3';
+const drop = '/assets/sounds/wood-surface-single-coin-payout-8-215287.mp3';
+const complete = '/assets/sounds/spin-complete-295086.mp3';
+
+const useBackgroundAudio = (audioSrc, gameState) => {
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    // Create audio instance only once
+    if (!audioRef.current) {
+      audioRef.current = new Audio(audioSrc);
+      audioRef.current.loop = true;
+      audioRef.current.volume = 0.3;
+      
+      const unlockAudio = () => {
+        if (gameState === 'NewGame' || gameState === 'Open' || gameState === 'LastCall') {
+          audioRef.current.play().catch(e => console.log("Audio play error:", e));
+        }
+        document.removeEventListener('click', unlockAudio);
+      };
+
+      document.addEventListener('click', unlockAudio);
+    }
+    
+    // Control audio based on gameState
+    if (gameState === 'NewGame' || gameState === 'Open' || gameState === 'LastCall') {
+      audioRef.current.play().catch(e => console.log("Audio play error:", e));
+    } else {
+      audioRef.current.pause();
+    }
+    
+    return () => {
+      // Only cleanup on unmount, not on every gameState change
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, [gameState]); // Remove audioSrc from dependencies since we create audio only once
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+};
+
 const KaraKrus = () => {
   const [gameHistory, setGameHistory] = useState([]);
   const mountRef = useRef(null);
@@ -46,6 +97,113 @@ const KaraKrus = () => {
   const [showMechanics, setShowMechanics] = useState(false);
   const navigate = useNavigate();
   const historyItemsPerPage = 5;
+  const startAudioRef = useRef(null);
+  const completeAudioRef = useRef(null);
+  const dropAudioRef = useRef(null);
+
+  const playCoinFlip = () => {
+    try {
+      // Stop any currently playing start race sound
+      if (startAudioRef.current) {
+        startAudioRef.current.pause();
+        startAudioRef.current.currentTime = 0;
+      }
+      
+      // Create new audio instance
+      startAudioRef.current = new Audio(start);
+      startAudioRef.current.volume = 0.5; // 50% volume
+      
+      // Load the audio
+      startAudioRef.current.load();
+      
+      // Handle autoplay with promise
+      const playPromise = startAudioRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.error("Start race sound playback failed:", error);
+        });
+      }
+      
+      // Clean up when audio ends
+      startAudioRef.current.addEventListener('ended', () => {
+        startAudioRef.current = null;
+      });
+      
+    } catch (error) {
+      console.error("Error playing start race sound:", error);
+    }
+  };
+
+  const playDrop = () => {
+    try {
+      // Stop any currently playing start race sound
+      if (dropAudioRef.current) {
+        dropAudioRef.current.pause();
+        dropAudioRef.current.currentTime = 0;
+      }
+      
+      // Create new audio instance
+      dropAudioRef.current = new Audio(drop);
+      dropAudioRef.current.volume = 0.5; // 50% volume
+      
+      // Load the audio
+      dropAudioRef.current.load();
+      
+      // Handle autoplay with promise
+      const playPromise = dropAudioRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.error("Start race sound playback failed:", error);
+        });
+      }
+      
+      // Clean up when audio ends
+      dropAudioRef.current.addEventListener('ended', () => {
+        dropAudioRef.current = null;
+      });
+      
+    } catch (error) {
+      console.error("Error playing start race sound:", error);
+    }
+  };
+
+  const playComplete = () => {
+    try {
+      // Stop any currently playing start race sound
+      if (completeAudioRef.current) {
+        completeAudioRef.current.pause();
+        completeAudioRef.current.currentTime = 0;
+      }
+      
+      // Create new audio instance
+      completeAudioRef.current = new Audio(complete);
+      completeAudioRef.current.volume = 0.5; // 50% volume
+      
+      // Load the audio
+      completeAudioRef.current.load();
+      
+      // Handle autoplay with promise
+      const playPromise = completeAudioRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.error("complete race sound playback failed:", error);
+        });
+      }
+      
+      // Clean up when audio ends
+      completeAudioRef.current.addEventListener('ended', () => {
+        completeAudioRef.current = null;
+      });
+      
+    } catch (error) {
+      console.error("Error playing start race sound:", error);
+    }
+  };
+
+  useBackgroundAudio(bgMusic, gameState);
 
   const handleHistoryPage = (direction) => {
     const maxPages = Math.ceil(gameHistory.length / historyItemsPerPage);
@@ -176,6 +334,7 @@ const KaraKrus = () => {
 
   useEffect(() => {
     if (gameState === GameState.WinnerDeclared) {
+      playComplete();
       setOpenAnnouncement(true);
     } else {
       setOpenAnnouncement(false);
@@ -668,7 +827,14 @@ const KaraKrus = () => {
   
 
   const tossCoin = () => {
+    setTimeout(() => {
+      playCoinFlip();
+    }, 1500);
     
+    setTimeout(() => {
+      playDrop();
+    }, 3500);
+
     setBalance(prevBalance => prevBalance - betAmount);
     
     resetCoin();

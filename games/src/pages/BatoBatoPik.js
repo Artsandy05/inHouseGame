@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Button, Typography, Box, Container, TextField, Dialog, IconButton, DialogContent, DialogTitle, InputAdornment, DialogActions } from "@mui/material";
 import { useSpring, animated } from "@react-spring/web";
 import CloseIcon from '@mui/icons-material/Close';
@@ -39,9 +39,59 @@ const images = {
   vs: "/assets/vs.png",
 };
 
+const bgMusic = '/assets/sounds/that-game-arcade-short-236108.mp3';
+const whoosh = '/assets/sounds/whoosh-cinematic-161021.mp3';
+const complete = '/assets/sounds/spin-complete-295086.mp3';
+
 const getRandomChoice = () => {
   const choices = ["rock", "paper", "scissors"];
   return choices[Math.floor(Math.random() * choices.length)];
+};
+
+const useBackgroundAudio = (audioSrc, gameState) => {
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    // Create audio instance only once
+    if (!audioRef.current) {
+      audioRef.current = new Audio(audioSrc);
+      audioRef.current.loop = true;
+      audioRef.current.volume = 0.3;
+      
+      const unlockAudio = () => {
+        if (gameState === 'NewGame' || gameState === 'Open' || gameState === 'LastCall') {
+          audioRef.current.play().catch(e => console.log("Audio play error:", e));
+        }
+        document.removeEventListener('click', unlockAudio);
+      };
+
+      document.addEventListener('click', unlockAudio);
+    }
+    
+    // Control audio based on gameState
+    if (gameState === 'NewGame' || gameState === 'Open' || gameState === 'LastCall') {
+      audioRef.current.play().catch(e => console.log("Audio play error:", e));
+    } else {
+      audioRef.current.pause();
+    }
+    
+    return () => {
+      // Only cleanup on unmount, not on every gameState change
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, [gameState]); // Remove audioSrc from dependencies since we create audio only once
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 };
 
 const encryptor = createEncryptor(process.env.REACT_APP_DECRYPTION_KEY);
@@ -64,6 +114,8 @@ const BatoBatoPik = () => {
   const [credits, setCredits] = useState(0);
   const [totalBet, setTotalBet] = useState(0);
   const updatedBalance = Number(credits) - Number(totalBet);
+  const startAudioRef = useRef(null);
+  const completeAudioRef = useRef(null);
   
   const { gameState, setPlayerInfo, sendMessage, countdown, slots,setSlots,odds, allBets, winningBall, setUserInfo, topPlayers, juanChoice, pedroChoice, voidMessage, latestBalance } = playerStore();
   const { connect } = playerStore.getState();
@@ -102,7 +154,7 @@ const BatoBatoPik = () => {
     }
   };
 
-  
+  useBackgroundAudio(bgMusic, gameState);
 
   useEffect(() => {
     if(userInfo){
@@ -147,6 +199,7 @@ const BatoBatoPik = () => {
 
   useEffect(() => {
     if (gameState === GameState.WinnerDeclared) {
+      playComplete();
       setAnnouncementDialogOpen(true);
     } else {
       setAnnouncementDialogOpen(false);
@@ -248,10 +301,78 @@ const BatoBatoPik = () => {
     }
   }, [juanChoice, pedroChoice, isAnimationEnd]);
 
+  const playWhoosh = () => {
+    try {
+      // Stop any currently playing start race sound
+      if (startAudioRef.current) {
+        startAudioRef.current.pause();
+        startAudioRef.current.currentTime = 0;
+      }
+      
+      // Create new audio instance
+      startAudioRef.current = new Audio(whoosh);
+      startAudioRef.current.volume = 0.5; // 50% volume
+      
+      // Load the audio
+      startAudioRef.current.load();
+      
+      // Handle autoplay with promise
+      const playPromise = startAudioRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.error("Start race sound playback failed:", error);
+        });
+      }
+      
+      // Clean up when audio ends
+      startAudioRef.current.addEventListener('ended', () => {
+        startAudioRef.current = null;
+      });
+      
+    } catch (error) {
+      console.error("Error playing start race sound:", error);
+    }
+  };
+
+  const playComplete = () => {
+    try {
+      // Stop any currently playing start race sound
+      if (completeAudioRef.current) {
+        completeAudioRef.current.pause();
+        completeAudioRef.current.currentTime = 0;
+      }
+      
+      // Create new audio instance
+      completeAudioRef.current = new Audio(complete);
+      completeAudioRef.current.volume = 0.5; // 50% volume
+      
+      // Load the audio
+      completeAudioRef.current.load();
+      
+      // Handle autoplay with promise
+      const playPromise = completeAudioRef.current.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.error("complete race sound playback failed:", error);
+        });
+      }
+      
+      // Clean up when audio ends
+      completeAudioRef.current.addEventListener('ended', () => {
+        completeAudioRef.current = null;
+      });
+      
+    } catch (error) {
+      console.error("Error playing start race sound:", error);
+    }
+  };
   
   
   
   const startGame = () => {
+    playWhoosh();
     setIsGameRunning(true);
     setJuanChoiceFinal(null);
     setPedroChoiceFinal(null);

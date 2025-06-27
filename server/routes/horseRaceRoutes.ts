@@ -82,26 +82,26 @@ function horseRaceRoutes(fastify) {
     const userData = (socket as any).userData;
     clients.add(socket);
     await main.load(socket, userData);
-    const isTesting = process.env.IS_TESTING;
-    if (isTesting === 'false'){
-        try {
-          const callbackData = {
-              player_id: userData.id,
-              action: 'get-balance',
-          };
+    // const isTesting = process.env.IS_TESTING;
+    // if (isTesting === 'false'){
+    //     try {
+    //       const callbackData = {
+    //           player_id: userData.id,
+    //           action: 'get-balance',
+    //       };
 
-          const callbackResponse = await axios.post(process.env.KINGFISHER_API, callbackData);
-          const reponseData = JSON.stringify({
-            latestBalance: callbackResponse.data.credit,
-          });
+    //       const callbackResponse = await axios.post(process.env.KINGFISHER_API, callbackData);
+    //       const reponseData = JSON.stringify({
+    //         latestBalance: callbackResponse.data.credit,
+    //       });
       
-          socket.send(reponseData);
+    //       socket.send(reponseData);
 
-          console.log('Callback successful:', callbackResponse.data.credit);
-      } catch (callbackError) {
-          console.error('Error in API callback:', callbackError);
-      }
-    }
+    //       console.log('Callback successful:', callbackResponse.data.credit);
+    //   } catch (callbackError) {
+    //       console.error('Error in API callback:', callbackError);
+    //   }
+    // }
   });  
 
   startPingInterval();

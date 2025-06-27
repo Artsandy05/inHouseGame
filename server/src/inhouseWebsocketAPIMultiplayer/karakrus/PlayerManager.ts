@@ -16,6 +16,7 @@ import LosingBets from "../../../models/LosingBets";
 import axios from "axios";
 import { randomBytes } from "crypto";
 const isTesting = process.env.IS_TESTING;
+const api = process.env.KINGFISHER_API;
 
 export class PlayerManager implements Plugin {
 	build(game: Game): void {
@@ -54,7 +55,28 @@ export class PlayerManager implements Plugin {
     
     
     gameData.games.forEach(gameName => {
-      game.view(gameName === 'karakrus' ? KaraKrusGameStateChanged : null, Output).each((entity, stateChanged, output) => {
+      game.view(gameName === 'karakrus' ? KaraKrusGameStateChanged : null, Output, UserData).each((entity, stateChanged, output, userData) => {
+
+        const callbackData = {
+          player_id: userData.data.dataValues.id,
+          action: 'get-balance',
+        };
+        if(isTesting === 'false'){
+          axios.post(api, callbackData)
+            .then(callbackResponse => {
+              if (hasValue(output.msg) && typeof output.msg === 'string') {
+                let newOutPut = JSON.parse(output.msg);
+                newOutPut.latestBalance = callbackResponse.data.credit;
+                output.msg = JSON.stringify(newOutPut);
+              } else {
+                output.insert("latestBalance", callbackResponse.data.credit);
+              }
+            })
+            .catch(error => {
+              console.error('Error while fetching balance:', error);
+          });
+        }
+        
         const convertedAllBets = {karakrus:[]};
 
         for (let key in convertedAllBets) {
@@ -387,7 +409,6 @@ function broadcastWinners(game: Game) {
       }
     });
   })
-
 }
 
 function before(game: Game) {

@@ -491,6 +491,7 @@ const animateRace = (game, gameDataEntity, gameData, output) => {
               state: gameData.state,
               winnerDeclareStatus: {game:'boatRace', value:'Success'}  // Notify that the declaration was successful
             };
+            
             gameData.winnerOrders['boatRace'] = boats[idx].id;  // Store the winner orders in the game data
 
             game.emplace(gameDataEntity, new GameDb());

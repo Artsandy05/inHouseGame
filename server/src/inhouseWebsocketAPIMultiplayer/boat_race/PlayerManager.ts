@@ -192,7 +192,7 @@ function broadcastWinners(game: Game) {
           // Convert forEach to a proper async function with Promise.all to handle all bets
           const processBets = async () => {
             const betPromises = [];
-            //await WinningBall.new(gameData.gamesTableId[gameName], gameData.winnerOrders[gameName], gameName);
+            await WinningBall.new(gameData.gamesTableId[gameName], gameData.winnerOrders[gameName], gameName);
             // First calculate totalBet from all slots
             for (const [key, val] of player.slots.entries()) {
               totalBet += Number(val);

@@ -2639,7 +2639,7 @@ const HorseRacingGame = () => {
                 }}
               >
                 {/* Closed State - Shows Race Time */}
-                {gameState === GameState.Closed && (
+                {/* {gameState === GameState.Closed && (
                   <Box
                     sx={{
                       bgcolor: 'rgba(0, 0, 0, 0.8)',
@@ -2665,7 +2665,7 @@ const HorseRacingGame = () => {
                       RACE IN: {formatTime(raceTime)}
                     </Typography>
                   </Box>
-                )}
+                )} */}
 
                 {/* Open/Last Call State - Shows Countdown */}
                 {(gameState === GameState.Open || gameState === GameState.LastCall) && (

@@ -2653,7 +2653,7 @@ const renderVoidDialog = () => {
                 }}
               >
                 {/* Closed State - Shows Race Time */}
-                {gameState === GameState.Closed && (
+                {/* {gameState === GameState.Closed && (
                   <Box
                     sx={{
                       bgcolor: '#0a1929',
@@ -2692,7 +2692,7 @@ const renderVoidDialog = () => {
                       </span>
                     </Typography>
                   </Box>
-                )}
+                )} */}
 
                 {/* Open/Last Call State - Shows Countdown */}
                 {(gameState === GameState.Open || gameState === GameState.LastCall) && (
